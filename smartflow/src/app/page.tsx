@@ -58,7 +58,7 @@ const ITSystemLogin: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    // if (!validateForm()) return;
     
     setIsLoading(true);
     
@@ -66,8 +66,7 @@ const ITSystemLogin: React.FC = () => {
     setTimeout(() => {
       console.log('Login attempt:', formData);
       setIsLoading(false);
-      // In real app, handle authentication here
-      alert('Login functionality would be implemented here');
+      window.location.href =  "/paths"
     }, 1500);
   };
   
