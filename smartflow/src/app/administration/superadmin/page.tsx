@@ -419,7 +419,7 @@ const SuperAdminDashboard = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">IT Management System</h1>
+              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
             </div>
             <div className="flex items-center space-x-4">
               <button className="relative p-2 text-gray-400 hover:text-gray-600">
