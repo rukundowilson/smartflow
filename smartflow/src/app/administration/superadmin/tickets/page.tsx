@@ -242,59 +242,122 @@ export default function Ticketing() {
                     <div className="relative">
                       <ActionButton icon={Plus} label="New Ticket" onClick={toggleDropdownForm} />
                       {showDropdownForm && (
-                        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                          <div className="p-4 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold text-gray-900">New Ticket</h3>
-                              <button
-                                onClick={() => setShowDropdownForm(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <X className="h-5 w-5" />
-                              </button>
-                            </div>
-                            
-                            <form className="space-y-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">Title</label>
-                                <input
-                                  type="text"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">Employee</label>
-                                <input
-                                  type="text"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700">Priority</label>
-                                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
-                                  <option>High</option>
-                                  <option>Medium</option>
-                                  <option>Low</option>
-                                </select>
-                              </div>
-                              <div className="flex justify-end space-x-2">
+                        <>
+                          {/* Mobile: Full screen overlay */}
+                          <div className="fixed inset-0 bg-white/70 bg-opacity-50 z-50 sm:hidden" onClick={() => setShowDropdownForm(false)} />
+                          <div className="fixed inset-x-4 top-20 bg-white border border-gray-200 rounded-lg shadow-lg z-50 sm:hidden">
+                            <div className="p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">New Ticket</h3>
                                 <button
-                                  type="button"
                                   onClick={() => setShowDropdownForm(false)}
-                                  className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                                  className="text-gray-400 hover:text-gray-600"
                                 >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700"
-                                >
-                                  Submit
+                                  <X className="h-5 w-5" />
                                 </button>
                               </div>
-                            </form>
+                              
+                              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowDropdownForm(false); }}>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Title</label>
+                                  <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Employee</label>
+                                  <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Priority</label>
+                                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                  </select>
+                                </div>
+                                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowDropdownForm(false)}
+                                    className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700 transition-colors"
+                                  >
+                                    Submit
+                                  </button>
+                                </div>
+                              </form>
+                            </div>
                           </div>
-                        </div>
+
+                          {/* Desktop: Regular dropdown */}
+                          <div className="hidden sm:block absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                            <div className="p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">New Ticket</h3>
+                                <button
+                                  onClick={() => setShowDropdownForm(false)}
+                                  className="text-gray-400 hover:text-gray-600"
+                                >
+                                  <X className="h-5 w-5" />
+                                </button>
+                              </div>
+                              
+                              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setShowDropdownForm(false); }}>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Title</label>
+                                  <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Employee</label>
+                                  <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">Priority</label>
+                                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                  </select>
+                                </div>
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowDropdownForm(false)}
+                                    className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700 transition-colors"
+                                  >
+                                    Submit
+                                  </button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -393,7 +456,7 @@ export default function Ticketing() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-gray-100 bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md relative">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
