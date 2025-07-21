@@ -23,6 +23,8 @@ import {
   MessageSquare,
   Calendar
 } from 'lucide-react';
+import NavBar from './components/navbar';
+import SideBar from './components/sidebar';
 
 const ITStaffDashboard = () => {
   const [activeModule, setActiveModule] = useState('overview');
@@ -473,7 +475,7 @@ const ITStaffDashboard = () => {
 
   const modules = [
     { id: 'overview', name: 'Overview', icon: Monitor },
-    { id: 'tickets', name: 'My Tickets', icon: Wrench },
+    { id: 'tickets', name: 'Tickets', icon: Wrench },
     { id: 'access-requests', name: 'Access Requests', icon: Key },
     { id: 'item-requests', name: 'Item Requisitions', icon: Package },
   ];
@@ -481,78 +483,12 @@ const ITStaffDashboard = () => {
   return (
     <div className="min-h-screen bg-[#F0F8F8]">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">IT Staff</p>
-                  <p className="text-xs text-gray-500">itstaff@company.com</p>
-                </div>
-                <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">IT</span>
-                </div>
-              </div>
-              <button className="text-gray-400 hover:text-gray-600">
-                <LogOut className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <NavBar/>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex">
           {/* Sidebar */}
-          <nav className="w-64 bg-white rounded-lg shadow-sm border border-gray-100 p-4 mr-6">
-            <div className="space-y-1">
-              {modules.map(module => (
-                <button
-                  key={module.id}
-                  onClick={() => setActiveModule(module.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeModule === module.id
-                      ? 'bg-sky-100 text-sky-700 border-r-2 border-sky-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <module.icon className="h-4 w-4 mr-3" />
-                  {module.name}
-                </button>
-              ))}
-            </div>
-            
-            {/* IT Staff Quick Stats */}
-            <div className="mt-8 p-4 bg-sky-50 rounded-lg">
-              <h4 className="text-sm font-medium text-sky-900 mb-3">Today's Progress</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-sky-700">Tickets Resolved</span>
-                  <span className="font-medium text-sky-900">3/8</span>
-                </div>
-                <div className="w-full bg-sky-200 rounded-full h-1.5">
-                  <div className="bg-sky-600 h-1.5 rounded-full" style={{width: '37.5%'}}></div>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-sky-700">Approvals Done</span>
-                  <span className="font-medium text-sky-900">7/12</span>
-                </div>
-                <div className="w-full bg-sky-200 rounded-full h-1.5">
-                  <div className="bg-sky-600 h-1.5 rounded-full" style={{width: '58%'}}></div>
-                </div>
-              </div>
-            </div>
-          </nav>
-
+          <SideBar/>
           {/* Main Content */}
           <main className="flex-1">
             {activeModule === 'overview' && renderOverview()}

@@ -18,13 +18,13 @@ export default function PrototypeLinks() {
     },
     {
       name: "IT Department Dashboard",
-      path: "/departments/it-department",
+      path: "/departments/it-department/overview",
       description: "Grant/revoke system access, handle IT tickets and equipment requests.",
       new: false,
     },
     {
       name: "Other Departments Dashboard",
-      path: "/departments/others",
+      path: "/departments/others/overview",
       description: "Make item requisitions and issue reports, track their progress.",
       new: true,
     },

@@ -1,25 +1,10 @@
 "use client"
 import React, { useState } from 'react';
 import { 
-  Users, 
-  Ticket, 
-  Key, 
-  UserMinus, 
-  Package, 
   Plus, 
-  Search, 
-  Filter,
   Eye,
-  Edit,
-  Trash2,
   CheckCircle,
   XCircle,
-  Clock,
-  AlertCircle,
-  Monitor,
-  Settings,
-  Bell,
-  LogOut
 } from 'lucide-react';
 import NavBar from "../components/nav";
 import SideBar from "../components/sidebar";

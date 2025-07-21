@@ -95,8 +95,13 @@ const tickets = [
 
 export default function Ticketing(){
     const [selectedTickets, setSelectedTickets] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const openModal = () => setIsModalOpen(true);
+    const closeModal = () => setIsModalOpen(false);
+    const [showDropdownForm, setShowDropdownForm] = useState(false);
+    const toggleDropdownForm = () => setShowDropdownForm(prev => !prev);
 
-    
+        
     
     return(
         <>
@@ -123,7 +128,55 @@ export default function Ticketing(){
                                     />
                                 </div>
                                 <ActionButton icon={Filter} label="Filter" variant="secondary" />
-                                <ActionButton icon={Plus} label="New Ticket" />
+                                <div className="relative">
+                                  <ActionButton icon={Plus} label="New Ticket" onClick={toggleDropdownForm} />
+                                  {showDropdownForm && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                                      <form className="p-4 space-y-4">
+                                        <h3 className="text-lg font-semibold text-gray-900">New Ticket</h3>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700">Title</label>
+                                          <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700">Employee</label>
+                                          <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700">Priority</label>
+                                          <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500">
+                                            <option>High</option>
+                                            <option>Medium</option>
+                                            <option>Low</option>
+                                          </select>
+                                        </div>
+                                        <div className="flex justify-end space-x-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowDropdownForm(false)}
+                                            className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            type="submit"
+                                            className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700"
+                                          >
+                                            Submit
+                                          </button>
+                                        </div>
+                                      </form>
+                                    </div>
+                                  )}
+                                </div>
+
+
                                 </div>
                             </div>
 
@@ -177,6 +230,42 @@ export default function Ticketing(){
                     </div>
                 </div>
             </div>
+
+            {isModalOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Ticket</h3>
+      <form className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Title</label>
+          <input type="text" className="w-full px-3 py-2 border rounded-md focus:ring-sky-500 focus:border-sky-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Employee</label>
+          <input type="text" className="w-full px-3 py-2 border rounded-md focus:ring-sky-500 focus:border-sky-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Priority</label>
+          <select className="w-full px-3 py-2 border rounded-md focus:ring-sky-500 focus:border-sky-500">
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <button type="button" onClick={closeModal} className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300">
+            Cancel
+          </button>
+          <button type="submit" className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700">
+            Submit
+          </button>
+        </div>
+      </form>
+      <button onClick={closeModal} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg">&times;</button>
+    </div>
+  </div>
+)}
+
         </>
     )
 }
