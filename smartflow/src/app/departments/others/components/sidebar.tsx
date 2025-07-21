@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { 
   Users, 
   Ticket, 
@@ -15,8 +15,6 @@ import {
 function SideBar() {
      const pathname = usePathname(); 
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [activeModule, setActiveModule] = useState('overview');
 
   const modules = [
