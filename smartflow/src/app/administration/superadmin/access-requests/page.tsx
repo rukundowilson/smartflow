@@ -79,6 +79,9 @@ interface ActionButtonProps {
 
 
 export default function AccessManagement(){
+  const [showDropdownForm, setShowDropdownForm] = useState(false);
+  const toggleDropdownForm = () => setShowDropdownForm(prev => !prev);
+
     const accessRequests = [
     { id: 'AR001', employee: 'Alice Brown', requestedBy: 'HR Team', systems: ['CRM', 'Payroll'], status: 'Pending', created: '2025-07-19' },
     { id: 'AR002', employee: 'Bob Wilson', requestedBy: 'IT Manager', systems: ['Admin Panel'], status: 'Approved', created: '2025-07-18' },
@@ -96,7 +99,58 @@ export default function AccessManagement(){
                 <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-gray-900">Access Requests</h2>
-                    <ActionButton icon={Plus} label="New Request" />
+                    <div className="relative">
+  <ActionButton icon={Plus} label="New Request" onClick={toggleDropdownForm} />
+  {showDropdownForm && (
+    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+      <form className="p-4 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900">New Access Request</h3>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Employee Name</label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Requested By</label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Systems</label>
+          <input
+            type="text"
+            placeholder="e.g. CRM, Payroll"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+          />
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            onClick={() => setShowDropdownForm(false)}
+            className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-700"
+          >
+            Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  )}
+</div>
+
                 </div>
 
                 <div className="bg-white shadow-sm rounded-lg border border-gray-100">
