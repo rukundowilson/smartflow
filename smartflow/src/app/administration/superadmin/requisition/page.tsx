@@ -156,7 +156,7 @@ export default function Requisition(){
                                     <div className="relative">
                                         <button 
                                             onClick={() => setIsModalOpen(true)}
-                                            className="bg-[#87CEEB] hover:bg-[#00AEEF] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200"
+                                            className="bg-[#00AEEF] hover:bg-[#87CEEB] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200"
                                         >
                                             <Plus className="h-4 w-4" />
                                             New Request
@@ -238,127 +238,130 @@ export default function Requisition(){
                 </div>
             </div>
 
-            {/* Modal Dropdown */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-40" onClick={() => setIsModalOpen(false)}>
-                    <div 
-                        className="absolute top-20 right-8 bg-white rounded-xl w-96 p-6 shadow-2xl border border-gray-200 animate-in slide-in-from-top-2 duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold text-[#333]">New Item Request</h2>
-                            <button 
-                                onClick={() => setIsModalOpen(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                <XCircle className="h-6 w-6" />
-                            </button>
-                        </div>
+  <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/10 pt-24" onClick={() => setIsModalOpen(false)}>
+    <div 
+      className="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl border border-gray-200 animate-in slide-in-from-top-2 duration-200"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-[#333]">New Item Request</h2>
+        <button 
+          onClick={() => setIsModalOpen(false)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <XCircle className="h-6 w-6" />
+        </button>
+      </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-[#333] mb-2">
-                                    Item Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    name="item"
-                                    value={formData.item}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
-                                    placeholder="e.g., MacBook Pro, Wireless Mouse"
-                                />
-                            </div>
+      {/* ✅ Form Start */}
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-                            <div>
-                                <label className="block text-sm font-medium text-[#333] mb-2">
-                                    Category *
-                                </label>
-                                <select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
-                                >
-                                    <option value="">Select Category</option>
-                                    <option value="Laptop">Laptop</option>
-                                    <option value="Desktop">Desktop</option>
-                                    <option value="Monitor">Monitor</option>
-                                    <option value="Printer">Printer</option>
-                                    <option value="Accessories">Accessories</option>
-                                    <option value="Software">Software</option>
-                                    <option value="Cables">Cables</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Item Name *
+          </label>
+          <input
+            type="text"
+            name="item"
+            value={formData.item}
+            onChange={handleInputChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+            placeholder="e.g., MacBook Pro, Wireless Mouse"
+          />
+        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-[#333] mb-2">
-                                    Quantity *
-                                </label>
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    value={formData.quantity}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
-                                />
-                            </div>
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Category *
+          </label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleInputChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none bg-white text-gray-700"
+          >
+            <option value="">Select Category</option>
+            <option value="Laptop">Laptop</option>
+            <option value="Desktop">Desktop</option>
+            <option value="Monitor">Monitor</option>
+            <option value="Printer">Printer</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Software">Software</option>
+            <option value="Cables">Cables</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-[#333] mb-2">
-                                    Priority
-                                </label>
-                                <select
-                                    name="priority"
-                                    value={formData.priority}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
-                                >
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                </select>
-                            </div>
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Quantity *
+          </label>
+          <input
+            type="number"
+            name="quantity"
+            value={formData.quantity}
+            onChange={handleInputChange}
+            min="1"
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+          />
+        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-[#333] mb-2">
-                                    Reason for Request *
-                                </label>
-                                <textarea
-                                    name="reason"
-                                    value={formData.reason}
-                                    onChange={handleInputChange}
-                                    required
-                                    rows={3}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
-                                    placeholder="Please explain why you need this item..."
-                                />
-                            </div>
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Priority
+          </label>
+          <select
+            name="priority"
+            value={formData.priority}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none bg-white text-gray-700"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
 
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-[#87CEEB] hover:bg-[#00AEEF] text-white rounded-lg transition-colors duration-200"
-                                >
-                                    Submit Request
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Reason for Request *
+          </label>
+          <textarea
+            name="reason"
+            value={formData.reason}
+            onChange={handleInputChange}
+            required
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+            placeholder="Please explain why you need this item..."
+          />
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(false)}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200"
+          >
+            Submit Request
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+)}
+
         </>
     )
 }
