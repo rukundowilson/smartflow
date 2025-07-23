@@ -71,7 +71,7 @@ const ITSystemLogin: React.FC = () => {
   };
   
   const handleRegisterClick = () => {
-    alert('Redirect to employee registration form');
+    window.location.href = "/auth/signup"
   };
 
   return (
