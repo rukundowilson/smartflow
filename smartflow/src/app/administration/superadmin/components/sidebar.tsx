@@ -46,7 +46,7 @@ function SideBar({ className = "" }: SideBarProps) {
   };
 
   return (
-    <nav className={`w-64 bg-white rounded-lg shadow-sm border border-gray-100 p-4 mr-6 min-h-[200px] hidden lg:block ${className}`}>
+    <nav className={`w-64 bg-white max-h-200 rounded-lg shadow-sm border border-gray-100 p-4 mr-6 min-h-[200px] hidden lg:block ${className}`}>
       <div className="space-y-1">
         {modules.map((module) => (
           <button

@@ -1,6 +1,6 @@
-import register from '../service/userService.js';
+import {register,getSystemUsers} from '../service/userService.js';
 
-export default async function registerUser(req, res) {
+async function registerUser(req, res) {
   try {
     const userData = req.body;
 
@@ -23,3 +23,18 @@ export default async function registerUser(req, res) {
     });
   }
 }
+
+// get all users of the system
+async function systemUsers(req,res) {
+  try {
+    const users = await getSystemUsers();
+    return res.status(200).json({
+      users : users
+    })
+  } catch (error) {
+    console.log(error)
+    return [];
+  }
+}
+export {registerUser,systemUsers}
+export default {registerUser,systemUsers}
