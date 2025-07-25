@@ -1,4 +1,7 @@
+import { log } from "console";
 import API from "../utils/axios";
+import { extractId, formatPrefixedId } from "../helper/formatUid";
+import { getCurrentTimestamp } from "../helper/currentTime";
 interface BackendUser {
   application_id: number;
   user_id: number;
@@ -9,8 +12,16 @@ interface BackendUser {
   submitted_by: string;
   hr_reviewed_by: string | null;
   reviewed_at: string | null;
-  department: string; // Make sure your backend includes this, if renamed from `role`
+  department: string; 
 }
+
+export interface UpdateStatus {
+  id: string;
+  status: "approved" | "rejected";
+  hr_reviewed_by: number;
+  reviewed_at: string;
+}
+
 
 interface AccessRequest {
   id: string;
@@ -39,7 +50,7 @@ export async function getSystemUsers(): Promise<AccessRequest[]> {
       const systems = departmentSystems[department] || ["General Dashboard"];
 
       return {
-        id: `AR${String(user.application_id).padStart(3, "0")}`,
+        id: formatPrefixedId("AR", user.application_id),
         employee: user.full_name,
         requestedBy: user.submitted_by,
         systems,
@@ -48,12 +59,27 @@ export async function getSystemUsers(): Promise<AccessRequest[]> {
         department
       };
     });
-    console.log("test 001",backendUsers)
-        console.log("test 002",accessRequests)
-
     return accessRequests;
   } catch (error) {
     console.error("Error fetching system users:", error);
     return [];
   }
 }
+
+export async function applicationReview(userData: UpdateStatus, action : string): Promise<any> {
+  try {
+    const uid_unextracted = userData.id;
+    const reviewedAt = getCurrentTimestamp();
+
+    const application_id = extractId(uid_unextracted,"AR");
+    const newStatus = {id : application_id, status : action,reviewed_by : 4, reviewed_at : reviewedAt}
+    console.log(`ready to bounce ${application_id} ${action}`)
+    const resp = await API.post("/api/application/review", newStatus);
+    console.log(resp.data)
+    return resp.data;
+  } catch (error: any) {
+    console.error("Failed to update application:", error);
+    throw error.response?.data || error;
+  }
+}
+

@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, AlertCircle, Filter, Search } from 'lucide-react';
-import { getSystemUsers } from '@/app/helpers/users';
+import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search } from 'lucide-react';
+import { applicationReview, getSystemUsers } from '@/app/service/userService';
 import NavBar from '../components/nav';
 import SideBar from '../components/sidebar';
 
@@ -65,11 +65,12 @@ const AccessRequestDashboard = () => {
     setComment('');
   };
 
-  const handleAction = async (action : any) => {
+  const handleAction = async (action : string) => {
     if (!selectedRequest) return;
+    console.log(action)
 
     setIsProcessing(true);
-    
+
     setTimeout(() => {
       setAccessRequests((prev : any) => 
         prev.map((req : any) => 
@@ -78,9 +79,10 @@ const AccessRequestDashboard = () => {
             : req
         )
       );
+      applicationReview(selectedRequest,action)
       setIsProcessing(false);
       closeModal();
-    }, 1000);
+    },7000);
   };
 
   const handleSelectItem = (id : any) => {
@@ -137,6 +139,8 @@ const AccessRequestDashboard = () => {
       useEffect(() => {
           callHelper()
       }, []);
+
+      console.log(selectedRequest)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -633,6 +637,38 @@ const AccessRequestDashboard = () => {
                       <CheckCircle className="h-4 w-4 mr-2" />
                     )}
                     Approve
+                  </button>
+                </>
+              )}
+              {selectedRequest.status === 'approved' && (
+                <>
+                  <button
+                    onClick={() => handleAction('rejected')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 transition-colors disabled:opacity-50 flex items-center"
+                  >
+                    {isProcessing ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-2" />
+                    )}
+                    revoke
+                  </button>
+                </>
+              )}
+              {selectedRequest.status === 'rejected' && (
+                <>                 
+                  <button
+                    onClick={() => handleAction('approved')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 transition-colors disabled:opacity-50 flex items-center"
+                  >
+                    {isProcessing ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    approve
                   </button>
                 </>
               )}

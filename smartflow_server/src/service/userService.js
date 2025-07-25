@@ -53,7 +53,7 @@ async function getSystemUsers() {
              u.status AS user_status,
              ra.status AS application_status,
              ra.submitted_by,
-             ra.hr_reviewed_by,
+             ra.reviewed_by,
              ra.reviewed_at
       FROM registration_applications ra
       JOIN users u ON ra.user_id = u.id
@@ -66,6 +66,18 @@ async function getSystemUsers() {
   }
 }
 
+// Approve or reject registration application
+async function updateApplicationStatus({ id, status, hr_reviewed_by, reviewed_at }) {
+  console.log(`recived ${id}, ${status}`)
+  const [result] = await db.query(
+    `UPDATE registration_applications
+     SET status = ?, reviewed_by = ?, reviewed_at = ?
+     WHERE id = ?`,
+    [status, hr_reviewed_by, reviewed_at, id]
+  );
+  return result.affectedRows > 0;
+}
+
 // Export as named and default
-export { getSystemUsers, register };
+export { getSystemUsers, register, updateApplicationStatus};
 export default { getSystemUsers, register };
