@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import db from "../config/db.js";
 
-export default async function register(data) {
+async function register(data) {
   const { full_name, email, password, role = 'employee' } = data;
 
   try {
@@ -17,7 +17,7 @@ export default async function register(data) {
 
     // 3. Insert user into users table
     const [result] = await db.query(
-      'INSERT INTO users (full_name, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO users (full_name, email, password_hash, department, status) VALUES (?, ?, ?, ?, ?)',
       [full_name, email, passwordHash, role, 'pending']
     );
 
@@ -41,3 +41,31 @@ export default async function register(data) {
     throw error;
   }
 }
+
+async function getSystemUsers() {
+  try {
+    const [rows] = await db.execute(`
+      SELECT ra.id AS application_id, 
+             u.id AS user_id,
+             u.full_name,
+             u.department,
+             u.email,
+             u.status AS user_status,
+             ra.status AS application_status,
+             ra.submitted_by,
+             ra.hr_reviewed_by,
+             ra.reviewed_at
+      FROM registration_applications ra
+      JOIN users u ON ra.user_id = u.id
+    `);
+
+    return rows;
+  } catch (error) {
+    console.error("❌ Error fetching system users:", error.message);
+    throw error;
+  }
+}
+
+// Export as named and default
+export { getSystemUsers, register };
+export default { getSystemUsers, register };
