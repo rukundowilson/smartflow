@@ -290,8 +290,10 @@ export default function RegistrationPage() {
               onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors"
             >
-              <option value="employee">Employee</option>
-              <option value="it_staff">IT Staff</option>
+              <option value="it">IT department</option>
+              <option value="superadmin">superadmin</option>
+              <option value="hr">human resource</option>
+              <option value="other">other</option>
             </select>
           </div>
 

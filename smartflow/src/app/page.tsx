@@ -1,6 +1,9 @@
 "use client"
 import React, { useState } from 'react';
 import { AlertCircle, User, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { login } from './services/auth/loginService';
+import { useRouter } from "next/navigation";
+import { redirectByDepartment } from './helpers/redirects';
 
 interface LoginFormData {
   personalEmail: string;
@@ -21,6 +24,9 @@ const ITSystemLogin: React.FC = () => {
   
   // Mock state for registration link - in real app this would come from API
   const [registrationOpen, setRegistrationOpen] = useState(true);
+
+  const router = useRouter();
+
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,18 +61,23 @@ const ITSystemLogin: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // if (!validateForm()) return;
+    if (!validateForm()) return;
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    setTimeout(async() => {
       console.log('Login attempt:', formData);
+      try {
+        const { token, user } = await login(formData);
+        localStorage.setItem("token", token);
+        redirectByDepartment(user.department, router);
+      } catch (err) {
+        console.log("catch error", err);
+      }
       setIsLoading(false);
-      window.location.href =  "/paths"
     }, 1500);
   };
   

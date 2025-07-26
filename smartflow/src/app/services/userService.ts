@@ -1,7 +1,7 @@
 import { log } from "console";
 import API from "../utils/axios";
-import { extractId, formatPrefixedId } from "../helper/formatUid";
-import { getCurrentTimestamp } from "../helper/currentTime";
+import { extractId, formatPrefixedId } from "../helpers/formatUid";
+import { getCurrentTimestamp } from "../helpers/currentTime";
 interface BackendUser {
   application_id: number;
   user_id: number;
