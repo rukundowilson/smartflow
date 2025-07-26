@@ -15,6 +15,7 @@ import {
   Package,
   Monitor,
 } from 'lucide-react';
+import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
   { id: 'overview', name: 'Overview', icon: Monitor },
@@ -31,11 +32,13 @@ export default function NavBar() {
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const { user, token, isAuthenticated, logout } = useAuth();
   // Set active module from URL on mount
   useEffect(() => {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
+      console.log("got a user yeeh",user,token)
     }
   }, [pathname]);
 
@@ -71,14 +74,14 @@ export default function NavBar() {
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">Super Admin</p>
-                  <p className="text-xs text-gray-500">admin@company.com</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">SA</span>
                 </div>
               </div>
               <button className="text-gray-400 hover:text-gray-600">
-                <LogOut className="h-5 w-5" />
+                <LogOut onClick={logout} className="h-5 w-5" />
               </button>
             </div>
 
@@ -126,10 +129,10 @@ export default function NavBar() {
                   <div className="flex items-center justify-between px-3 py-2">
                     <div>
                       <p className="text-sm font-medium text-gray-900">Super Admin</p>
-                      <p className="text-xs text-gray-500">admin@company.com</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">
-                      <LogOut className="h-5 w-5" />
+                      <LogOut onClick={logout} className="h-5 w-5" />
                     </button>
                   </div>
                 </div>

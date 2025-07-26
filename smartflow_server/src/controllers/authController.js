@@ -1,32 +1,27 @@
-// services/authService.js
-import db from "../config/db.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+// controllers/authController.js
+import { authenticateUser } from "../services/authService.js";
 
-export async function authenticateUser(email, password) {
-  const [users] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+export async function loginController(req, res) {
+  try {
+    const { email, password } = req.body;
 
-  if (users.length === 0) {
-    throw { status: 404, message: "User not found" };
+    if (!email || !password) {
+      return res.status(400).json({ status: 400, message: "Email and password are required" });
+    }
+
+    const { token, user } = await authenticateUser(email, password);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Login successful",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(error.status || 500).json({
+      status: error.status || 500,
+      message: error.message || "Internal Server Error",
+    });
   }
-
-  const user = users[0];
-  const isValid = await bcrypt.compare(password, user.password_hash);
-  if (!isValid) {
-    throw { status: 401, message: "Invalid password" };
-  }
-
-  const token = jwt.sign(
-    {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      department: user.department,
-      status: user.status,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  return { token, user };
 }

@@ -1,9 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search } from 'lucide-react';
-import { applicationReview, getSystemUsers } from '@/app/service/userService';
+import { applicationReview, getSystemUsers } from '@/app/services/userService';
 import NavBar from '../components/nav';
 import SideBar from '../components/sidebar';
+import { useAuth } from '@/app/contexts/auth-context';
 
 const SpinLoading = () => (
   <div className="flex justify-center items-center py-8">
@@ -22,6 +23,7 @@ const AccessRequestDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const {user} = useAuth();
 
 
   // Sample data based on your API structure
@@ -79,7 +81,8 @@ const AccessRequestDashboard = () => {
             : req
         )
       );
-      applicationReview(selectedRequest,action)
+      applicationReview(selectedRequest,action, user?.id)
+      console.log(user?.id)
       setIsProcessing(false);
       closeModal();
     },7000);
