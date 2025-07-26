@@ -40,13 +40,14 @@ async function systemUsers(req,res) {
 
 export async function reviewRegistrationApplication(req, res) {
   try {
-    const { id, status, hr_reviewed_by, reviewed_at } = req.body;
+    const { id, status, reviewer, reviewed_at } = req.body;
+    console.log(reviewer)
 
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
     }
 
-    const success = await updateApplicationStatus({ id, status, hr_reviewed_by, reviewed_at });
+    const success = await updateApplicationStatus({ id, status, reviewer, reviewed_at });
 
     if (!success) {
       return res.status(404).json({ error: "Application not found or not updated" });

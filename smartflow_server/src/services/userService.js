@@ -67,13 +67,13 @@ async function getSystemUsers() {
 }
 
 // Approve or reject registration application
-async function updateApplicationStatus({ id, status, hr_reviewed_by, reviewed_at }) {
-  console.log(`recived ${id}, ${status}`)
+async function updateApplicationStatus({ id, status, reviewer, reviewed_at }) {
+  console.log(`recived ${id}, ${status} by ${reviewer}`)
   const [result] = await db.query(
     `UPDATE registration_applications
      SET status = ?, reviewed_by = ?, reviewed_at = ?
      WHERE id = ?`,
-    [status, hr_reviewed_by, reviewed_at, id]
+    [status, reviewer, reviewed_at, id]
   );
   return result.affectedRows > 0;
 }

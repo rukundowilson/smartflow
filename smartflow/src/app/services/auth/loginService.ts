@@ -11,7 +11,6 @@ interface LoginResponse {
     email: string;
     department: string;
     status: string;
-    // Add other fields from your backend user object if needed
   };
 }
 interface LoginFormData {

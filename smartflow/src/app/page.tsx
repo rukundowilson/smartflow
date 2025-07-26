@@ -73,6 +73,7 @@ const ITSystemLogin: React.FC = () => {
       try {
         const { token, user } = await login(formData);
         localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
         redirectByDepartment(user.department, router);
       } catch (err) {
         console.log("catch error", err);

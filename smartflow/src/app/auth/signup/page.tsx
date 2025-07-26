@@ -25,7 +25,7 @@ export default function RegistrationPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'employee'
+    role: 'it'
   });
   
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -281,7 +281,7 @@ export default function RegistrationPage() {
           {/* Role Selection */}
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-              Role
+              department
             </label>
             <select
               id="role"

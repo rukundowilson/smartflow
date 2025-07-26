@@ -1,4 +1,4 @@
-import { log } from "console";
+"use client"
 import API from "../utils/axios";
 import { extractId, formatPrefixedId } from "../helpers/formatUid";
 import { getCurrentTimestamp } from "../helpers/currentTime";
@@ -66,13 +66,14 @@ export async function getSystemUsers(): Promise<AccessRequest[]> {
   }
 }
 
-export async function applicationReview(userData: UpdateStatus, action : string): Promise<any> {
+export async function applicationReview(userData: UpdateStatus, action : string, reviewer : any): Promise<any> {
   try {
     const uid_unextracted = userData.id;
     const reviewedAt = getCurrentTimestamp();
+    console.log("go",reviewer)
 
     const application_id = extractId(uid_unextracted,"AR");
-    const newStatus = {id : application_id, status : action,reviewed_by : 4, reviewed_at : reviewedAt}
+    const newStatus = {id : application_id, status : action,reviewer : reviewer, reviewed_at : reviewedAt}
     console.log(`ready to bounce ${application_id} ${action}`)
     const resp = await API.post("/api/application/review", newStatus);
     console.log(resp.data)
