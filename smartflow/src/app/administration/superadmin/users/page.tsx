@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search } from 'lucide-react';
-import { applicationReview, getSystemUsers } from '@/app/service/userService';
+import { applicationReview, getSystemUsers } from '@/app/services/userService';
 import NavBar from '../components/nav';
 import SideBar from '../components/sidebar';
 

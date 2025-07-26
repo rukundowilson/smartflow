@@ -1,4 +1,4 @@
-import {register,getSystemUsers, updateApplicationStatus} from '../service/userService.js';
+import {register,getSystemUsers, updateApplicationStatus} from '../services/userService.js';
 
 
 async function registerUser(req, res) {
