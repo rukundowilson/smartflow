@@ -16,3 +16,13 @@ export async function createTicket(ticket: NewTicket, created_by: any) {
     throw new Error(error.response?.data?.message || "Failed to create ticket");
   }
 }
+export const fetchTicketsByUserId = async (userId: any) => {
+  try {
+    console.log(userId)
+    const response = await API.get(`/api/tickets/get/${userId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch tickets:", error);
+    throw error;
+  }
+};

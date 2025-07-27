@@ -1,4 +1,4 @@
-import { createTicket } from "../services/ticketService.js";
+import { createTicket, fetchTicketsByUserId } from "../services/ticketService.js";
 
 export async function handleCreateTicket(req, res) {
   const {ticket, created_by, assigned_to } = req.body;
@@ -24,4 +24,16 @@ export async function handleCreateTicket(req, res) {
     res.status(500).json({ message: "Server error while creating ticket" });
   }
 }
+
+export const getUserTickets = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const tickets = await fetchTicketsByUserId(userId);
+    res.status(200).json({ success: true, tickets });
+  } catch (error) {
+    console.error("Error in getUserTickets:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch tickets" });
+  }
+};
 

@@ -60,6 +60,7 @@ const Modal: React.FC<ModalProps> = ({
           description: "",
         });
         const [commentText, setCommentText] = useState('');
+        const [isSubmitting, setIsSubmitting] = useState(false);
       
         if (!isModalOpen) return null;
       
@@ -79,6 +80,7 @@ const Modal: React.FC<ModalProps> = ({
       
         const handleNewTicketSubmit = async () => {
           if (newTicket.description.trim()) {
+            setIsSubmitting(true);
             try {
               const result = await createTicket(newTicket, currentUser);
               console.log("Ticket created:", result);
@@ -91,12 +93,15 @@ const Modal: React.FC<ModalProps> = ({
               });
             } catch (err) {
               console.error(err);
+            } finally {
+              setIsSubmitting(false);
             }
           }
         };
       
         const handleCommentSubmit = async () => {
           if (commentText.trim()) {
+            setIsSubmitting(true);
             try {
               // Add your comment submission logic here
               console.log("Comment submitted:", commentText);
@@ -104,6 +109,8 @@ const Modal: React.FC<ModalProps> = ({
               setCommentText('');
             } catch (err) {
               console.error(err);
+            } finally {
+              setIsSubmitting(false);
             }
           }
         };
@@ -113,10 +120,12 @@ const Modal: React.FC<ModalProps> = ({
             closeModal();
           }
         };
-      if (!isModalOpen) return null;
 
       return (
-        <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div 
+          className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={handleBackdropClick}
+        >
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">
@@ -126,7 +135,8 @@ const Modal: React.FC<ModalProps> = ({
               </h3>
               <button
                 onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -142,14 +152,14 @@ const Modal: React.FC<ModalProps> = ({
                         name="issue_type"
                         value={newTicket.issue_type}
                         onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500"
+                        disabled={isSubmitting}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-
-                        <option>Hardware Problem</option>
-                        <option>Software Issue</option>
-                        <option>Network/Internet</option>
-                        <option>Email Problem</option>
-                        <option>Other</option>
+                        <option value="Hardware Problem">Hardware Problem</option>
+                        <option value="Software Issue">Software Issue</option>
+                        <option value="Network/Internet">Network/Internet</option>
+                        <option value="Email Problem">Email Problem</option>
+                        <option value="Other">Other</option>
                       </select>
                     </div>
                     <div>
@@ -158,12 +168,13 @@ const Modal: React.FC<ModalProps> = ({
                         name="priority" 
                         value={newTicket.priority}
                         onChange={handleInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500"
+                        disabled={isSubmitting}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                        <option>Critical</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
                       </select>
                     </div>
                   </div>
@@ -174,22 +185,31 @@ const Modal: React.FC<ModalProps> = ({
                       name="description"
                       value={newTicket.description}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500"
+                      disabled={isSubmitting}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
                       placeholder="Please describe your issue in detail..."
-                    ></textarea>
+                    />
                   </div>
                   <div className="flex justify-end space-x-3 pt-4">
                     <button
                       onClick={closeModal}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleNewTicketSubmit}
-                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                      disabled={!newTicket.description.trim() || isSubmitting}
+                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     >
-                      Submit Ticket
+                      {isSubmitting && (
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      )}
+                      {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
                     </button>
                   </div>
                 </div>
@@ -220,14 +240,14 @@ const Modal: React.FC<ModalProps> = ({
                       <Calendar className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">Created</p>
-                        <p className="text-sm text-gray-600">{selectedTicket.created}</p>
+                        <p className="text-sm text-gray-600">{selectedTicket.created_at}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <User className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">Assigned To</p>
-                        <p className="text-sm text-gray-600">{selectedTicket.assignedTo}</p>
+                        <p className="text-sm text-gray-600">{selectedTicket.assigned_to || "any"}</p>
                       </div>
                     </div>
                   </div>
@@ -247,23 +267,34 @@ const Modal: React.FC<ModalProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Add Comment</label>
                     <textarea 
-                      rows={4} 
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500"
+                      rows={4}
+                      value={commentText}
+                      onChange={handleCommentChange}
+                      disabled={isSubmitting}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
                       placeholder="Add your comment or additional information..."
-                    ></textarea>
+                    />
                   </div>
                   <div className="flex justify-end space-x-3">
                     <button
                       onClick={closeModal}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={closeModal}
-                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                      onClick={handleCommentSubmit}
+                      disabled={!commentText.trim() || isSubmitting}
+                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     >
-                      Add Comment
+                      {isSubmitting && (
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      )}
+                      {isSubmitting ? 'Adding...' : 'Add Comment'}
                     </button>
                   </div>
                 </div>

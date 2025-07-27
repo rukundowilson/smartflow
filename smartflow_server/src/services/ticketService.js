@@ -21,3 +21,11 @@ export async function createTicket(ticketData) {
     throw new Error("Failed to create ticket: " + error.message);
   }
 }
+
+export const fetchTicketsByUserId = async (userId) => {
+  const [rows] = await db.query(
+    "SELECT * FROM tickets WHERE created_by = ? ORDER BY created_at DESC",
+    [userId]
+  );
+  return rows;
+};
