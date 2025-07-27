@@ -17,7 +17,27 @@ export async function authenticateUser(email, password) {
     throw { status: 404, message: "User not found" };
   }
 
-  const user = users[0];
+  const user = users[0]; 
+
+  // Check their registration application status
+  const [applications] = await db.query(
+    "SELECT status FROM registration_applications WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+    [user.id]
+  );
+
+  if (applications.length === 0) {
+    throw { status: 400, message: "No registration application found for this user." };
+  }
+
+  const appStatus = applications[0].status;
+
+  if (appStatus !== "approved") {
+    throw {
+      status: 400,
+      message: `Sorry! Your account is still under review. Current status: ${appStatus}`,
+    };
+  }
+
   const isValid = await bcrypt.compare(password, user.password_hash);
   if (!isValid) {
     throw { status: 401, message: "Invalid password" };

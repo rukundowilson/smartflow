@@ -3,22 +3,9 @@ import React, { useState } from 'react';
 import { 
   Ticket, 
   Package, 
-  Plus, 
-  Search, 
-  Eye,
-  Clock,
   CheckCircle,
-  XCircle,
   AlertCircle,
-  Monitor,
-  Bell,
-  LogOut,
-  User,
-  Calendar,
-  MessageSquare,
   Laptop,
-  Printer,
-  Cable
 } from 'lucide-react';
 
 import NavBar from "../components/navbar";
@@ -59,14 +46,14 @@ export default function OverView(){
     }
   
     const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color = 'text-blue-600', subtitle }) => (
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-            {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-600 truncate">{title}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</p>
+            {subtitle && <p className="text-xs text-gray-500 mt-1 truncate">{subtitle}</p>}
           </div>
-          <Icon className={`h-8 w-8 ${color}`} />
+          <Icon className={`h-6 w-6 sm:h-8 sm:w-8 ${color} flex-shrink-0 ml-2`} />
         </div>
       </div>
     );
@@ -75,109 +62,110 @@ export default function OverView(){
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
             <NavBar/>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex">
-                    {/* Sidebar */}
-                    <SideBar/>                    
+            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+                <div className="flex flex-col lg:flex-row">
+                    {/* Sidebar - Hidden on mobile, shown on larger screens */}
+                    <div className="hidden lg:block">
+                        <SideBar/>
+                    </div>
+                    
                     {/* Main Content */}
-                    <main className="flex-1">
+                    <main className="flex-1 lg:ml-4 min-w-0">
+                        <div className="space-y-4 sm:space-y-6">
+                            {/* Welcome Section */}
+                            <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-sky-100">
+                                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, John!</h2>
+                                <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests and tickets.</p>
+                            </div>
 
-                        <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-6 border border-sky-100">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back, John!</h2>
-        <p className="text-gray-600">Here's what's happening with your IT requests and tickets.</p>
-      </div>
+                            {/* Stats Grid - Responsive grid that stacks on mobile */}
+                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                                <StatCard title="Active Tickets" value="2" icon={Ticket} color="text-orange-600" subtitle="1 high priority" />
+                                <StatCard title="Pending Requests" value="1" icon={Package} color="text-yellow-600" subtitle="USB-C Hub" />
+                                <StatCard title="Resolved This Month" value="5" icon={CheckCircle} color="text-green-600" subtitle="Great progress!" />
+                                <StatCard title="Items Delivered" value="3" icon={Laptop} color="text-blue-600" subtitle="This quarter" />
+                            </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Tickets" value="2" icon={Ticket} color="text-orange-600" subtitle="1 high priority" />
-        <StatCard title="Pending Requests" value="1" icon={Package} color="text-yellow-600" subtitle="USB-C Hub" />
-        <StatCard title="Resolved This Month" value="5" icon={CheckCircle} color="text-green-600" subtitle="Great progress!" />
-        <StatCard title="Items Delivered" value="3" icon={Laptop} color="text-blue-600" subtitle="This quarter" />
-      </div>
+                            {/* Quick Actions */}
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-6">
+                                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
+                                        <div className="flex items-center">
+                                            <div className="bg-red-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                                                <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+                                            </div>
+                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Report IT Issue</h4>
+                                                <p className="text-xs sm:text-sm text-gray-500">Get help with technical problems</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
+                                        <div className="flex items-center">
+                                            <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                                                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                                            </div>
+                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request IT Equipment</h4>
+                                                <p className="text-xs sm:text-sm text-gray-500">Order laptops, accessories, software</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-200 rounded-lg p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
-            <div className="flex items-center">
-              <div className="bg-red-100 p-3 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <h4 className="font-medium text-gray-900">Report IT Issue</h4>
-                <p className="text-sm text-gray-500">Get help with technical problems</p>
-              </div>
-            </div>
-          </div>
-          <div className="border border-gray-200 rounded-lg p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Package className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <h4 className="font-medium text-gray-900">Request IT Equipment</h4>
-                <p className="text-sm text-gray-500">Order laptops, accessories, software</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                            {/* Recent Activity - Stack vertically on mobile */}
+                            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                        <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Tickets</h3>
+                                    </div>
+                                    <div className="divide-y divide-gray-100">
+                                        {myTickets.slice(0, 3).map(ticket => (
+                                            <div key={ticket.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Assigned to: {ticket.assignedTo}</p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(ticket.status)}`}>
+                                                        {ticket.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                        <button className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all tickets →</button>
+                                    </div>
+                                </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-medium text-gray-900">Recent Tickets</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {myTickets.slice(0, 3).map(ticket => (
-              <div key={ticket.id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{ticket.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">Assigned to: {ticket.assignedTo}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="px-6 py-3 border-t border-gray-100">
-            <button className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all tickets →</button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-medium text-gray-900">Recent Requests</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {myRequests.slice(0, 3).map(request => (
-              <div key={request.id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{request.item}</p>
-                    <p className="text-xs text-gray-500 mt-1">Est. delivery: {request.estimatedDelivery}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(request.status)}`}>
-                    {request.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="px-6 py-3 border-t border-gray-100">
-            <button className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all requests →</button>
-          </div>
-        </div>
-      </div>
-    </div>
-                        
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                        <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Requests</h3>
+                                    </div>
+                                    <div className="divide-y divide-gray-100">
+                                        {myRequests.slice(0, 3).map(request => (
+                                            <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.item}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Est. delivery: {request.estimatedDelivery}</p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(request.status)}`}>
+                                                        {request.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                        <button className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all requests →</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </main>
                 </div>
             </div>

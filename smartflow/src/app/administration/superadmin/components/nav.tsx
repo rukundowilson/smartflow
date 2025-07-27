@@ -33,6 +33,7 @@ export default function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { user, token, isAuthenticated, logout } = useAuth();
+  console.log(user)
   // Set active module from URL on mount
   useEffect(() => {
     const path = pathname.split('/').pop();
@@ -41,6 +42,8 @@ export default function NavBar() {
       console.log("got a user yeeh",user,token)
     }
   }, [pathname]);
+
+  console.log("got a user yeeh",user,token)
 
   const handleModuleClick = (id: string) => {
     const newPath = `/administration/superadmin/${id}`;

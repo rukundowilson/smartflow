@@ -21,6 +21,7 @@ const ITSystemLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginFormData>>({});
+  const [generalErr, setGeneralErr] = useState<any>()
   
   // Mock state for registration link - in real app this would come from API
   const [registrationOpen, setRegistrationOpen] = useState(true);
@@ -75,8 +76,9 @@ const ITSystemLogin: React.FC = () => {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
         redirectByDepartment(user.department, router);
-      } catch (err) {
+      } catch (err : any) {
         console.log("catch error", err);
+        setGeneralErr(err?.message || "Login failed. Please try again.");
       }
       setIsLoading(false);
     }, 1500);
@@ -131,6 +133,10 @@ const ITSystemLogin: React.FC = () => {
         <p className="text-sm" style={{ color: '#666' }}>
           Access your IT ticketing, requests, and system management
         </p>
+      </div>
+
+      <div>
+        <p className="text-red-500 my-4 bg-gray-200 p-5 rounded ">{generalErr}</p>
       </div>
 
       <div className="space-y-6">

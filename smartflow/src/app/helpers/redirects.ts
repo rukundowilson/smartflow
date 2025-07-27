@@ -12,5 +12,5 @@ export function redirectByDepartment(department: string, router: any) {
   };
 
   const route = routes[department?.toLowerCase()] || "/notfound";
-  router.push(route);
+  window.location.href = route
 }

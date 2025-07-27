@@ -1,21 +1,8 @@
 "use client"
 import React, { useState } from 'react';
 import { 
-  Ticket, 
-  Package, 
   Plus, 
-  Search, 
   Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Monitor,
-  Bell,
-  LogOut,
-  User,
-  Calendar,
-  MessageSquare,
   Laptop,
   Printer,
   Cable
