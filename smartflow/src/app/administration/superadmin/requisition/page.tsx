@@ -145,56 +145,56 @@ export default function Requisition(){
                         <main className="flex-1">
                             {/* Header Section */}
                             <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-100 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                {/* Left side - Title and description */}
-                <div className="flex items-center">
-                    <Package className="h-8 w-8 text-sky-400 mr-3" />
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Item Requisition</h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-1">Request and track IT equipment and assets</p>
-                    </div>
-                </div>
-                
-                {/* Right side - Button */}
-                <div className="w-full sm:w-auto">
-                    <button 
-                        onClick={() => setIsModalOpen(true)}
-                        style={{
-                            backgroundColor: '#00AEEF',
-                            color: 'white',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        
-                    >
-                        <Plus className="h-4 w-4" />
-                        New Request
-                    </button>
-                </div>
-            </div>
-            
-            {/* Modal state indicator */}
-            {isModalOpen && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-blue-800 mb-2">✅ Button clicked! Modal would open here.</p>
-                    <button 
-                        onClick={() => setIsModalOpen(false)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                    >
-                        Close
-                    </button>
-                </div>
-            )}
-        </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    {/* Left side - Title and description */}
+                                    <div className="flex items-center">
+                                        <Package className="h-8 w-8 text-sky-400 mr-3" />
+                                        <div>
+                                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Item Requisition</h1>
+                                            <p className="text-sm sm:text-base text-gray-600 mt-1">Request and track IT equipment and assets</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Right side - Button */}
+                                    <div className="w-full sm:w-auto">
+                                        <button 
+                                            onClick={() => setIsModalOpen(true)}
+                                            style={{
+                                                backgroundColor: '#00AEEF',
+                                                color: 'white',
+                                                padding: '8px 16px',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: '500',
+                                                transition: 'all 0.2s',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                            }}
+                                            
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            New Request
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Modal state indicator */}
+                                {isModalOpen && (
+                                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p className="text-blue-800 mb-2">✅ Button clicked! Modal would open here.</p>
+                                        <button 
+                                            onClick={() => setIsModalOpen(false)}
+                                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Statistics Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
