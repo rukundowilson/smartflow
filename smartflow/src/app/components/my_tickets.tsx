@@ -29,7 +29,7 @@ export default function MyTickets(){
     const {user} = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState<boolean>();
-const [myTickets, setMyTickets] = useState<Ticket[]>([]);
+    const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const getStatusColor = (status: string): string => {
       switch (status.toLowerCase()) {
         case 'open':
@@ -235,7 +235,9 @@ const [myTickets, setMyTickets] = useState<Ticket[]>([]);
                     </div>
                 </div>
                 )}
-                <div className=''><SpinLoading/></div>
+                {isLoading && (
+                  <div className=''><SpinLoading/></div>
+                )}
                 <Modal
                 isModalOpen ={isModalOpen}
                 user = {user}
