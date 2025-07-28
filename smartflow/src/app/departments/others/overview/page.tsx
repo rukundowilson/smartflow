@@ -14,6 +14,7 @@ import SideBar from "../components/sidebar";
 import { useAuth } from '@/app/contexts/auth-context';
 import Modal from '@/app/components/ticketModal';
 import { fetchTicketsByUserId } from '@/app/services/ticketService';
+import { getUserItemRequisitions, ItemRequisition } from '@/app/services/itemRequisitionService';
 import SpinLoading from '@/app/administration/superadmin/components/loading';
 
 
@@ -35,13 +36,9 @@ export default function OverView(){
     const {user} = useAuth();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
+    const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
+    const [requestsLoading, setRequestsLoading] = useState<boolean>(false);
     const router = useRouter();
-
-  const myRequests = [
-    { id: 'IR001', item: 'MacBook Pro 16"', quantity: 1, status: 'Approved', created: '2025-07-19', estimatedDelivery: '2025-07-22' },
-    { id: 'IR004', item: 'USB-C Hub', quantity: 1, status: 'Pending', created: '2025-07-18', estimatedDelivery: 'TBD' },
-    { id: 'IR003', item: 'Monitor Stand', quantity: 1, status: 'Delivered', created: '2025-07-15', estimatedDelivery: '2025-07-20' },
-  ];
 
   const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
@@ -88,6 +85,19 @@ export default function OverView(){
       setSelectedTicket(null);
     };
 
+    const fetchUserRequests = async () => {
+        if (!user?.id) return;
+        try {
+            setRequestsLoading(true);
+            const response = await getUserItemRequisitions(user.id);
+            setMyRequests(response.requisitions);
+        } catch (err) {
+            console.error('Error fetching requests:', err);
+        } finally {
+            setRequestsLoading(false);
+        }
+    };
+
     useEffect(()=>{
         if (!user?.id) return;
         const getTickets = async () => {
@@ -105,11 +115,23 @@ export default function OverView(){
             }
         };
         getTickets();
+        fetchUserRequests();
     },[user?.id])
     const go = function(){
         router.push("/departments/others/my-tickets");
 
     }
+
+    // Compute stats dynamically from tickets
+    const activeTickets = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress');
+    const highPriorityTickets = myTickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
+    const resolvedThisMonth = myTickets.filter(t => {
+    const created = new Date(t.created);
+    const now = new Date();
+    return t.status === 'resolved' &&
+        created.getMonth() === now.getMonth() &&
+        created.getFullYear() === now.getFullYear();
+    });
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -133,10 +155,35 @@ export default function OverView(){
 
                             {/* Stats Grid - Responsive grid that stacks on mobile */}
                             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                                <StatCard title="Active Tickets" value="2" icon={Ticket} color="text-orange-600" subtitle="1 high priority" />
-                                <StatCard title="Pending Requests" value="1" icon={Package} color="text-yellow-600" subtitle="USB-C Hub" />
-                                <StatCard title="Resolved This Month" value="5" icon={CheckCircle} color="text-green-600" subtitle="Great progress!" />
-                                <StatCard title="Items Delivered" value="3" icon={Laptop} color="text-blue-600" subtitle="This quarter" />
+                                <StatCard
+  title="Active Tickets"
+  value={activeTickets.length}
+  icon={Ticket}
+  color="text-orange-600"
+  subtitle={`${highPriorityTickets.length} high priority`}
+/>
+<StatCard
+  title="Pending Requests"
+  value={myRequests.filter(r => r.status === 'pending').length}
+  icon={Package}
+  color="text-yellow-600"
+  subtitle={myRequests.find(r => r.status === 'pending')?.item_name || '—'}
+/>
+<StatCard
+  title="Resolved This Month"
+  value={resolvedThisMonth.length}
+  icon={CheckCircle}
+  color="text-green-600"
+  subtitle="Great progress!"
+/>
+<StatCard
+  title="Approved Requests"
+  value={myRequests.filter(r => r.status === 'approved').length}
+  icon={Laptop}
+  color="text-blue-600"
+  subtitle="This quarter"
+/>
+
                             </div>
 
                             {/* Quick Actions */}
@@ -154,7 +201,10 @@ export default function OverView(){
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
+                                    <div 
+                                        onClick={() => router.push('/departments/others/my-requests')}
+                                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer"
+                                    >
                                         <div className="flex items-center">
                                             <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
                                                 <Package className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
@@ -211,8 +261,8 @@ export default function OverView(){
                                             <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.item}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">Est. delivery: {request.estimatedDelivery}</p>
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.item_name}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Qty: {request.quantity} • {new Date(request.created_at).toLocaleDateString()}</p>
                                                     </div>
                                                     <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(request.status)}`}>
                                                         {request.status}
@@ -222,7 +272,12 @@ export default function OverView(){
                                         ))}
                                     </div>
                                     <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
-                                        <button className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all requests →</button>
+                                        <button 
+                                            onClick={() => router.push('/departments/others/my-requests')}
+                                            className="text-sky-600 hover:text-sky-700 text-sm font-medium"
+                                        >
+                                            View all requests →
+                                        </button>
                                     </div>
                                 </div>
                             </div>

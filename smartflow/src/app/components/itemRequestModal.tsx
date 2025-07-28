@@ -6,8 +6,9 @@ import {
   Laptop,
   Printer,
   Cable,
-    XCircle,
+  XCircle,
 } from 'lucide-react';
+import { createItemRequisition } from '../services/itemRequisitionService';
 
 interface ItemRequestModalProps {
   isModalOpen: boolean;
@@ -22,12 +23,13 @@ export default function ItemRequestModal({
   title = "Request New Equipment"
 }: ItemRequestModalProps) {
   const [formData, setFormData] = useState({
-        item: '',
-        category: '',
+        item_name: '',
         quantity: 1,
-        reason: '',
-        priority: 'medium'
+        justification: ''
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     const handleInputChange = (e:any) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -36,16 +38,45 @@ export default function ItemRequestModal({
         }));
     };
 
-    const handleSubmit = (e:any) => {
+    const getCurrentUser = () => {
+        if (typeof window !== 'undefined') {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        return null;
+    };
+
+    const handleSubmit = async (e:any) => {
         e.preventDefault();
-        setFormData({
-            item: '',
-            category: '',
-            quantity: 1,
-            reason: '',
-            priority: 'medium'
-        });
-        onClose()
+        setLoading(true);
+        setError(null);
+
+        try {
+            const user = getCurrentUser();
+            if (!user?.id) {
+                throw new Error('User not found');
+            }
+
+            await createItemRequisition({
+                requested_by: user.id,
+                item_name: formData.item_name,
+                quantity: formData.quantity,
+                justification: formData.justification
+            });
+
+            // Reset form
+            setFormData({
+                item_name: '',
+                quantity: 1,
+                justification: ''
+            });
+            
+            onClose();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
     
   if (!isModalOpen) return null;
@@ -96,6 +127,13 @@ export default function ItemRequestModal({
         </button>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
       {/* ✅ Form Start */}
       <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -105,36 +143,14 @@ export default function ItemRequestModal({
           </label>
           <input
             type="text"
-            name="item"
-            value={formData.item}
+            name="item_name"
+            value={formData.item_name}
             onChange={handleInputChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+            disabled={loading}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
             placeholder="e.g., MacBook Pro, Wireless Mouse"
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#333] mb-2">
-            Category *
-          </label>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none bg-white text-gray-700"
-          >
-            <option value="">Select Category</option>
-            <option value="Laptop">Laptop</option>
-            <option value="Desktop">Desktop</option>
-            <option value="Monitor">Monitor</option>
-            <option value="Printer">Printer</option>
-            <option value="Accessories">Accessories</option>
-            <option value="Software">Software</option>
-            <option value="Cables">Cables</option>
-            <option value="Other">Other</option>
-          </select>
         </div>
 
         <div>
@@ -148,37 +164,23 @@ export default function ItemRequestModal({
             onChange={handleInputChange}
             min="1"
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+            disabled={loading}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-[#333] mb-2">
-            Priority
-          </label>
-          <select
-            name="priority"
-            value={formData.priority}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none bg-white text-gray-700"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#333] mb-2">
-            Reason for Request *
+            Justification *
           </label>
           <textarea
-            name="reason"
-            value={formData.reason}
+            name="justification"
+            value={formData.justification}
             onChange={handleInputChange}
             required
+            disabled={loading}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
             placeholder="Please explain why you need this item..."
           />
         </div>
@@ -187,15 +189,24 @@ export default function ItemRequestModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            disabled={loading}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200"
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
           >
-            Submit Request
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Submitting...
+              </>
+            ) : (
+              'Submit Request'
+            )}
           </button>
         </div>
 
