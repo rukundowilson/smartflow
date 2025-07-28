@@ -1,28 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
-  Ticket, 
-  Key, 
-  Package, 
-  Plus, 
-  Search, 
-  Filter,
-  Eye,
-  Edit,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Monitor,
   Settings,
   Bell,
-  LogOut,
-  Wrench,
-  Truck,
-  MessageSquare,
-  Calendar
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/app/contexts/auth-context';
 export default function NavBar(){
+  const {logout, user} = useAuth();
     return(
         <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,14 +23,14 @@ export default function NavBar(){
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">IT Staff</p>
-                  <p className="text-xs text-gray-500">itstaff@company.com</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">IT</span>
                 </div>
               </div>
               <button className="text-gray-400 hover:text-gray-600">
-                <LogOut className="h-5 w-5" />
+                <LogOut onClick={logout} className="h-5 w-5" />
               </button>
             </div>
           </div>

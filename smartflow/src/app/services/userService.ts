@@ -35,7 +35,7 @@ interface AccessRequest {
 
 const departmentSystems: Record<string, string[]> = {
   "Human Resources": ["HR System", "Payroll"],
-  it_staff: ["IT panel", "Network Access"],
+  it: ["IT panel", "Network Access"],
   Finance: ["Financial System", "Reporting"]
 };
 

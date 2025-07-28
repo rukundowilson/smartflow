@@ -68,14 +68,74 @@ async function getSystemUsers() {
 
 // Approve or reject registration application
 async function updateApplicationStatus({ id, status, reviewer, reviewed_at }) {
-  console.log(`recived ${id}, ${status} by ${reviewer}`)
-  const [result] = await db.query(
-    `UPDATE registration_applications
-     SET status = ?, reviewed_by = ?, reviewed_at = ?
-     WHERE id = ?`,
-    [status, reviewer, reviewed_at, id]
-  );
-  return result.affectedRows > 0;
+  console.log(`received ${id}, ${status} by ${reviewer}`)
+  
+  try {
+    // Start a transaction
+    await db.query('START TRANSACTION');
+    
+    // 1. Update the registration application status
+    const [applicationResult] = await db.query(
+      `UPDATE registration_applications
+       SET status = ?, reviewed_by = ?, reviewed_at = ?
+       WHERE id = ?`,
+      [status, reviewer, reviewed_at, id]
+    );
+    
+    if (applicationResult.affectedRows === 0) {
+      await db.query('ROLLBACK');
+      throw new Error('Application not found');
+    }
+    
+    // 2. If application is approved, update user status to 'active'
+    if (status === 'approved') {
+      const [userResult] = await db.query(
+        `UPDATE users u
+         JOIN registration_applications ra ON u.id = ra.user_id
+         SET u.status = 'active'
+         WHERE ra.id = ?`,
+        [id]
+      );
+      
+      if (userResult.affectedRows === 0) {
+        await db.query('ROLLBACK');
+        throw new Error('User not found for application');
+      }
+      
+      console.log(`✅ Application ${id} approved and user status updated to active`);
+    } else if (status === 'rejected') {
+      // 3. If application is rejected, update user status to 'rejected'
+      const [userResult] = await db.query(
+        `UPDATE users u
+         JOIN registration_applications ra ON u.id = ra.user_id
+         SET u.status = 'rejected'
+         WHERE ra.id = ?`,
+        [id]
+      );
+      
+      if (userResult.affectedRows === 0) {
+        await db.query('ROLLBACK');
+        throw new Error('User not found for application');
+      }
+      
+      console.log(`❌ Application ${id} rejected and user status updated to rejected`);
+    }
+    
+    // Commit the transaction
+    await db.query('COMMIT');
+    
+    return {
+      success: true,
+      affectedRows: applicationResult.affectedRows,
+      message: `Application ${status} successfully`
+    };
+    
+  } catch (error) {
+    // Rollback on error
+    await db.query('ROLLBACK');
+    console.error('❌ Error updating application status:', error.message);
+    throw error;
+  }
 }
 
 // Export as named and default
