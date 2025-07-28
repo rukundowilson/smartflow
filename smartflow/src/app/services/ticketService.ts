@@ -16,13 +16,18 @@ export async function createTicket(ticket: NewTicket, created_by: any) {
     throw new Error(error.response?.data?.message || "Failed to create ticket");
   }
 }
+
 export const fetchTicketsByUserId = async (userId: any) => {
   try {
-    console.log(userId)
+    console.log("Fetching tickets for userId:", userId, "Type:", typeof userId);
     const response = await API.get(`/api/tickets/get/${userId}`);
+    console.log("Raw API response:", response);
+    console.log("Response data:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("Failed to fetch tickets:", error);
+    console.error("Error response:", error.response);
+    console.error("Error message:", error.message);
     throw error;
   }
 };

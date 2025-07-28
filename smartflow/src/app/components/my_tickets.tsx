@@ -17,12 +17,14 @@ import SpinLoading from '../administration/superadmin/components/loading';
 // Type definitions
 interface Ticket {
   id: string;
-  title: string;
+  issue_type: string;
   priority: string;
   status: string;
-  created: string;
-  assignedTo: string;
+  created_at: string;
+  assigned_to: string;
   description: string;
+  created_by_name?: string;
+  assigned_to_name?: string;
 }
 
 export default function MyTickets(){
@@ -33,12 +35,14 @@ export default function MyTickets(){
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
-    const [isLoading, setIsLoading] = useState<boolean>();
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
+    const [error, setError] = useState<string>('');
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [ticketsPerPage] = useState<number>(10);
+    
     const getStatusColor = (status: string): string => {
       switch (status.toLowerCase()) {
         case 'open':
@@ -62,16 +66,35 @@ export default function MyTickets(){
     };
     
     useEffect(()=>{
-        if (!user?.id) return;
+        if (!user?.id) {
+          console.log("No user ID available");
+          return;
+        }
+        
         const getTickets = async () => {
             try {
               setIsLoading(true);
+              setError('');
               console.log("Fetching tickets for user:", user?.id);
               const resp = await fetchTicketsByUserId(user?.id);
-              setMyTickets(resp.tickets)
-              console.log(resp);
-            } catch (err) {
-              console.error(err);
+              console.log("API Response:", resp);
+              
+              // Handle the response structure properly
+              if (resp && resp.success && resp.tickets) {
+                console.log("Tickets data:", resp.tickets);
+                setMyTickets(resp.tickets || []);
+              } else if (resp && resp.tickets) {
+                // Fallback for direct tickets array
+                console.log("Tickets data (direct):", resp.tickets);
+                setMyTickets(resp.tickets || []);
+              } else {
+                console.log("No tickets found in response");
+                setMyTickets([]);
+              }
+            } catch (err: any) {
+              console.error("Error fetching tickets:", err);
+              setError(err.message || "Failed to fetch tickets");
+              setMyTickets([]);
             }
             finally{
               setIsLoading(false)
@@ -79,6 +102,7 @@ export default function MyTickets(){
         };
         getTickets();
     },[user?.id])
+    
     interface ActionButtonProps {
       icon: React.ElementType;
       label: string;
@@ -113,12 +137,13 @@ export default function MyTickets(){
       setModalType('');
       setSelectedTicket(null);
     };
+    
     // Filter tickets based on search term and filters
     const filteredTickets = Array.isArray(myTickets)
       ? myTickets.filter((ticket: any) => {
           const matchesSearch = 
             ticket.issue_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            ticket.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ticket.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
             ticket.priority?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             ticket.status?.toLowerCase().includes(searchTerm.toLowerCase());
           
@@ -128,6 +153,10 @@ export default function MyTickets(){
           return matchesSearch && matchesStatus && matchesPriority;
         })
       : [];
+
+    console.log("myTickets:", myTickets);
+    console.log("filteredTickets:", filteredTickets);
+    console.log("User ID:", user?.id);
 
     // Pagination logic
     const indexOfLastTicket = currentPage * ticketsPerPage;
@@ -163,6 +192,11 @@ export default function MyTickets(){
                             <p className="text-sm text-gray-600 mt-1">
                                 {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''} found
                             </p>
+                            {error && (
+                              <p className="text-sm text-red-600 mt-1">
+                                Error: {error}
+                              </p>
+                            )}
                         </div>
                         <ActionButton 
                             icon={Plus} 

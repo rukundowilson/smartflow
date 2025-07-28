@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X,
   Calendar,
   User,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
 import { createTicket } from '../services/ticketService';
+import { getITUsers, updateTicketAssignment, ITUser } from '../services/itTicketService';
 
 interface NewTicket {
   issue_type: string;
@@ -61,8 +63,10 @@ const Modal: React.FC<ModalProps> = ({
         });
         const [commentText, setCommentText] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
-      
-        if (!isModalOpen) return null;
+        const [itUsers, setItUsers] = useState<ITUser[]>([]);
+        const [selectedAssignee, setSelectedAssignee] = useState<string>('');
+        const [searchTerm, setSearchTerm] = useState('');
+        const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
       
         const handleInputChange = (
           e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -114,6 +118,61 @@ const Modal: React.FC<ModalProps> = ({
             }
           }
         };
+
+        // Fetch IT users when modal opens
+        useEffect(() => {
+          if (isModalOpen && modalType === 'view') {
+            const fetchITUsers = async () => {
+              try {
+                const response = await getITUsers();
+                setItUsers(response.users);
+              } catch (err) {
+                console.error('Error fetching IT users:', err);
+              }
+            };
+            fetchITUsers();
+          }
+        }, [isModalOpen, modalType]);
+
+        // Set initial assignee when ticket is selected
+        useEffect(() => {
+          if (selectedTicket && modalType === 'view') {
+            setSelectedAssignee(selectedTicket.assigned_to?.toString() || '');
+          }
+        }, [selectedTicket, modalType]);
+
+        const handleAssigneeChange = async (assigneeId: string) => {
+          if (!selectedTicket) return;
+          
+          try {
+            setIsSubmitting(true);
+            const assigneeIdNum = assigneeId ? parseInt(assigneeId) : null;
+            await updateTicketAssignment(selectedTicket.id, assigneeIdNum);
+            setSelectedAssignee(assigneeId);
+            setShowAssigneeDropdown(false);
+            setSearchTerm(''); // Clear search term
+            // Optionally refresh the parent component
+            if (typeof window !== 'undefined') {
+              window.location.reload();
+            }
+          } catch (err) {
+            console.error('Error updating assignment:', err);
+          } finally {
+            setIsSubmitting(false);
+          }
+        };
+
+        const toggleAssigneeDropdown = () => {
+          setShowAssigneeDropdown(!showAssigneeDropdown);
+          if (!showAssigneeDropdown) {
+            setSearchTerm(''); // Clear search when opening
+          }
+        };
+
+        const filteredUsers = itUsers.filter(user =>
+          user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
       
         const handleBackdropClick = (e: React.MouseEvent) => {
           if (e.target === e.currentTarget) {
@@ -121,7 +180,26 @@ const Modal: React.FC<ModalProps> = ({
           }
         };
 
-      return (
+                // Close dropdown when clicking outside
+        useEffect(() => {
+          const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (showAssigneeDropdown && !target.closest('.assignee-dropdown')) {
+              setShowAssigneeDropdown(false);
+              setSearchTerm(''); // Clear search when closing
+            }
+          };
+
+          document.addEventListener('mousedown', handleClickOutside);
+          return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+          };
+        }, [showAssigneeDropdown]);
+
+        // Early return after all hooks
+        if (!isModalOpen) return null;
+
+        return (
         <div 
           className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50"
           onClick={handleBackdropClick}
@@ -240,14 +318,80 @@ const Modal: React.FC<ModalProps> = ({
                       <Calendar className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">Created</p>
-                        <p className="text-sm text-gray-600">{selectedTicket.created_at}</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(selectedTicket.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <User className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Assigned To</p>
-                        <p className="text-sm text-gray-600">{selectedTicket.assigned_to || "any"}</p>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-2">Assigned To</p>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={toggleAssigneeDropdown}
+                            disabled={isSubmitting}
+                            className="w-full text-left px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50"
+                          >
+                            {selectedAssignee ? 
+                              itUsers.find(u => u.id.toString() === selectedAssignee)?.full_name || 'Unknown User' :
+                              'Unassigned'
+                            }
+                          </button>
+                          
+                          {showAssigneeDropdown && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto assignee-dropdown">
+                              <div className="p-2 border-b border-gray-200">
+                                <div className="relative">
+                                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                                  <input
+                                    type="text"
+                                    placeholder="Search IT staff..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    autoFocus
+                                  />
+                                </div>
+                              </div>
+                              <div className="py-1">
+                                <button
+                                  onClick={() => handleAssigneeChange('')}
+                                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100"
+                                >
+                                  Unassigned
+                                </button>
+                                {filteredUsers.map((user) => (
+                                  <button
+                                    key={user.id}
+                                    onClick={() => handleAssigneeChange(user.id.toString())}
+                                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100"
+                                  >
+                                    <div className="font-medium">{user.full_name}</div>
+                                    <div className="text-xs text-gray-500">{user.email}</div>
+                                  </button>
+                                ))}
+                                {filteredUsers.length === 0 && searchTerm && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">
+                                    No users found
+                                  </div>
+                                )}
+                                {filteredUsers.length === 0 && !searchTerm && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">
+                                    No IT users available
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

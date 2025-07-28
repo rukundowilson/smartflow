@@ -123,9 +123,11 @@ export default function OverView(){
     }
 
     // Compute stats dynamically from tickets
-    const activeTickets = myTickets.filter(t => t.status === 'open' || t.status === 'in_progress');
-    const highPriorityTickets = myTickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
-    const resolvedThisMonth = myTickets.filter(t => {
+    const tickets = Array.isArray(myTickets) ? myTickets : [];
+    const requests = Array.isArray(myRequests) ? myRequests : [];
+    const activeTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress');
+    const highPriorityTickets = tickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
+    const resolvedThisMonth = tickets.filter(t => {
     const created = new Date(t.created);
     const now = new Date();
     return t.status === 'resolved' &&
@@ -164,10 +166,10 @@ export default function OverView(){
 />
 <StatCard
   title="Pending Requests"
-  value={myRequests.filter(r => r.status === 'pending').length}
+  value={requests.filter(r => r.status === 'pending').length}
   icon={Package}
   color="text-yellow-600"
-  subtitle={myRequests.find(r => r.status === 'pending')?.item_name || '—'}
+  subtitle={requests.find(r => r.status === 'pending')?.item_name || '—'}
 />
 <StatCard
   title="Resolved This Month"
@@ -178,7 +180,7 @@ export default function OverView(){
 />
 <StatCard
   title="Approved Requests"
-  value={myRequests.filter(r => r.status === 'approved').length}
+  value={requests.filter(r => r.status === 'approved').length}
   icon={Laptop}
   color="text-blue-600"
   subtitle="This quarter"
@@ -225,7 +227,7 @@ export default function OverView(){
                                         <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Tickets</h3>
                                     </div>
                                     <div className="divide-y divide-gray-100">
-                                        {myTickets.slice(0, 3).map(ticket => (
+                                        {tickets.slice(0, 3).map(ticket => (
                                             <div key={ticket.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">
@@ -257,7 +259,7 @@ export default function OverView(){
                                         <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Requests</h3>
                                     </div>
                                     <div className="divide-y divide-gray-100">
-                                        {myRequests.slice(0, 3).map(request => (
+                                        {requests.slice(0, 3).map(request => (
                                             <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">

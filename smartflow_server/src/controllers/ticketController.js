@@ -27,10 +27,12 @@ export async function handleCreateTicket(req, res) {
 
 export const getUserTickets = async (req, res) => {
   const userId = req.params.userId;
+  console.log("getUserTickets called with userId:", userId);
 
   try {
     const tickets = await fetchTicketsByUserId(userId);
-    res.status(200).json({ success: true, tickets });
+    console.log("Tickets returned from service:", tickets);
+    res.status(200).json({ success: true, tickets: tickets.tickets });
   } catch (error) {
     console.error("Error in getUserTickets:", error);
     res.status(500).json({ success: false, message: "Failed to fetch tickets" });

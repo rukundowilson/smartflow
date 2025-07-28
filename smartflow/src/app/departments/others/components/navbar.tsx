@@ -8,11 +8,8 @@ import {
   LogOut,
   Menu,
   X,
-  Users,
   Ticket,
   Key,
-  UserMinus,
-  Package,
   Monitor,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
