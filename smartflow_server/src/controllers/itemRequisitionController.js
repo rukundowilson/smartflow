@@ -6,7 +6,9 @@ import {
   getItemRequisitionById,
   scheduleItemPickup,
   markItemAsDelivered,
-  getPickupDetails
+  getPickupDetails,
+  assignItemRequisition,
+  getAssignedRequisitions
 } from "../services/itemRequisitionService.js";
 
 export async function handleCreateItemRequisition(req, res) {
@@ -96,10 +98,10 @@ export async function handleUpdateItemRequisitionStatus(req, res) {
       });
     }
     
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
+    if (!['pending', 'approved', 'rejected', 'assigned', 'delivered'].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be 'pending', 'approved', or 'rejected'"
+        message: "Status must be 'pending', 'approved', 'rejected', 'assigned', or 'delivered'"
       });
     }
     
@@ -142,7 +144,60 @@ export async function handleGetItemRequisitionById(req, res) {
       message: error.message || "Failed to fetch item requisition"
     });
   }
-} 
+}
+
+export async function handleAssignItemRequisition(req, res) {
+  try {
+    const { requisitionId } = req.params;
+    const { assignedTo, assignedBy } = req.body;
+    
+    if (!requisitionId || !assignedTo || !assignedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: requisitionId, assignedTo, assignedBy"
+      });
+    }
+    
+    const result = await assignItemRequisition(requisitionId, assignedTo, assignedBy);
+    
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error("Error assigning item requisition:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to assign item requisition"
+    });
+  }
+}
+
+export async function handleGetAssignedRequisitions(req, res) {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required"
+      });
+    }
+    
+    const requisitions = await getAssignedRequisitions(userId);
+    
+    res.status(200).json({
+      success: true,
+      requisitions
+    });
+  } catch (error) {
+    console.error("Error fetching assigned requisitions:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch assigned requisitions"
+    });
+  }
+}
 
 export async function handleScheduleItemPickup(req, res) {
   try {

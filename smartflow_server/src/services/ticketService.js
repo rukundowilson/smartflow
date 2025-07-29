@@ -125,9 +125,18 @@ export async function updateTicketStatus(ticketId, status) {
 
 export async function getITUsers() {
   try {
+    // Try a more flexible query
     const [users] = await db.query(
-      "SELECT id, full_name, email FROM users WHERE LOWER(department) = 'it' AND status = 'active'"
+      "SELECT id, full_name, email FROM users WHERE (LOWER(department) = 'it' OR LOWER(department) = 'it department' OR LOWER(department) = 'information technology') AND status = 'active'"
     );
+    
+    // If no IT users found, return all active users as fallback
+    if (users.length === 0) {
+      const [fallbackUsers] = await db.query(
+        "SELECT id, full_name, email FROM users WHERE status = 'active' LIMIT 10"
+      );
+      return fallbackUsers;
+    }
     
     return users;
   } catch (error) {

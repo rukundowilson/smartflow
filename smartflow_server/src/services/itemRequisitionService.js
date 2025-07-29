@@ -34,11 +34,17 @@ export async function getItemRequisitionById(requisitionId) {
         ir.justification,
         ir.status,
         ir.created_at,
+        ir.assigned_to,
+        ir.assigned_by,
         u.full_name as requested_by_name,
-        reviewer.full_name as reviewed_by_name
+        reviewer.full_name as reviewed_by_name,
+        assignee.full_name as assigned_to_name,
+        assigner.full_name as assigned_by_name
       FROM item_requisitions ir
       LEFT JOIN users u ON ir.requested_by = u.id
       LEFT JOIN users reviewer ON ir.reviewed_by = reviewer.id
+      LEFT JOIN users assignee ON ir.assigned_to = assignee.id
+      LEFT JOIN users assigner ON ir.assigned_by = assigner.id
       WHERE ir.id = ?`,
       [requisitionId]
     );
@@ -64,11 +70,17 @@ export async function getItemRequisitionsByUser(userId) {
         ir.justification,
         ir.status,
         ir.created_at,
+        ir.assigned_to,
+        ir.assigned_by,
         u.full_name as requested_by_name,
-        reviewer.full_name as reviewed_by_name
+        reviewer.full_name as reviewed_by_name,
+        assignee.full_name as assigned_to_name,
+        assigner.full_name as assigned_by_name
       FROM item_requisitions ir
       LEFT JOIN users u ON ir.requested_by = u.id
       LEFT JOIN users reviewer ON ir.reviewed_by = reviewer.id
+      LEFT JOIN users assignee ON ir.assigned_to = assignee.id
+      LEFT JOIN users assigner ON ir.assigned_by = assigner.id
       WHERE ir.requested_by = ?
       ORDER BY ir.created_at DESC`,
       [userId]
@@ -91,11 +103,17 @@ export async function getAllItemRequisitions() {
         ir.justification,
         ir.status,
         ir.created_at,
+        ir.assigned_to,
+        ir.assigned_by,
         u.full_name as requested_by_name,
-        reviewer.full_name as reviewed_by_name
+        reviewer.full_name as reviewed_by_name,
+        assignee.full_name as assigned_to_name,
+        assigner.full_name as assigned_by_name
       FROM item_requisitions ir
       LEFT JOIN users u ON ir.requested_by = u.id
       LEFT JOIN users reviewer ON ir.reviewed_by = reviewer.id
+      LEFT JOIN users assignee ON ir.assigned_to = assignee.id
+      LEFT JOIN users assigner ON ir.assigned_by = assigner.id
       ORDER BY ir.created_at DESC`
     );
     
@@ -121,6 +139,57 @@ export async function updateItemRequisitionStatus(requisitionId, status, reviewe
   } catch (error) {
     console.error("Error updating item requisition status:", error);
     throw error;
+  }
+}
+
+export async function assignItemRequisition(requisitionId, assignedTo, assignedBy) {
+  try {
+    const [result] = await db.query(
+      "UPDATE item_requisitions SET assigned_to = ?, assigned_by = ?, status = 'assigned' WHERE id = ?",
+      [assignedTo, assignedBy, requisitionId]
+    );
+    
+    if (result.affectedRows === 0) {
+      throw new Error("Item requisition not found");
+    }
+    
+    return { success: true, message: "Item requisition assigned successfully" };
+  } catch (error) {
+    console.error("Error assigning item requisition:", error);
+    throw error;
+  }
+}
+
+export async function getAssignedRequisitions(userId) {
+  try {
+    const [requisitions] = await db.query(
+      `SELECT 
+        ir.id,
+        ir.item_name,
+        ir.quantity,
+        ir.justification,
+        ir.status,
+        ir.created_at,
+        ir.assigned_to,
+        ir.assigned_by,
+        u.full_name as requested_by_name,
+        reviewer.full_name as reviewed_by_name,
+        assignee.full_name as assigned_to_name,
+        assigner.full_name as assigned_by_name
+      FROM item_requisitions ir
+      LEFT JOIN users u ON ir.requested_by = u.id
+      LEFT JOIN users reviewer ON ir.reviewed_by = reviewer.id
+      LEFT JOIN users assignee ON ir.assigned_to = assignee.id
+      LEFT JOIN users assigner ON ir.assigned_by = assigner.id
+      WHERE ir.assigned_to = ?
+      ORDER BY ir.created_at DESC`,
+      [userId]
+    );
+    
+    return requisitions;
+  } catch (error) {
+    console.error("Error fetching assigned requisitions:", error);
+    throw new Error("Failed to fetch assigned requisitions");
   }
 }
 

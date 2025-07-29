@@ -127,6 +127,8 @@ export default function ItemRequestModal({
                 return <CheckCircle className="h-4 w-4 text-green-500" />;
             case 'rejected':
                 return <XCircleIcon className="h-4 w-4 text-red-500" />;
+            case 'assigned':
+                return <User className="h-4 w-4 text-blue-500" />;
             case 'delivered':
                 return <Truck className="h-4 w-4 text-purple-500" />;
             default:
@@ -142,6 +144,8 @@ export default function ItemRequestModal({
                 return 'text-green-700 bg-green-100 border-green-200';
             case 'rejected':
                 return 'text-red-700 bg-red-100 border-red-200';
+            case 'assigned':
+                return 'text-blue-700 bg-blue-100 border-blue-200';
             case 'delivered':
                 return 'text-purple-700 bg-purple-100 border-purple-200';
             default:
@@ -274,6 +278,26 @@ export default function ItemRequestModal({
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-gray-400" />
                         <p className="text-sm font-semibold text-gray-900">{requisitionDetails.reviewed_by_name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {requisitionDetails.assigned_to_name && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-600">Assigned To</label>
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <p className="text-sm font-semibold text-gray-900">{requisitionDetails.assigned_to_name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {requisitionDetails.assigned_by_name && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-600">Assigned By</label>
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <p className="text-sm font-semibold text-gray-900">{requisitionDetails.assigned_by_name}</p>
                       </div>
                     </div>
                   )}

@@ -1,6 +1,51 @@
 import bcrypt from "bcrypt";
 import db from "../config/db.js";
 
+async function login(data) {
+  const { email, password } = data;
+
+  try {
+    // 1. Find user by email
+    const [users] = await db.query(
+      'SELECT id, full_name, email, password_hash, department, status FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (users.length === 0) {
+      throw new Error('Invalid email or password');
+    }
+
+    const user = users[0];
+
+    // 2. Check if user is active
+    if (user.status !== 'active') {
+      throw new Error('Account is not active. Please contact HR for approval.');
+    }
+
+    // 3. Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      throw new Error('Invalid email or password');
+    }
+
+    // 4. Return user data (without password)
+    return {
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        department: user.department,
+        status: user.status
+      }
+    };
+  } catch (error) {
+    console.error('❌ Login error:', error.message);
+    throw error;
+  }
+}
+
 async function register(data) {
   const { full_name, email, password, role = 'employee' } = data;
 
@@ -139,5 +184,5 @@ async function updateApplicationStatus({ id, status, reviewer, reviewed_at }) {
 }
 
 // Export as named and default
-export { getSystemUsers, register, updateApplicationStatus};
-export default { getSystemUsers, register };
+export { getSystemUsers, register, updateApplicationStatus, login };
+export default { getSystemUsers, register, login };

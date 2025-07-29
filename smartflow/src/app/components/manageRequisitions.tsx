@@ -20,8 +20,10 @@ import {
   updateItemRequisitionStatus, 
   scheduleItemPickup,
   markItemAsDelivered,
+  assignItemRequisition,
   ItemRequisition 
 } from '../services/itemRequisitionService';
+import { getITUsers, ITUser } from '../services/itTicketService';
 import ItemRequestModal from './itemRequestModal';
 
 // Independent Pickup Modal Component
@@ -202,6 +204,122 @@ const DeliveryModal = ({
   );
 };
 
+// Independent Assignment Modal Component
+const AssignmentModal = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  loading, 
+  formData, 
+  setFormData,
+  itUsers,
+  isBulk = false
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (requisitionId: number) => void;
+  loading: boolean;
+  formData: { assignedTo: string; notes: string };
+  setFormData: React.Dispatch<React.SetStateAction<{ assignedTo: string; notes: string }>>;
+  itUsers: ITUser[];
+  isBulk?: boolean;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/10 pt-24" onClick={onClose}>
+      <div 
+        className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 animate-in slide-in-from-top-2 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-[#333]">
+            {isBulk ? 'Assign Multiple Requisitions' : 'Assign Requisition'}
+          </h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <form onSubmit={(e) => { e.preventDefault(); onSubmit(0); }} className="space-y-6">
+            {isBulk && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  This will assign all selected requisitions to the chosen IT staff member.
+                </p>
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-[#333] mb-2">
+                Assign To *
+              </label>
+              <select
+                value={formData.assignedTo}
+                onChange={(e) => setFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+                required
+                disabled={loading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
+              >
+                <option value="">Select IT Staff Member</option>
+                {itUsers.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.full_name} ({user.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#333] mb-2">
+                Assignment Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                rows={4}
+                disabled={loading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50 resize-none"
+                placeholder="Any notes about this assignment..."
+                style={{ minHeight: '100px' }}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Assigning...
+                  </>
+                ) : (
+                  isBulk ? 'Assign All Selected' : 'Assign Requisition'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function RequisationComponent(){
       const [sidebarOpen, setSidebarOpen] = useState(false);
       const [itemRequests, setItemRequests] = useState<ItemRequisition[]>([]);
@@ -213,11 +331,17 @@ export default function RequisationComponent(){
       const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
       const [pickupModalOpen, setPickupModalOpen] = useState(false);
       const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
+      const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
+      const [itUsers, setItUsers] = useState<ITUser[]>([]);
       const [pickupFormData, setPickupFormData] = useState({
         scheduledPickup: '',
         notes: ''
       });
       const [deliveryFormData, setDeliveryFormData] = useState({
+        notes: ''
+      });
+      const [assignmentFormData, setAssignmentFormData] = useState({
+        assignedTo: '',
         notes: ''
       });
 
@@ -244,8 +368,18 @@ export default function RequisationComponent(){
         }
       };
 
+      const fetchITUsers = async () => {
+        try {
+          const response = await getITUsers();
+          setItUsers(response.users);
+        } catch (err: any) {
+          console.error('Error fetching IT users:', err);
+        }
+      };
+
       useEffect(() => {
         fetchAllRequisitions();
+        fetchITUsers();
       }, []);
 
       const handleStatusUpdate = async (requisitionId: number, status: 'approved' | 'rejected') => {
@@ -311,6 +445,46 @@ export default function RequisationComponent(){
         }
       };
 
+      const handleAssignRequisition = async (requisitionId: number) => {
+        try {
+          setUpdatingStatus(requisitionId);
+          const user = getCurrentUser();
+          if (!user?.id) {
+            throw new Error('User not found');
+          }
+
+          await assignItemRequisition(requisitionId, {
+            assignedTo: parseInt(assignmentFormData.assignedTo),
+            assignedBy: user.id
+          });
+          
+          // Reset form and close modal
+          setAssignmentFormData({ assignedTo: '', notes: '' });
+          setAssignmentModalOpen(false);
+          
+          // Refresh the list
+          await fetchAllRequisitions();
+        } catch (err: any) {
+          setError(err.message);
+          console.error('Error assigning requisition:', err);
+        } finally {
+          setUpdatingStatus(null);
+        }
+      };
+
+      const handleOpenAssignmentModal = (requisitionId: number) => {
+        setSelectedRequisitionId(requisitionId);
+        setAssignmentModalOpen(true);
+      };
+
+      const handleAssignmentSubmit = (requisitionId: number) => {
+        if (selectedRequisitionId) {
+          handleAssignRequisition(selectedRequisitionId);
+        } else if (selectedRequests.length > 0) {
+          handleBulkAssignment();
+        }
+      };
+
       const handleSelectAll = (checked: boolean) => {
         if (checked) {
           setSelectedRequests(itemRequests.map(req => req.id));
@@ -353,6 +527,42 @@ export default function RequisationComponent(){
         }
       };
 
+      const handleBulkAssignment = async () => {
+        if (selectedRequests.length === 0) {
+          setError('Please select at least one request');
+          return;
+        }
+
+        if (!assignmentFormData.assignedTo) {
+          setError('Please select an IT staff member to assign to');
+          return;
+        }
+
+        try {
+          const user = getCurrentUser();
+          if (!user?.id) {
+            throw new Error('User not found');
+          }
+
+          // Assign all selected requests
+          for (const requisitionId of selectedRequests) {
+            await assignItemRequisition(requisitionId, {
+              assignedTo: parseInt(assignmentFormData.assignedTo),
+              assignedBy: user.id
+            });
+          }
+
+          // Clear selection and refresh
+          setSelectedRequests([]);
+          setAssignmentFormData({ assignedTo: '', notes: '' });
+          setAssignmentModalOpen(false);
+          await fetchAllRequisitions();
+        } catch (err: any) {
+          setError(err.message);
+          console.error('Error performing bulk assignment:', err);
+        }
+      };
+
       const handleViewDetails = (requisitionId: number) => {
         setSelectedRequisitionId(requisitionId);
         setViewModalOpen(true);
@@ -390,6 +600,7 @@ export default function RequisationComponent(){
           case 'pending': return 'text-orange-700 bg-orange-100 border-orange-200';
           case 'approved': return 'text-green-700 bg-green-100 border-green-200';
           case 'rejected': return 'text-red-700 bg-red-100 border-red-200';
+          case 'assigned': return 'text-blue-700 bg-blue-100 border-blue-200';
           case 'delivered': return 'text-purple-700 bg-purple-100 border-purple-200';
           default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
@@ -472,16 +683,16 @@ export default function RequisationComponent(){
 
       // Enhanced Mobile Card Component
       const MobileItemCard = ({ request }: { request: ItemRequisition }) => (
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+          <div className="flex justify-between items-start mb-3">
             <div className="flex-1 min-w-0 mr-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-2">
-                <h3 className="text-lg font-bold text-gray-900 truncate">#{request.id}</h3>
-                <span className={`mt-1 sm:mt-0 px-2 py-1 text-xs font-semibold rounded-full border inline-block w-fit ${getStatusColor(request.status)}`}>
+              <div className="flex items-center space-x-2 mb-1">
+                <h3 className="text-lg font-bold text-gray-900">#{request.id}</h3>
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
                   {request.status}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 font-medium truncate">{request.requested_by_name}</p>
+              <p className="text-sm text-gray-600 font-medium">{request.requested_by_name}</p>
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
               <input 
@@ -490,57 +701,69 @@ export default function RequisationComponent(){
                 onChange={(e) => handleSelectRequest(request.id, e.target.checked)}
                 className="w-5 h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-2"
               />
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <MoreVertical className="h-5 w-5 text-gray-400" />
-              </button>
             </div>
           </div>
           
-          <div className="space-y-3 mb-4">
-            <div className="flex justify-between items-start py-2 border-b border-gray-100">
-              <span className="text-sm font-medium text-gray-500 flex-shrink-0">Item</span>
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between items-start">
+              <span className="text-sm font-medium text-gray-500">Item</span>
               <span className="text-sm font-semibold text-gray-900 text-right ml-3 break-words">{request.item_name}</span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+            <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-500">Quantity</span>
               <span className="text-sm font-semibold text-gray-900">{request.quantity}</span>
             </div>
-            <div className="flex justify-between items-start py-2 border-b border-gray-100">
-              <span className="text-sm font-medium text-gray-500 flex-shrink-0">Justification</span>
-              <span className="text-sm font-semibold text-gray-900 text-right ml-3 break-words">{request.justification}</span>
+            <div className="flex justify-between items-start">
+              <span className="text-sm font-medium text-gray-500">Justification</span>
+              <span className="text-sm font-semibold text-gray-900 text-right ml-3 break-words line-clamp-2">{request.justification}</span>
             </div>
-            <div className="flex justify-between items-center py-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-500">Assigned To</span>
+              <span className="text-sm font-semibold text-gray-900">{request.assigned_to_name || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-500">Created</span>
               <span className="text-sm font-semibold text-gray-900">{formatDate(request.created_at)}</span>
             </div>
           </div>
           
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-wrap justify-center gap-2 pt-4 border-t border-gray-100">
             {request.status === 'pending' && (
               <>
                 <button 
                   onClick={() => handleStatusUpdate(request.id, 'approved')}
                   disabled={updatingStatus === request.id}
-                  className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title="Approve"
                 >
                   {updatingStatus === request.id ? (
-                    <RefreshCw className="h-5 w-5 animate-spin" />
+                    <RefreshCw className="h-4 w-4 animate-spin mr-1" />
                   ) : (
-                    <CheckCircle className="h-5 w-5" />
+                    <CheckCircle className="h-4 w-4 mr-1" />
                   )}
+                  Approve
                 </button>
                 <button 
                   onClick={() => handleStatusUpdate(request.id, 'rejected')}
                   disabled={updatingStatus === request.id}
-                  className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title="Reject"
                 >
                   {updatingStatus === request.id ? (
-                    <RefreshCw className="h-5 w-5 animate-spin" />
+                    <RefreshCw className="h-4 w-4 animate-spin mr-1" />
                   ) : (
-                    <XCircle className="h-5 w-5" />
+                    <XCircle className="h-4 w-4 mr-1" />
                   )}
+                  Reject
+                </button>
+                <button 
+                  onClick={() => handleOpenAssignmentModal(request.id)}
+                  disabled={updatingStatus === request.id}
+                  className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-all hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  title="Assign"
+                >
+                  <User className="h-4 w-4 mr-1" />
+                  Assign
                 </button>
               </>
             )}
@@ -549,27 +772,30 @@ export default function RequisationComponent(){
                 <button 
                   onClick={() => handleOpenPickupModal(request.id)}
                   disabled={updatingStatus === request.id}
-                  className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium transition-all hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title="Schedule Pickup"
                 >
-                  <Calendar className="h-5 w-5" />
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Pickup
                 </button>
                 <button 
                   onClick={() => handleOpenDeliveryModal(request.id)}
                   disabled={updatingStatus === request.id}
-                  className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   title="Mark as Delivered"
                 >
-                  <Truck className="h-5 w-5" />
+                  <Truck className="h-4 w-4 mr-1" />
+                  Deliver
                 </button>
               </>
             )}
             <button 
               onClick={() => handleViewDetails(request.id)}
-              className="p-2 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors"
+              className="flex items-center justify-center px-3 py-2 bg-sky-100 text-sky-700 rounded-lg font-medium transition-all hover:bg-sky-200 text-sm"
               title="View Details"
             >
-              <Eye className="h-5 w-5" />
+              <Eye className="h-4 w-4 mr-1" />
+              Details
             </button>
           </div>
         </div>
@@ -640,10 +866,10 @@ export default function RequisationComponent(){
                       color="text-green-600" 
                     />
                     <StatCard 
-                      title="Delivered" 
-                      value={itemRequests.filter(r => r.status === 'delivered').length} 
-                      icon={Truck} 
-                      color="text-purple-600" 
+                      title="Assigned" 
+                      value={itemRequests.filter(r => r.status === 'assigned').length} 
+                      icon={User} 
+                      color="text-blue-600" 
                     />
                   </div>
                 </div>
@@ -651,7 +877,8 @@ export default function RequisationComponent(){
                 {/* Mobile Header with Stats */}
                 <div className="lg:hidden mb-4">
                   <div className="mb-4">
-                    <p className="text-gray-600 text-sm px-1">Manage and track hardware requests</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Item Requisitions</h2>
+                    <p className="text-gray-600 text-sm">Manage and track hardware requests</p>
                   </div>
                   
                   {/* Mobile Stats Grid - Fixed overflow */}
@@ -686,13 +913,45 @@ export default function RequisationComponent(){
                     <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-500 truncate">Delivered</p>
-                          <p className="text-xl font-bold text-gray-900">{itemRequests.filter(r => r.status === 'delivered').length}</p>
+                          <p className="text-xs font-medium text-gray-500 truncate">Assigned</p>
+                          <p className="text-xl font-bold text-gray-900">{itemRequests.filter(r => r.status === 'assigned').length}</p>
                         </div>
-                        <Truck className="h-5 w-5 text-purple-600 flex-shrink-0 ml-2" />
+                        <User className="h-5 w-5 text-blue-600 flex-shrink-0 ml-2" />
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile Quick Actions */}
+                  {selectedRequests.length > 0 && (
+                    <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-3">
+                        {selectedRequests.length} item{selectedRequests.length > 1 ? 's' : ''} selected
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button 
+                          onClick={() => handleBulkAction('approve')}
+                          className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 text-xs"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleBulkAction('reject')}
+                          className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 text-xs"
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </button>
+                        <button 
+                          onClick={() => handleOpenAssignmentModal(0)}
+                          className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-all hover:bg-blue-200 text-xs"
+                        >
+                          <User className="h-4 w-4 mr-1" />
+                          Assign
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Enhanced Desktop Table */}
@@ -717,6 +976,14 @@ export default function RequisationComponent(){
                           onClick={() => handleBulkAction('reject')}
                           disabled={selectedRequests.length === 0}
                         />
+                        <ActionButton 
+                          icon={User} 
+                          label="Assign Selected" 
+                          variant="secondary" 
+                          size="sm"
+                          onClick={() => handleOpenAssignmentModal(0)}
+                          disabled={selectedRequests.length === 0}
+                        />
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -736,6 +1003,7 @@ export default function RequisationComponent(){
                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Quantity</th>
                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Justification</th>
+                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Assigned To</th>
                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                           </tr>
@@ -756,6 +1024,7 @@ export default function RequisationComponent(){
                               <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-900">{request.item_name}</td>
                               <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-gray-900">{request.quantity}</td>
                               <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-600 max-w-xs truncate">{request.justification}</td>
+                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-gray-900">{request.assigned_to_name || 'N/A'}</td>
                               <td className="px-4 lg:px-6 py-3 lg:py-4">
                                 <span className={`px-2 lg:px-3 py-1 lg:py-1.5 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
                                   {request.status}
@@ -788,6 +1057,14 @@ export default function RequisationComponent(){
                                         ) : (
                                           <XCircle className="h-4 w-4 lg:h-5 lg:w-5" />
                                         )}
+                                      </button>
+                                      <button 
+                                        onClick={() => handleOpenAssignmentModal(request.id)}
+                                        disabled={updatingStatus === request.id}
+                                        className="p-1.5 lg:p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                                        title="Assign"
+                                      >
+                                        <User className="h-4 w-4 lg:h-5 lg:w-5" />
                                       </button>
                                     </>
                                   )}
@@ -847,28 +1124,47 @@ export default function RequisationComponent(){
               {/* Enhanced Mobile Bottom Actions - Fixed positioning */}
               <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-2xl">
                 <div className="px-4 py-3 pb-safe">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <button 
                       onClick={() => handleBulkAction('approve')}
                       disabled={selectedRequests.length === 0}
-                      className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
-                      <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-                      <span className="truncate">Approve Selected</span>
+                      <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">Approve</span>
                     </button>
                     <button 
                       onClick={() => handleBulkAction('reject')}
                       disabled={selectedRequests.length === 0}
-                      className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
-                      <XCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-                      <span className="truncate">Reject Selected</span>
+                      <XCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">Reject</span>
+                    </button>
+                    <button 
+                      onClick={() => handleOpenAssignmentModal(0)}
+                      disabled={selectedRequests.length === 0}
+                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                    >
+                      <User className="h-4 w-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">Assign</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Independent Modal Components */}
+              <AssignmentModal 
+                isOpen={assignmentModalOpen}
+                onClose={() => setAssignmentModalOpen(false)}
+                onSubmit={handleAssignmentSubmit}
+                loading={updatingStatus === selectedRequisitionId}
+                formData={assignmentFormData}
+                setFormData={setAssignmentFormData}
+                itUsers={itUsers}
+                isBulk={selectedRequests.length > 0 && !selectedRequisitionId}
+              />
+
               <PickupModal 
                 isOpen={pickupModalOpen}
                 onClose={() => setPickupModalOpen(false)}

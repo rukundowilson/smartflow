@@ -8,7 +8,12 @@ const app = express();
 const port = 8081;
 
 app.use(cors({
-  origin: ['https://smartflow-kappa.vercel.app',"http://localhost:3000"]
+  origin: [
+    'https://smartflow-kappa.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ]
 }));
 app.use(json());
 

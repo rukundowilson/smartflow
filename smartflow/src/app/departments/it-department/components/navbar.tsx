@@ -75,7 +75,7 @@ export default function NavBar() {
               </button>
               <div className="flex items-center space-x-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">Super Admin</p>
+                  <p className="text-sm font-medium text-gray-900">IT staff</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">

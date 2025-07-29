@@ -5,10 +5,14 @@ export interface ItemRequisition {
   item_name: string;
   quantity: number;
   justification: string;
-  status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'delivered';
   created_at: string;
   requested_by_name: string;
   reviewed_by_name?: string;
+  assigned_to?: number;
+  assigned_by?: number;
+  assigned_to_name?: string;
+  assigned_by_name?: string;
 }
 
 export interface CreateItemRequisitionData {
@@ -26,6 +30,11 @@ export interface PickupDetails {
   delivered_at: string | null;
   notes: string | null;
   delivered_by_name: string | null;
+}
+
+export interface AssignRequisitionData {
+  assignedTo: number;
+  assignedBy: number;
 }
 
 export async function createItemRequisition(data: CreateItemRequisitionData): Promise<{ success: boolean; message: string; requisition: ItemRequisition }> {
@@ -58,21 +67,7 @@ export async function getAllItemRequisitions(): Promise<{ success: boolean; requ
   }
 }
 
-export async function getItemRequisitionById(requisitionId: number): Promise<{ success: boolean; requisition: ItemRequisition }> {
-  try {
-    const response = await API.get(`/api/requisitions/${requisitionId}`);
-    return response.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch item requisition";
-    throw new Error(message);
-  }
-}
-
-export async function updateItemRequisitionStatus(
-  requisitionId: number, 
-  status: 'pending' | 'approved' | 'rejected', 
-  reviewedBy: number
-): Promise<{ success: boolean; message: string }> {
+export async function updateItemRequisitionStatus(requisitionId: number, status: string, reviewedBy: number): Promise<{ success: boolean; message: string }> {
   try {
     const response = await API.put(`/api/requisitions/${requisitionId}/status`, {
       status,
@@ -85,11 +80,37 @@ export async function updateItemRequisitionStatus(
   }
 }
 
-export async function scheduleItemPickup(
-  requisitionId: number,
-  scheduledPickup: string,
-  notes?: string
-): Promise<{ success: boolean; message: string }> {
+export async function getItemRequisitionById(requisitionId: number): Promise<{ success: boolean; requisition: ItemRequisition }> {
+  try {
+    const response = await API.get(`/api/requisitions/${requisitionId}`);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch item requisition";
+    throw new Error(message);
+  }
+}
+
+export async function assignItemRequisition(requisitionId: number, data: AssignRequisitionData): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await API.put(`/api/requisitions/${requisitionId}/assign`, data);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to assign item requisition";
+    throw new Error(message);
+  }
+}
+
+export async function getAssignedRequisitions(userId: number): Promise<{ success: boolean; requisitions: ItemRequisition[] }> {
+  try {
+    const response = await API.get(`/api/requisitions/assigned/${userId}`);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch assigned requisitions";
+    throw new Error(message);
+  }
+}
+
+export async function scheduleItemPickup(requisitionId: number, scheduledPickup: string, notes?: string): Promise<{ success: boolean; message: string }> {
   try {
     const response = await API.post(`/api/requisitions/${requisitionId}/pickup`, {
       scheduledPickup,
@@ -102,11 +123,7 @@ export async function scheduleItemPickup(
   }
 }
 
-export async function markItemAsDelivered(
-  requisitionId: number,
-  deliveredBy: number,
-  notes?: string
-): Promise<{ success: boolean; message: string }> {
+export async function markItemAsDelivered(requisitionId: number, deliveredBy: number, notes?: string): Promise<{ success: boolean; message: string }> {
   try {
     const response = await API.put(`/api/requisitions/${requisitionId}/deliver`, {
       deliveredBy,
