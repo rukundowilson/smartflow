@@ -5,7 +5,7 @@ export interface ItemRequisition {
   item_name: string;
   quantity: number;
   justification: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'delivered';
   created_at: string;
   requested_by_name: string;
   reviewed_by_name?: string;
@@ -16,6 +16,16 @@ export interface CreateItemRequisitionData {
   item_name: string;
   quantity: number;
   justification: string;
+}
+
+export interface PickupDetails {
+  id: number;
+  requisition_id: number;
+  scheduled_pickup: string;
+  picked_up_at: string | null;
+  delivered_at: string | null;
+  notes: string | null;
+  delivered_by_name: string | null;
 }
 
 export async function createItemRequisition(data: CreateItemRequisitionData): Promise<{ success: boolean; message: string; requisition: ItemRequisition }> {
@@ -48,6 +58,16 @@ export async function getAllItemRequisitions(): Promise<{ success: boolean; requ
   }
 }
 
+export async function getItemRequisitionById(requisitionId: number): Promise<{ success: boolean; requisition: ItemRequisition }> {
+  try {
+    const response = await API.get(`/api/requisitions/${requisitionId}`);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch item requisition";
+    throw new Error(message);
+  }
+}
+
 export async function updateItemRequisitionStatus(
   requisitionId: number, 
   status: 'pending' | 'approved' | 'rejected', 
@@ -61,6 +81,50 @@ export async function updateItemRequisitionStatus(
     return response.data;
   } catch (error: any) {
     const message = error.response?.data?.message || "Failed to update item requisition status";
+    throw new Error(message);
+  }
+}
+
+export async function scheduleItemPickup(
+  requisitionId: number,
+  scheduledPickup: string,
+  notes?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await API.post(`/api/requisitions/${requisitionId}/pickup`, {
+      scheduledPickup,
+      notes
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to schedule pickup";
+    throw new Error(message);
+  }
+}
+
+export async function markItemAsDelivered(
+  requisitionId: number,
+  deliveredBy: number,
+  notes?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await API.put(`/api/requisitions/${requisitionId}/deliver`, {
+      deliveredBy,
+      notes
+    });
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to mark item as delivered";
+    throw new Error(message);
+  }
+}
+
+export async function getPickupDetails(requisitionId: number): Promise<{ success: boolean; pickupDetails: PickupDetails | null }> {
+  try {
+    const response = await API.get(`/api/requisitions/${requisitionId}/pickup`);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch pickup details";
     throw new Error(message);
   }
 } 

@@ -24,6 +24,36 @@ export async function createItemRequisition(requisitionData) {
   }
 }
 
+export async function getItemRequisitionById(requisitionId) {
+  try {
+    const [requisitions] = await db.query(
+      `SELECT 
+        ir.id,
+        ir.item_name,
+        ir.quantity,
+        ir.justification,
+        ir.status,
+        ir.created_at,
+        u.full_name as requested_by_name,
+        reviewer.full_name as reviewed_by_name
+      FROM item_requisitions ir
+      LEFT JOIN users u ON ir.requested_by = u.id
+      LEFT JOIN users reviewer ON ir.reviewed_by = reviewer.id
+      WHERE ir.id = ?`,
+      [requisitionId]
+    );
+    
+    if (requisitions.length === 0) {
+      throw new Error("Item requisition not found");
+    }
+    
+    return requisitions[0];
+  } catch (error) {
+    console.error("Error fetching item requisition:", error);
+    throw error;
+  }
+}
+
 export async function getItemRequisitionsByUser(userId) {
   try {
     const [requisitions] = await db.query(
@@ -91,5 +121,79 @@ export async function updateItemRequisitionStatus(requisitionId, status, reviewe
   } catch (error) {
     console.error("Error updating item requisition status:", error);
     throw error;
+  }
+}
+
+export async function scheduleItemPickup(requisitionId, scheduledPickup, notes = null) {
+  try {
+    // First check if pickup already exists
+    const [existingPickup] = await db.query(
+      "SELECT id FROM item_pickups WHERE requisition_id = ?",
+      [requisitionId]
+    );
+    
+    if (existingPickup.length > 0) {
+      // Update existing pickup
+      await db.query(
+        "UPDATE item_pickups SET scheduled_pickup = ?, notes = ? WHERE requisition_id = ?",
+        [scheduledPickup, notes, requisitionId]
+      );
+    } else {
+      // Create new pickup
+      await db.query(
+        "INSERT INTO item_pickups (requisition_id, scheduled_pickup, notes) VALUES (?, ?, ?)",
+        [requisitionId, scheduledPickup, notes]
+      );
+    }
+    
+    return { success: true, message: "Pickup scheduled successfully" };
+  } catch (error) {
+    console.error("Error scheduling item pickup:", error);
+    throw new Error("Failed to schedule pickup");
+  }
+}
+
+export async function markItemAsDelivered(requisitionId, deliveredBy, notes = null) {
+  try {
+    // Update pickup record
+    await db.query(
+      "UPDATE item_pickups SET delivered_at = NOW(), delivered_by = ?, notes = ? WHERE requisition_id = ?",
+      [deliveredBy, notes, requisitionId]
+    );
+    
+    // Update requisition status to delivered
+    await db.query(
+      "UPDATE item_requisitions SET status = 'delivered' WHERE id = ?",
+      [requisitionId]
+    );
+    
+    return { success: true, message: "Item marked as delivered successfully" };
+  } catch (error) {
+    console.error("Error marking item as delivered:", error);
+    throw new Error("Failed to mark item as delivered");
+  }
+}
+
+export async function getPickupDetails(requisitionId) {
+  try {
+    const [pickups] = await db.query(
+      `SELECT 
+        ip.id,
+        ip.requisition_id,
+        ip.scheduled_pickup,
+        ip.picked_up_at,
+        ip.delivered_at,
+        ip.notes,
+        u.full_name as delivered_by_name
+      FROM item_pickups ip
+      LEFT JOIN users u ON ip.delivered_by = u.id
+      WHERE ip.requisition_id = ?`,
+      [requisitionId]
+    );
+    
+    return pickups.length > 0 ? pickups[0] : null;
+  } catch (error) {
+    console.error("Error fetching pickup details:", error);
+    throw new Error("Failed to fetch pickup details");
   }
 } 

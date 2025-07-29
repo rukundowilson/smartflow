@@ -8,7 +8,11 @@ import {
   handleCreateItemRequisition, 
   handleGetUserItemRequisitions, 
   handleGetAllItemRequisitions,
-  handleUpdateItemRequisitionStatus 
+  handleUpdateItemRequisitionStatus,
+  handleGetItemRequisitionById,
+  handleScheduleItemPickup,
+  handleMarkItemAsDelivered,
+  handleGetPickupDetails
 } from "../controllers/itemRequisitionController.js";
 import {
   handleGetAllTickets,
@@ -29,7 +33,11 @@ router.get("/tickets/get/:userId", getUserTickets);
 router.post("/requisitions/new", handleCreateItemRequisition);
 router.get("/requisitions/user/:userId", handleGetUserItemRequisitions);
 router.get("/requisitions/all", handleGetAllItemRequisitions);
+router.get("/requisitions/:requisitionId", handleGetItemRequisitionById);
 router.put("/requisitions/:requisitionId/status", handleUpdateItemRequisitionStatus);
+router.post("/requisitions/:requisitionId/pickup", handleScheduleItemPickup);
+router.put("/requisitions/:requisitionId/deliver", handleMarkItemAsDelivered);
+router.get("/requisitions/:requisitionId/pickup", handleGetPickupDetails);
 
 // IT Department Ticket Management Routes
 router.get("/tickets/all", handleGetAllTickets);

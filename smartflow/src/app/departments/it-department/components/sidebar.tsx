@@ -42,7 +42,7 @@ const handleModuleClick = (id: string) => {
 
 
   return (
-    <nav className="w-64 bg-white rounded-lg shadow-sm border border-gray-100 p-4 mr-6 min-h-200">
+    <nav className="w-64 bg-white h-200 rounded-lg shadow-sm border border-gray-100 p-4 mr-6 min-h-[200px] hidden lg:block">
       <div className="space-y-1">
         {modules.map((module) => (
           <button
