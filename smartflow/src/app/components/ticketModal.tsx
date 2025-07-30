@@ -90,16 +90,48 @@ const Modal: React.FC<ModalProps> = ({
             try {
               const result = await createTicket(newTicket, currentUser);
               console.log("Ticket created:", result);
-              closeModal();
+              
               // Reset form
               setNewTicket({
                 issue_type: 'Hardware Problem',
                 priority: 'Medium',
                 description: '',
               });
-              // Refresh the overview page data
+              
+              // Close modal first
+              closeModal();
+              
+              // Show success message briefly
+              if (typeof window !== 'undefined') {
+                // Create a temporary success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200';
+                successDiv.innerHTML = `
+                  <div class="flex items-center">
+                    <svg class="h-5 w-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span class="font-medium">Ticket created successfully!</span>
+                  </div>
+                `;
+                document.body.appendChild(successDiv);
+                
+                // Remove the message after 3 seconds
+                setTimeout(() => {
+                  if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                  }
+                }, 3000);
+              }
+              
+              // Refresh the parent component data
               if (onTicketCreated) {
                 onTicketCreated();
+              } else {
+                // Fallback: reload the page if no callback provided
+                if (typeof window !== 'undefined') {
+                  window.location.reload();
+                }
               }
             } catch (err) {
               console.error(err);
@@ -157,9 +189,15 @@ const Modal: React.FC<ModalProps> = ({
             setSelectedAssignee(assigneeId);
             setShowAssigneeDropdown(false);
             setSearchTerm(''); // Clear search term
-            // Optionally refresh the parent component
-            if (typeof window !== 'undefined') {
-              window.location.reload();
+            
+            // Refresh the parent component data
+            if (onTicketCreated) {
+              onTicketCreated();
+            } else {
+              // Fallback: reload the page if no callback provided
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
             }
           } catch (err) {
             console.error('Error updating assignment:', err);

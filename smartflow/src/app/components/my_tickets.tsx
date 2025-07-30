@@ -137,6 +137,36 @@ export default function MyTickets(){
       setModalType('');
       setSelectedTicket(null);
     };
+
+    const refreshTickets = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        setError('');
+        console.log("Refreshing tickets for user:", user?.id);
+        const resp = await fetchTicketsByUserId(user?.id);
+        console.log("API Response:", resp);
+        
+        // Handle the response structure properly
+        if (resp && resp.success && resp.tickets) {
+          console.log("Tickets data:", resp.tickets);
+          setMyTickets(resp.tickets || []);
+        } else if (resp && resp.tickets) {
+          // Fallback for direct tickets array
+          console.log("Tickets data (direct):", resp.tickets);
+          setMyTickets(resp.tickets || []);
+        } else {
+          console.log("No tickets found in response");
+          setMyTickets([]);
+        }
+      } catch (err: any) {
+        console.error("Error refreshing tickets:", err);
+        setError(err.message || "Failed to refresh tickets");
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
     // Filter tickets based on search term and filters
     const filteredTickets = Array.isArray(myTickets)
@@ -437,7 +467,7 @@ export default function MyTickets(){
                 closeModal = {closeModal}
                 modalType = {modalType}
                 selectedTicket = {selectedTicket}
-                
+                onTicketCreated = {refreshTickets}
                 />
             </main>
 

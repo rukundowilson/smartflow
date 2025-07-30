@@ -513,6 +513,7 @@ export default function ITTicketManager(){
         closeModal={closeModal}
         modalType={modalType}
         selectedTicket={selectedTicket}
+        onTicketCreated={fetchTickets}
       />
     </main>
   );
