@@ -126,6 +126,30 @@ export async function getAllItemRequisitions() {
 
 export async function updateItemRequisitionStatus(requisitionId, status, reviewedBy) {
   try {
+    // If approving and the requisition is already assigned, preserve the assignment
+    if (status === 'approved') {
+      // First check if the requisition is already assigned
+      const [currentRequisition] = await db.query(
+        "SELECT assigned_to, assigned_by FROM item_requisitions WHERE id = ?",
+        [requisitionId]
+      );
+      
+      if (currentRequisition.length > 0 && currentRequisition[0].assigned_to) {
+        // If already assigned, keep the assignment but update status to approved
+        const [result] = await db.query(
+          "UPDATE item_requisitions SET status = ?, reviewed_by = ? WHERE id = ?",
+          [status, reviewedBy, requisitionId]
+        );
+        
+        if (result.affectedRows === 0) {
+          throw new Error("Item requisition not found");
+        }
+        
+        return { success: true, message: "Item requisition approved and assignment preserved" };
+      }
+    }
+    
+    // Default behavior for other status updates
     const [result] = await db.query(
       "UPDATE item_requisitions SET status = ?, reviewed_by = ? WHERE id = ?",
       [status, reviewedBy, requisitionId]

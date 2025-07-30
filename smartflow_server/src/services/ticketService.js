@@ -41,11 +41,15 @@ export async function fetchTicketsByUserId(userId) {
         t.status,
         t.created_at,
         t.assigned_to,
+        t.reviewed_by,
+        t.reviewed_at,
         creator.full_name as created_by_name,
-        assignee.full_name as assigned_to_name
+        assignee.full_name as assigned_to_name,
+        reviewer.full_name as reviewed_by_name
       FROM tickets t
       LEFT JOIN users creator ON t.created_by = creator.id
       LEFT JOIN users assignee ON t.assigned_to = assignee.id
+      LEFT JOIN users reviewer ON t.reviewed_by = reviewer.id
       WHERE t.created_by = ?
       ORDER BY t.created_at DESC`,
       [numericUserId]
@@ -72,11 +76,15 @@ export async function getAllTickets() {
         t.status,
         t.created_at,
         t.assigned_to,
+        t.reviewed_by,
+        t.reviewed_at,
         creator.full_name as created_by_name,
-        assignee.full_name as assigned_to_name
+        assignee.full_name as assigned_to_name,
+        reviewer.full_name as reviewed_by_name
       FROM tickets t
       LEFT JOIN users creator ON t.created_by = creator.id
       LEFT JOIN users assignee ON t.assigned_to = assignee.id
+      LEFT JOIN users reviewer ON t.reviewed_by = reviewer.id
       ORDER BY t.created_at DESC`
     );
     
@@ -105,12 +113,21 @@ export async function updateTicketAssignment(ticketId, assignedTo) {
   }
 }
 
-export async function updateTicketStatus(ticketId, status) {
+export async function updateTicketStatus(ticketId, status, reviewedBy = null) {
   try {
-    const [result] = await db.query(
-      "UPDATE tickets SET status = ? WHERE id = ?",
-      [status, ticketId]
-    );
+    let query, params;
+    
+    if (reviewedBy) {
+      // If reviewer is provided, update status and review info
+      query = "UPDATE tickets SET status = ?, reviewed_by = ?, reviewed_at = NOW() WHERE id = ?";
+      params = [status, reviewedBy, ticketId];
+    } else {
+      // If no reviewer, just update status
+      query = "UPDATE tickets SET status = ? WHERE id = ?";
+      params = [status, ticketId];
+    }
+    
+    const [result] = await db.query(query, params);
     
     if (result.affectedRows === 0) {
       throw new Error("Ticket not found");

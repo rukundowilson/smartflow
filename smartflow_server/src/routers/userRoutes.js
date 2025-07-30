@@ -3,7 +3,8 @@ import express from 'express';
 import { 
   registerUser,
   systemUsers,
-  loginUser
+  loginUser,
+  reviewRegistrationApplication
 } from '../controllers/userController.js';
 
 import { 
@@ -11,6 +12,13 @@ import {
   getUserTickets,
   handleGetAllTickets
 } from '../controllers/ticketController.js';
+
+import { 
+  handleGetAllTickets as handleGetAllITTickets,
+  handleUpdateTicketAssignment,
+  handleUpdateTicketStatus,
+  handleGetITUsers
+} from '../controllers/itTicketController.js';
 
 import { 
   handleCreateItemRequisition, 
@@ -26,14 +34,20 @@ import {
 } from '../controllers/itemRequisitionController.js';
 
 import { 
-  handleGetITUsers
-} from '../controllers/itTicketController.js';
+  getDashboardStats,
+  getRecentActivities
+} from '../controllers/dashboardController.js';
+
+
 
 const router = express.Router();
 
 // User Routes
 router.post("/users", registerUser);
 router.get("/users", systemUsers);
+
+// Application Review Route
+router.post("/application/review", reviewRegistrationApplication);
 
 // Auth Routes
 router.post("/auth/login", loginUser);
@@ -44,6 +58,8 @@ router.post("/auth/signup", registerUser);
 router.post("/tickets", handleCreateTicket);
 router.get("/tickets/get/:userId", getUserTickets);
 router.get("/tickets/all", handleGetAllTickets);
+router.put("/tickets/:ticketId/assign", handleUpdateTicketAssignment);
+router.put("/tickets/:ticketId/status", handleUpdateTicketStatus);
 
 // Item Requisition Routes
 router.post("/requisitions/new", handleCreateItemRequisition);
@@ -59,5 +75,9 @@ router.get("/requisitions/assigned/:userId", handleGetAssignedRequisitions);
 
 // IT Users Route
 router.get("/users/it", handleGetITUsers);
+
+// Dashboard Routes
+router.get("/dashboard/stats", getDashboardStats);
+router.get("/dashboard/activities", getRecentActivities);
 
 export default router;

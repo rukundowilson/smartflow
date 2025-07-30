@@ -41,7 +41,7 @@ const departmentSystems: Record<string, string[]> = {
 
 export async function getSystemUsers(): Promise<AccessRequest[]> {
   try {
-    const response = await API.get("/api/users/dir");
+    const response = await API.get("/api/users");
     const backendUsers: BackendUser[] = response.data.users;
     console.log(backendUsers)
 

@@ -47,7 +47,7 @@ export async function handleUpdateTicketAssignment(req, res) {
 export async function handleUpdateTicketStatus(req, res) {
   try {
     const { ticketId } = req.params;
-    const { status } = req.body;
+    const { status, reviewedBy } = req.body;
     
     if (!ticketId || !status) {
       return res.status(400).json({
@@ -63,7 +63,7 @@ export async function handleUpdateTicketStatus(req, res) {
       });
     }
     
-    const result = await updateTicketStatus(ticketId, status);
+    const result = await updateTicketStatus(ticketId, status, reviewedBy);
     res.status(200).json(result);
   } catch (error) {
     console.error("Error in handleUpdateTicketStatus:", error);

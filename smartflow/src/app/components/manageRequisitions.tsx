@@ -354,6 +354,18 @@ export default function RequisationComponent(){
         return null;
       };
 
+      // Check if current user is super admin
+      const isSuperAdmin = () => {
+        const user = getCurrentUser();
+        return user?.role === 'superadmin' || user?.role === 'admin';
+      };
+
+      // Check if current user is IT staff
+      const isITStaff = () => {
+        const user = getCurrentUser();
+        return user?.role === 'it_staff' || user?.department === 'IT';
+      };
+
       const fetchAllRequisitions = async () => {
         try {
           setLoading(true);
@@ -487,7 +499,9 @@ export default function RequisationComponent(){
 
       const handleSelectAll = (checked: boolean) => {
         if (checked) {
-          setSelectedRequests(itemRequests.map(req => req.id));
+          // Only select non-delivered requisitions
+          const nonDeliveredRequests = itemRequests.filter(req => req.status !== 'delivered');
+          setSelectedRequests(nonDeliveredRequests.map(req => req.id));
         } else {
           setSelectedRequests([]);
         }
@@ -513,9 +527,15 @@ export default function RequisationComponent(){
             throw new Error('User not found');
           }
 
+          // Filter out delivered requisitions for bulk actions
+          const pendingRequests = itemRequests.filter(req => req.status !== 'delivered');
+
           // Update all selected requests
           for (const requisitionId of selectedRequests) {
-            await updateItemRequisitionStatus(requisitionId, action === 'approve' ? 'approved' : 'rejected', user.id);
+            // Only update if the requisition is not delivered
+            if (pendingRequests.some(req => req.id === requisitionId)) {
+              await updateItemRequisitionStatus(requisitionId, action === 'approve' ? 'approved' : 'rejected', user.id);
+            }
           }
 
           // Clear selection and refresh
@@ -544,12 +564,18 @@ export default function RequisationComponent(){
             throw new Error('User not found');
           }
 
+          // Filter out delivered requisitions for bulk assignment
+          const pendingRequests = itemRequests.filter(req => req.status !== 'delivered');
+
           // Assign all selected requests
           for (const requisitionId of selectedRequests) {
-            await assignItemRequisition(requisitionId, {
-              assignedTo: parseInt(assignmentFormData.assignedTo),
-              assignedBy: user.id
-            });
+            // Only assign if the requisition is not delivered
+            if (pendingRequests.some(req => req.id === requisitionId)) {
+              await assignItemRequisition(requisitionId, {
+                assignedTo: parseInt(assignmentFormData.assignedTo),
+                assignedBy: user.id
+              });
+            }
           }
 
           // Clear selection and refresh
@@ -595,15 +621,24 @@ export default function RequisationComponent(){
         }
       };
     
-      const getStatusColor = (status: string): string => {
+      const getStatusColor = (status: string, assignedTo?: string): string => {
         switch (status.toLowerCase()) {
           case 'pending': return 'text-orange-700 bg-orange-100 border-orange-200';
-          case 'approved': return 'text-green-700 bg-green-100 border-green-200';
+          case 'approved': 
+            // If approved and assigned, show a special color
+            return assignedTo ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-green-700 bg-green-100 border-green-200';
           case 'rejected': return 'text-red-700 bg-red-100 border-red-200';
           case 'assigned': return 'text-blue-700 bg-blue-100 border-blue-200';
           case 'delivered': return 'text-purple-700 bg-purple-100 border-purple-200';
           default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
+      };
+
+      const getStatusDisplay = (status: string, assignedTo?: string): string => {
+        if (status === 'approved' && assignedTo) {
+          return 'Approved & Assigned';
+        }
+        return status.charAt(0).toUpperCase() + status.slice(1);
       };
 
       const formatDate = (dateString: string) => {
@@ -623,15 +658,15 @@ export default function RequisationComponent(){
       }
     
       const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color = 'text-blue-600', action }) => (
-        <div className="bg-white rounded-xl p-4 lg:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <div className="bg-white rounded-xl p-4 lg:p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-xs lg:text-sm font-semibold text-gray-600 mb-1 truncate">{title}</p>
-              <p className="text-2xl lg:text-3xl font-bold text-gray-900">{value}</p>
-              {action && <p className="text-xs text-gray-500 mt-1 lg:mt-2 truncate">{action}</p>}
+              <p className="text-xl lg:text-2xl font-bold text-gray-900">{value}</p>
+              {action && <p className="text-xs text-gray-500 mt-1 truncate">{action}</p>}
             </div>
             <div className={`p-2 lg:p-3 rounded-xl flex-shrink-0 ${color.replace('text-', 'bg-').replace('-600', '-100')}`}>
-              <Icon className={`h-6 w-6 lg:h-8 lg:w-8 ${color}`} />
+              <Icon className={`h-5 w-5 lg:h-6 lg:w-6 ${color}`} />
             </div>
           </div>
         </div>
@@ -688,8 +723,8 @@ export default function RequisationComponent(){
             <div className="flex-1 min-w-0 mr-3">
               <div className="flex items-center space-x-2 mb-1">
                 <h3 className="text-lg font-bold text-gray-900">#{request.id}</h3>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
-                  {request.status}
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status, request.assigned_to_name)}`}>
+                  {getStatusDisplay(request.status, request.assigned_to_name)}
                 </span>
               </div>
               <p className="text-sm text-gray-600 font-medium">{request.requested_by_name}</p>
@@ -699,7 +734,8 @@ export default function RequisationComponent(){
                 type="checkbox" 
                 checked={selectedRequests.includes(request.id)}
                 onChange={(e) => handleSelectRequest(request.id, e.target.checked)}
-                className="w-5 h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-2"
+                disabled={request.status === 'delivered'}
+                className="w-5 h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -730,41 +766,37 @@ export default function RequisationComponent(){
           <div className="flex flex-wrap justify-center gap-2 pt-4 border-t border-gray-100">
             {request.status === 'pending' && (
               <>
-                <button 
-                  onClick={() => handleStatusUpdate(request.id, 'approved')}
-                  disabled={updatingStatus === request.id}
-                  className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title="Approve"
-                >
-                  {updatingStatus === request.id ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                  )}
-                  Approve
-                </button>
-                <button 
-                  onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                  disabled={updatingStatus === request.id}
-                  className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title="Reject"
-                >
-                  {updatingStatus === request.id ? (
-                    <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                  ) : (
-                    <XCircle className="h-4 w-4 mr-1" />
-                  )}
-                  Reject
-                </button>
-                <button 
-                  onClick={() => handleOpenAssignmentModal(request.id)}
-                  disabled={updatingStatus === request.id}
-                  className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-all hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title="Assign"
-                >
-                  <User className="h-4 w-4 mr-1" />
-                  Assign
-                </button>
+                {/* Super Admin Actions - Approve/Reject */}
+                {isSuperAdmin() && (
+                  <>
+                    <button 
+                      onClick={() => handleStatusUpdate(request.id, 'approved')}
+                      disabled={updatingStatus === request.id}
+                      className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      title="Approve"
+                    >
+                      {updatingStatus === request.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                      )}
+                      Approve
+                    </button>
+                    <button 
+                      onClick={() => handleStatusUpdate(request.id, 'rejected')}
+                      disabled={updatingStatus === request.id}
+                      className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      title="Reject"
+                    >
+                      {updatingStatus === request.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-1" />
+                      )}
+                      Reject
+                    </button>
+                  </>
+                )}
               </>
             )}
             {request.status === 'approved' && (
@@ -789,6 +821,7 @@ export default function RequisationComponent(){
                 </button>
               </>
             )}
+            {/* Individual assign button removed - use bulk assign instead */}
             <button 
               onClick={() => handleViewDetails(request.id)}
               className="flex items-center justify-center px-3 py-2 bg-sky-100 text-sky-700 rounded-lg font-medium transition-all hover:bg-sky-200 text-sm"
@@ -840,13 +873,13 @@ export default function RequisationComponent(){
               <div className="space-y-4 lg:space-y-6">
                 {/* Desktop Header */}
                 <div className="hidden lg:block">
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <h2 className="text-2xl xl:text-3xl text-gray-900 mb-2">Item Requisitions</h2>
                     <p className="text-gray-600 lg:text-lg">Manage and track hardware and equipment requests</p>
                   </div>
                   
                   {/* Stats Cards Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6 mb-6">
                     <StatCard 
                       title="Total Requests" 
                       value={itemRequests.length} 
@@ -928,20 +961,26 @@ export default function RequisationComponent(){
                         {selectedRequests.length} item{selectedRequests.length > 1 ? 's' : ''} selected
                       </p>
                       <div className="grid grid-cols-3 gap-2">
-                        <button 
-                          onClick={() => handleBulkAction('approve')}
-                          className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 text-xs"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </button>
-                        <button 
-                          onClick={() => handleBulkAction('reject')}
-                          className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 text-xs"
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </button>
+                        {/* Super Admin Actions */}
+                        {isSuperAdmin() && (
+                          <>
+                            <button 
+                              onClick={() => handleBulkAction('approve')}
+                              className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 text-xs"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => handleBulkAction('reject')}
+                              className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 text-xs"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {/* Bulk Assign Action */}
                         <button 
                           onClick={() => handleOpenAssignmentModal(0)}
                           className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-all hover:bg-blue-200 text-xs"
@@ -959,23 +998,29 @@ export default function RequisationComponent(){
                   <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
                     <div className="px-4 lg:px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                       <h3 className="text-lg font-semibold text-gray-900">All Requests</h3>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:space-x-3 sm:gap-0">
-                        <ActionButton 
-                          icon={CheckCircle} 
-                          label="Approve Selected" 
-                          variant="success" 
-                          size="sm"
-                          onClick={() => handleBulkAction('approve')}
-                          disabled={selectedRequests.length === 0}
-                        />
-                        <ActionButton 
-                          icon={XCircle} 
-                          label="Reject Selected" 
-                          variant="danger" 
-                          size="sm"
-                          onClick={() => handleBulkAction('reject')}
-                          disabled={selectedRequests.length === 0}
-                        />
+                      <div className="flex flex-wrap gap-2">
+                        {/* Super Admin Actions */}
+                        {isSuperAdmin() && (
+                          <>
+                            <ActionButton 
+                              icon={CheckCircle} 
+                              label="Approve Selected" 
+                              variant="success" 
+                              size="sm"
+                              onClick={() => handleBulkAction('approve')}
+                              disabled={selectedRequests.length === 0}
+                            />
+                            <ActionButton 
+                              icon={XCircle} 
+                              label="Reject Selected" 
+                              variant="danger" 
+                              size="sm"
+                              onClick={() => handleBulkAction('reject')}
+                              disabled={selectedRequests.length === 0}
+                            />
+                          </>
+                        )}
+                        {/* Bulk Assign Action */}
                         <ActionButton 
                           icon={User} 
                           label="Assign Selected" 
@@ -987,113 +1032,118 @@ export default function RequisationComponent(){
                       </div>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
+                      <table className="w-full min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left">
+                            <th className="px-3 py-3 text-left">
                               <input 
                                 type="checkbox" 
-                                checked={selectedRequests.length === itemRequests.length && itemRequests.length > 0}
+                                checked={selectedRequests.length === itemRequests.filter(req => req.status !== 'delivered').length && itemRequests.filter(req => req.status !== 'delivered').length > 0}
                                 onChange={(e) => handleSelectAll(e.target.checked)}
-                                className="w-4 h-4 lg:w-5 lg:h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500"
+                                className="w-4 h-4 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500"
                               />
                             </th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Request ID</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Quantity</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Justification</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Assigned To</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">ID</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Assigned</th>
+                            <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
                           {itemRequests.map(request => (
                             <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 lg:px-6 py-3 lg:py-4">
+                              <td className="px-3 py-3">
                                 <input 
                                   type="checkbox" 
                                   checked={selectedRequests.includes(request.id)}
                                   onChange={(e) => handleSelectRequest(request.id, e.target.checked)}
-                                  className="w-4 h-4 lg:w-5 lg:h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500"
+                                  disabled={request.status === 'delivered'}
+                                  className="w-4 h-4 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                               </td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-bold text-gray-900">#{request.id}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-gray-900">{request.requested_by_name}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-900">{request.item_name}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-gray-900">{request.quantity}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-600 max-w-xs truncate">{request.justification}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm font-medium text-gray-900">{request.assigned_to_name || 'N/A'}</td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4">
-                                <span className={`px-2 lg:px-3 py-1 lg:py-1.5 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
-                                  {request.status}
+                              <td className="px-3 py-3 text-sm font-bold text-gray-900">#{request.id}</td>
+                              <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] truncate" title={request.requested_by_name}>
+                                {request.requested_by_name}
+                              </td>
+                              <td className="px-3 py-3 text-sm text-gray-900 max-w-[150px] truncate" title={request.item_name}>
+                                {request.item_name}
+                              </td>
+                              <td className="px-3 py-3 text-sm font-medium text-gray-900">{request.quantity}</td>
+                              <td className="px-3 py-3">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status, request.assigned_to_name)}`}>
+                                  {getStatusDisplay(request.status, request.assigned_to_name)}
                                 </span>
                               </td>
-                              <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
-                                <div className="flex justify-end space-x-1 lg:space-x-2">
+                              <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] truncate" title={request.assigned_to_name || 'N/A'}>
+                                {request.assigned_to_name || 'N/A'}
+                              </td>
+                              <td className="px-3 py-3 text-right">
+                                <div className="flex justify-end space-x-1">
                                   {request.status === 'pending' && (
                                     <>
-                                      <button 
-                                        onClick={() => handleStatusUpdate(request.id, 'approved')}
-                                        disabled={updatingStatus === request.id}
-                                        className="p-1.5 lg:p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Approve"
-                                      >
-                                        {updatingStatus === request.id ? (
-                                          <RefreshCw className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" />
-                                        ) : (
-                                          <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5" />
-                                        )}
-                                      </button>
-                                      <button 
-                                        onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                                        disabled={updatingStatus === request.id}
-                                        className="p-1.5 lg:p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Reject"
-                                      >
-                                        {updatingStatus === request.id ? (
-                                          <RefreshCw className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" />
-                                        ) : (
-                                          <XCircle className="h-4 w-4 lg:h-5 lg:w-5" />
-                                        )}
-                                      </button>
-                                      <button 
-                                        onClick={() => handleOpenAssignmentModal(request.id)}
-                                        disabled={updatingStatus === request.id}
-                                        className="p-1.5 lg:p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Assign"
-                                      >
-                                        <User className="h-4 w-4 lg:h-5 lg:w-5" />
-                                      </button>
+                                      {/* Super Admin Actions - Approve/Reject */}
+                                      {isSuperAdmin() && (
+                                        <>
+                                          <button 
+                                            onClick={() => handleStatusUpdate(request.id, 'approved')}
+                                            disabled={updatingStatus === request.id}
+                                            className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                                            title="Approve"
+                                          >
+                                            {updatingStatus === request.id ? (
+                                              <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <CheckCircle className="h-4 w-4" />
+                                            )}
+                                          </button>
+                                          <button 
+                                            onClick={() => handleStatusUpdate(request.id, 'rejected')}
+                                            disabled={updatingStatus === request.id}
+                                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                                            title="Reject"
+                                          >
+                                            {updatingStatus === request.id ? (
+                                              <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <XCircle className="h-4 w-4" />
+                                            )}
+                                          </button>
+                                        </>
+                                      )}
                                     </>
                                   )}
+                                  {/* Individual assign button removed - use bulk assign instead */}
+                                  {/* Pickup and Delivery Actions for Approved Requisitions */}
                                   {request.status === 'approved' && (
                                     <>
                                       <button 
                                         onClick={() => handleOpenPickupModal(request.id)}
                                         disabled={updatingStatus === request.id}
-                                        className="p-1.5 lg:p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors disabled:opacity-50"
+                                        className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors disabled:opacity-50"
                                         title="Schedule Pickup"
                                       >
-                                        <Calendar className="h-4 w-4 lg:h-5 lg:w-5" />
+                                        <Calendar className="h-4 w-4" />
                                       </button>
                                       <button 
                                         onClick={() => handleOpenDeliveryModal(request.id)}
                                         disabled={updatingStatus === request.id}
-                                        className="p-1.5 lg:p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                                        className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
                                         title="Mark as Delivered"
                                       >
-                                        <Truck className="h-4 w-4 lg:h-5 lg:w-5" />
+                                        <Truck className="h-4 w-4" />
                                       </button>
                                     </>
                                   )}
+                                  {/* View Details Button for All Requisitions */}
                                   <button 
                                     onClick={() => handleViewDetails(request.id)}
-                                    className="p-1.5 lg:p-2 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors" 
+                                    className="p-1.5 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors" 
                                     title="View Details"
                                   >
-                                    <Eye className="h-4 w-4 lg:h-5 lg:w-5" />
+                                    <Eye className="h-4 w-4" />
                                   </button>
                                 </div>
                               </td>
@@ -1106,7 +1156,7 @@ export default function RequisationComponent(){
                 </div>
 
                 {/* Enhanced Mobile Card View - Fixed spacing */}
-                <div className="lg:hidden space-y-3 pb-20">
+                <div className="lg:hidden space-y-3">
                   {itemRequests.length === 0 ? (
                     <div className="text-center py-8">
                       <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1121,75 +1171,43 @@ export default function RequisationComponent(){
               </div>
             </main>
 
-              {/* Enhanced Mobile Bottom Actions - Fixed positioning */}
-              <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-2xl">
-                <div className="px-4 py-3 pb-safe">
-                  <div className="grid grid-cols-3 gap-2">
-                    <button 
-                      onClick={() => handleBulkAction('approve')}
-                      disabled={selectedRequests.length === 0}
-                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold shadow-lg shadow-green-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                      <span className="truncate">Approve</span>
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('reject')}
-                      disabled={selectedRequests.length === 0}
-                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      <XCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                      <span className="truncate">Reject</span>
-                    </button>
-                    <button 
-                      onClick={() => handleOpenAssignmentModal(0)}
-                      disabled={selectedRequests.length === 0}
-                      className="flex items-center justify-center px-3 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      <User className="h-4 w-4 mr-1 flex-shrink-0" />
-                      <span className="truncate">Assign</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {/* Independent Modal Components */}
+            <AssignmentModal 
+              isOpen={assignmentModalOpen}
+              onClose={() => setAssignmentModalOpen(false)}
+              onSubmit={handleAssignmentSubmit}
+              loading={updatingStatus === selectedRequisitionId}
+              formData={assignmentFormData}
+              setFormData={setAssignmentFormData}
+              itUsers={itUsers}
+              isBulk={selectedRequests.length > 0 && !selectedRequisitionId}
+            />
 
-              {/* Independent Modal Components */}
-              <AssignmentModal 
-                isOpen={assignmentModalOpen}
-                onClose={() => setAssignmentModalOpen(false)}
-                onSubmit={handleAssignmentSubmit}
-                loading={updatingStatus === selectedRequisitionId}
-                formData={assignmentFormData}
-                setFormData={setAssignmentFormData}
-                itUsers={itUsers}
-                isBulk={selectedRequests.length > 0 && !selectedRequisitionId}
-              />
+            <PickupModal 
+              isOpen={pickupModalOpen}
+              onClose={() => setPickupModalOpen(false)}
+              onSubmit={handlePickupSubmit}
+              loading={updatingStatus === selectedRequisitionId}
+              formData={pickupFormData}
+              setFormData={setPickupFormData}
+            />
 
-              <PickupModal 
-                isOpen={pickupModalOpen}
-                onClose={() => setPickupModalOpen(false)}
-                onSubmit={handlePickupSubmit}
-                loading={updatingStatus === selectedRequisitionId}
-                formData={pickupFormData}
-                setFormData={setPickupFormData}
-              />
+            <DeliveryModal 
+              isOpen={deliveryModalOpen}
+              onClose={() => setDeliveryModalOpen(false)}
+              onSubmit={handleDeliverySubmit}
+              loading={updatingStatus === selectedRequisitionId}
+              formData={deliveryFormData}
+              setFormData={setDeliveryFormData}
+            />
 
-              <DeliveryModal 
-                isOpen={deliveryModalOpen}
-                onClose={() => setDeliveryModalOpen(false)}
-                onSubmit={handleDeliverySubmit}
-                loading={updatingStatus === selectedRequisitionId}
-                formData={deliveryFormData}
-                setFormData={setDeliveryFormData}
-              />
-
-              {/* Detail View Modal */}
-              <ItemRequestModal
-                isModalOpen={viewModalOpen}
-                onClose={handleCloseViewModal}
-                mode="view"
-                requisitionId={selectedRequisitionId}
-              />
+            {/* Detail View Modal */}
+            <ItemRequestModal
+              isModalOpen={viewModalOpen}
+              onClose={handleCloseViewModal}
+              mode="view"
+              requisitionId={selectedRequisitionId}
+            />
         </>
     )
 }
