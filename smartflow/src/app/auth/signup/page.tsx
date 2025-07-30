@@ -1,7 +1,8 @@
 "use client"
 import { useState } from 'react';
-import { Eye, EyeOff, User, Mail, Lock, Shield, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Shield, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import API from '@/app/utils/axios';
+import Link from 'next/link';
 interface FormData {
   full_name: string;
   email: string;
@@ -137,15 +138,21 @@ export default function RegistrationPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: '#F0F4F7' }}>
       <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Back to Login Button */}
+        <div className="px-8 pt-8 pb-2 flex justify-start">
+          <Link href="/" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Login
+          </Link>
+        </div>
         {/* Header */}
-        <div className="px-8 pt-8 pb-6 text-center">
+        <div className="px-8 pt-4 pb-6 text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#87CEEB' }}>
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Join Our IT System</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">smartflow access application</h1>
           <p className="text-gray-600">Register to access ticketing, asset requests, and more</p>
         </div>
-
         {/* Form */}
         <div className="px-8 pb-8 space-y-6">
           {/* Full Name */}
