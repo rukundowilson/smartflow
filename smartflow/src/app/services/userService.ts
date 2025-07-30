@@ -36,7 +36,9 @@ interface AccessRequest {
 const departmentSystems: Record<string, string[]> = {
   "Human Resources": ["HR System", "Payroll"],
   it: ["IT panel", "Network Access"],
-  Finance: ["Financial System", "Reporting"]
+  Finance: ["Financial System", "Reporting"],
+  superadmin: ["superadmin panel"],
+
 };
 
 export async function getSystemUsers(): Promise<AccessRequest[]> {

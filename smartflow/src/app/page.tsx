@@ -33,9 +33,14 @@ const ITSystemLogin: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when user starts typing
+    // Clear field-specific error when user starts typing
     if (errors[name as keyof LoginFormData]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    
+    // Clear general error when user starts typing
+    if (generalErr) {
+      setGeneralErr('');
     }
   };
   
@@ -68,20 +73,23 @@ const ITSystemLogin: React.FC = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
+    setGeneralErr(''); // Clear any previous errors
     
-    setTimeout(async() => {
+    try {
       console.log('Login attempt:', formData);
-      try {
-        const { token, user } = await login(formData);
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        redirectByDepartment(user.department, router);
-      } catch (err : any) {
-        console.log("catch error", err);
-        setGeneralErr(err?.message || "Login failed. Please try again.");
-      }
+      const { token, user } = await login(formData);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      setGeneralErr(''); // Clear any errors
+      
+      redirectByDepartment(user.department, router);
+    } catch (err : any) {
+      console.log("Login error:", err);
+      setGeneralErr(err?.message || "Login failed. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
   
   const handleRegisterClick = () => {
@@ -135,9 +143,42 @@ const ITSystemLogin: React.FC = () => {
         </p>
       </div>
 
-      <div>
-        <p className="text-red-500 my-4 bg-gray-200 p-5 rounded ">{generalErr}</p>
-      </div>
+      {/* Error Display */}
+      {generalErr && (
+        <div className="mb-6 p-4 rounded-lg border-l-4 shadow-sm" 
+             style={{ 
+               backgroundColor: '#FEF2F2', 
+               borderLeftColor: '#EF4444',
+               border: '1px solid #FECACA'
+             }}>
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 mt-0.5 mr-3" style={{ color: '#EF4444' }} />
+            <div>
+              <h3 className="font-semibold text-sm mb-1" style={{ color: '#991B1B' }}>
+                Login Error
+              </h3>
+              <p className="text-sm" style={{ color: '#7F1D1D' }}>
+                {generalErr}
+              </p>
+              {generalErr.includes('under review') && (
+                <p className="text-xs mt-2" style={{ color: '#7F1D1D' }}>
+                  💡 Tip: New accounts require approval. Contact HR if your account is pending.
+                </p>
+              )}
+              {generalErr.includes('not found') && (
+                <p className="text-xs mt-2" style={{ color: '#7F1D1D' }}>
+                  💡 Tip: Make sure you're using the email address you registered with.
+                </p>
+              )}
+              {generalErr.includes('Invalid password') && (
+                <p className="text-xs mt-2" style={{ color: '#7F1D1D' }}>
+                  💡 Tip: Check your password and try again. Contact IT support if you forgot your password.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Personal Email */}
@@ -253,7 +294,7 @@ const ITSystemLogin: React.FC = () => {
           {isLoading ? (
             <div className="flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Signing in...
+              Connecting to server...
             </div>
           ) : (
             'Sign In'
