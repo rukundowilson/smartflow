@@ -10,7 +10,8 @@ import {
 import { 
   handleCreateTicket,
   getUserTickets,
-  handleGetAllTickets
+  handleGetAllTickets,
+  getTicketById
 } from '../controllers/ticketController.js';
 
 import { 
@@ -33,6 +34,21 @@ import {
   handleGetAssignedRequisitions,
   handleGetStatusHistory
 } from '../controllers/itemRequisitionController.js';
+
+import { 
+  handleCreateComment, 
+  getTicketComments, 
+  getRequisitionComments, 
+  handleDeleteComment 
+} from '../controllers/commentController.js';
+
+import { 
+  handleGetAllDepartments,
+  handleGetDepartmentById,
+  handleCreateDepartment,
+  handleUpdateDepartment,
+  handleDeleteDepartment
+} from '../controllers/departmentController.js';
 
 import {
   getDashboardStats,
@@ -59,6 +75,7 @@ router.post("/auth/signup", registerUser);
 router.post("/tickets", handleCreateTicket);
 router.get("/tickets/get/:userId", getUserTickets);
 router.get("/tickets/all", handleGetAllTickets);
+router.get("/tickets/:ticketId", getTicketById);
 router.put("/tickets/:ticketId/assign", handleUpdateTicketAssignment);
 router.put("/tickets/:ticketId/status", handleUpdateTicketStatus);
 
@@ -83,5 +100,18 @@ router.get("/dashboard/activities", getRecentActivities);
 
 // Status History Routes
 router.get("/status-history/:recordType/:recordId", handleGetStatusHistory);
+
+// Comment Routes
+router.post("/comments/create", handleCreateComment);
+router.get("/comments/ticket/:ticketId", getTicketComments);
+router.get("/comments/requisition/:requisitionId", getRequisitionComments);
+router.delete("/comments/:commentId", handleDeleteComment);
+
+// Department Routes
+router.get("/departments", handleGetAllDepartments);
+router.get("/departments/:departmentId", handleGetDepartmentById);
+router.post("/departments", handleCreateDepartment);
+router.put("/departments/:departmentId", handleUpdateDepartment);
+router.delete("/departments/:departmentId", handleDeleteDepartment);
 
 export default router;

@@ -1,4 +1,4 @@
-import { createTicket, fetchTicketsByUserId, getAllTickets } from "../services/ticketService.js";
+import { createTicket, fetchTicketsByUserId, getAllTickets, getTicketById as getTicketByIdService } from "../services/ticketService.js";
 
 export async function handleCreateTicket(req, res) {
   const {ticket, created_by, assigned_to } = req.body;
@@ -47,6 +47,18 @@ export const handleGetAllTickets = async (req, res) => {
   } catch (error) {
     console.error("Error in handleGetAllTickets:", error);
     res.status(500).json({ success: false, message: "Failed to fetch all tickets" });
+  }
+};
+
+export const getTicketById = async (req, res) => {
+  const ticketId = req.params.ticketId;
+  
+  try {
+    const ticket = await getTicketByIdService(ticketId);
+    res.status(200).json({ success: true, ticket });
+  } catch (error) {
+    console.error("Error in getTicketById:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch ticket" });
   }
 };
 

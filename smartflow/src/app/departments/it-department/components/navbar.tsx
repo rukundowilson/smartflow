@@ -75,11 +75,13 @@ export default function NavBar() {
               </button>
               <div className="flex items-center space-x-3">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">IT staff</p>
+                  <p className="text-sm font-medium text-gray-900">{user?.department || 'User'}</p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">SA</span>
+                  <span className="text-white text-sm font-medium">
+                    {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                  </span>
                 </div>
               </div>
               <button className="text-gray-400 hover:text-gray-600">
@@ -94,7 +96,9 @@ export default function NavBar() {
                 <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
               </button>
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">SA</span>
+                <span className="text-white text-sm font-medium">
+                  {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                </span>
               </div>
               <button 
                 onClick={toggleMobileMenu}
@@ -130,7 +134,7 @@ export default function NavBar() {
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <div className="flex items-center justify-between px-3 py-2">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Super Admin</p>
+                      <p className="text-sm font-medium text-gray-900">{user?.department || 'User'}</p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">

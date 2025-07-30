@@ -22,8 +22,10 @@ import {
   Shield,
   Calendar
 } from 'lucide-react';
+import { useAuth } from "@/app/contexts/auth-context";
 
 const HRDashboard = () => {
+  const { user } = useAuth();
   const [activeModule, setActiveModule] = useState('overview');
   const [selectedRequests, setSelectedRequests] = useState([]);
 
@@ -448,15 +450,17 @@ const HRDashboard = () => {
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
               </button>
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">HR Manager</p>
-                  <p className="text-xs text-gray-500">hr.manager@company.com</p>
+                              <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{user?.department || 'User'}</p>
+                    <p className="text-xs text-gray-500">{user?.email || 'user@company.com'}</p>
+                  </div>
+                  <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
                 </div>
-                <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">HR</span>
-                </div>
-              </div>
               <button className="text-gray-400 hover:text-gray-600">
                 <LogOut className="h-5 w-5" />
               </button>

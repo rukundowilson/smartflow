@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { XCircle, CheckCircle, Clock, User, Package, Calendar, Truck, MessageSquare } from 'lucide-react';
 import { createItemRequisition, getItemRequisitionById, getPickupDetails, getStatusHistory, ItemRequisition, PickupDetails, StatusHistoryEntry } from '../services/itemRequisitionService';
+import { createComment, getRequisitionComments, Comment } from '../services/commentService';
 
 export interface ItemRequestModalProps {
   isModalOpen: boolean;
@@ -25,26 +26,30 @@ export default function ItemRequestModal({
   updatingStatus
 }: ItemRequestModalProps) {
   const [formData, setFormData] = useState({
-    item_name: '',
-    quantity: 1,
-    justification: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+        item_name: '',
+        quantity: 1,
+        justification: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
   const [requisitionDetails, setRequisitionDetails] = useState<ItemRequisition | null>(null);
   const [pickupDetails, setPickupDetails] = useState<PickupDetails | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
   const [loadingPickup, setLoadingPickup] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Get current user from localStorage
-  const getCurrentUser = () => {
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
-      return userStr ? JSON.parse(userStr) : null;
-    }
-    return null;
-  };
+    const getCurrentUser = () => {
+        if (typeof window !== 'undefined') {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        return null;
+    };
 
   // Check if current user is super admin
   const isSuperAdmin = () => {
@@ -66,7 +71,8 @@ export default function ItemRequestModal({
       Promise.all([
         fetchRequisitionDetails(),
         fetchPickupDetails(),
-        fetchStatusHistory()
+        fetchStatusHistory(),
+        fetchComments()
       ]).catch(err => {
         console.error('Error fetching modal data:', err);
       });
@@ -112,42 +118,82 @@ export default function ItemRequestModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+  const fetchComments = async () => {
     try {
-      const user = getCurrentUser();
-      if (!user?.id) {
-        throw new Error('User not found');
-      }
+      setLoadingComments(true);
+      const response = await getRequisitionComments(requisitionId!);
+      setComments(response.comments);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+      setComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        try {
+            const user = getCurrentUser();
+            if (!user?.id) {
+                throw new Error('User not found');
+            }
 
       const response = await createItemRequisition({
         ...formData,
         requested_by: user.id
-      });
+            });
 
-      // Reset form
-      setFormData({
-        item_name: '',
-        quantity: 1,
-        justification: ''
-      });
-
-      onClose();
-    } catch (err: any) {
-      setError(err.message);
+            // Reset form
+            setFormData({
+                item_name: '',
+                quantity: 1,
+                justification: ''
+            });
+            
+            onClose();
+        } catch (err: any) {
+            setError(err.message);
       console.error('Error creating requisition:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+        } finally {
+            setLoading(false);
+        }
+    };
+    
   const handleCloseModal = () => {
     // Only close if not loading
     if (!loading) {
       onClose();
+    }
+  };
+
+  const handleCommentSubmit = async () => {
+    if (commentText.trim() && requisitionId) {
+      setIsSubmittingComment(true);
+      try {
+        const user = getCurrentUser();
+        if (!user?.id) {
+          throw new Error('User not found');
+        }
+
+        const newComment = await createComment({
+          comment_type: 'requisition',
+          commented_id: requisitionId,
+          commented_by: user.id,
+          content: commentText.trim()
+        });
+        
+        // Add the new comment to the list
+        setComments(prev => [...prev, newComment]);
+        setCommentText('');
+      } catch (err: any) {
+        console.error('Error adding comment:', err);
+      } finally {
+        setIsSubmittingComment(false);
+      }
     }
   };
 
@@ -189,10 +235,10 @@ export default function ItemRequestModal({
 
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-center bg-black/10 pt-24" onClick={handleCloseModal}>
-      <div 
+    <div 
         className="bg-white rounded-xl w-full max-w-lg max-h-[80vh] overflow-hidden shadow-2xl border border-gray-200 animate-in slide-in-from-top-2 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+      onClick={(e) => e.stopPropagation()}
+    >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-[#333]">
             {mode === 'view' ? '' : 'New Item Request'}
@@ -229,61 +275,61 @@ export default function ItemRequestModal({
                 </button>
               </>
             )}
-            <button 
+        <button 
               onClick={handleCloseModal}
               className="text-gray-400 hover:text-gray-600 ml-2"
-            >
-              <XCircle className="h-6 w-6" />
-            </button>
-          </div>
+        >
+          <XCircle className="h-6 w-6" />
+        </button>
+      </div>
         </div>
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(80vh-72px)] min-h-[200px]">
           {mode === 'create' ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-[#333] mb-2">
-                  Item Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.item_name}
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Item Name *
+          </label>
+          <input
+            type="text"
+            value={formData.item_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, item_name: e.target.value }))}
-                  required
-                  disabled={loading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
+            required
+            disabled={loading}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
                   placeholder="e.g., Laptop, Monitor, Keyboard"
-                />
-              </div>
+          />
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#333] mb-2">
-                  Quantity *
-                </label>
-                <input
-                  type="number"
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Quantity *
+          </label>
+          <input
+            type="number"
                   min="1"
-                  value={formData.quantity}
+            value={formData.quantity}
                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                  required
-                  disabled={loading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
-                />
-              </div>
+            required
+            disabled={loading}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50"
+          />
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#333] mb-2">
-                  Justification *
-                </label>
-                <textarea
-                  value={formData.justification}
+        <div>
+          <label className="block text-sm font-medium text-[#333] mb-2">
+            Justification *
+          </label>
+          <textarea
+            value={formData.justification}
                   onChange={(e) => setFormData(prev => ({ ...prev, justification: e.target.value }))}
-                  required
+            required
                   rows={4}
-                  disabled={loading}
+            disabled={loading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#87CEEB] focus:border-[#87CEEB] outline-none disabled:bg-gray-50 resize-none"
-                  placeholder="Please explain why you need this item..."
-                />
-              </div>
+            placeholder="Please explain why you need this item..."
+          />
+        </div>
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -291,31 +337,31 @@ export default function ItemRequestModal({
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
                   onClick={handleCloseModal}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            disabled={loading}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-[#00AEEF] hover:bg-[#00CEEB] text-white rounded-lg transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Creating...
-                    </>
-                  ) : (
+              </>
+            ) : (
                     'Create Request'
-                  )}
-                </button>
-              </div>
-            </form>
+            )}
+          </button>
+        </div>
+      </form>
           ) : (
             // View Mode
             <div className="space-y-6">
@@ -470,6 +516,79 @@ export default function ItemRequestModal({
                       )}
                     </div>
                   )}
+
+                  {/* Comments Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Comments ({comments.length})
+                    </h4>
+                    
+                    {loadingComments ? (
+                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-sky-600"></div>
+                        <span>Loading comments...</span>
+                      </div>
+                    ) : comments.length > 0 ? (
+                      <div className="space-y-3 max-h-40 overflow-y-auto">
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="bg-gray-50 p-3 rounded-md">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-5 w-5 rounded-full bg-sky-100 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-sky-600">
+                                    {comment.commented_by_name ? comment.commented_by_name.charAt(0).toUpperCase() : 'U'}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.commented_by_name || 'Unknown User'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {new Date(comment.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No comments yet</p>
+                    )}
+                    
+                    {/* Add Comment Form */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Add Comment</label>
+                      <textarea 
+                        rows={3}
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        disabled={isSubmittingComment}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                        placeholder="Add your comment or additional information..."
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={handleCommentSubmit}
+                          disabled={!commentText.trim() || isSubmittingComment}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          {isSubmittingComment && (
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          )}
+                          {isSubmittingComment ? 'Adding...' : 'Add Comment'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <div className="text-center py-8">
@@ -480,6 +599,6 @@ export default function ItemRequestModal({
           )}
         </div>
       </div>
-    </div>
+  </div>
   );
 }

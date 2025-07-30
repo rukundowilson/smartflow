@@ -28,6 +28,7 @@ import {
   assignItemRequisition,
   ItemRequisition 
 } from '@/app/services/itemRequisitionService';
+import { createComment } from '@/app/services/commentService';
 import { getITUsers, ITUser } from '@/app/services/itTicketService';
 import ItemRequestModal from '@/app/components/itemRequestModal';
 import NavBar from '../components/nav';
@@ -403,6 +404,16 @@ export default function SuperAdminRequisition(){
         throw new Error('User not found');
       }
 
+      // Create a comment for the assignment if notes are provided
+      if (assignmentFormData.notes.trim()) {
+        await createComment({
+          comment_type: 'requisition',
+          commented_id: requisitionId,
+          commented_by: user.id,
+          content: `Assignment: ${assignmentFormData.notes}`
+        });
+      }
+
       await assignItemRequisition(requisitionId, {
         assignedTo: parseInt(assignmentFormData.assignedTo),
         assignedBy: user.id
@@ -437,8 +448,26 @@ export default function SuperAdminRequisition(){
       return;
     }
 
-    // For approve/reject, proceed with status update
-    await handleStatusUpdate(requisitionId, commentAction === 'approve' ? 'approved' : 'rejected');
+    try {
+      const user = getCurrentUser();
+      if (!user?.id) {
+        throw new Error('User not found');
+      }
+
+      // Create a comment first
+      await createComment({
+        comment_type: 'requisition',
+        commented_id: requisitionId,
+        commented_by: user.id,
+        content: comment
+      });
+
+      // Then proceed with status update
+      await handleStatusUpdate(requisitionId, commentAction === 'approve' ? 'approved' : 'rejected');
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error submitting comment:', err);
+    }
   };
 
   const handleOpenAssignmentModal = (requisitionId: number) => {
@@ -587,7 +616,7 @@ export default function SuperAdminRequisition(){
               {/* Header Section */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Super Admin Requisition Management</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{user?.department || 'Admin'} Requisition Management</h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {filteredRequisitions.length} requisition{filteredRequisitions.length !== 1 ? 's' : ''} found
                   </p>
@@ -843,8 +872,8 @@ export default function SuperAdminRequisition(){
                             </button>
                           );
                         })}
-                      </div>
-                      
+        </div>
+
                       <button
                         onClick={goToNextPage}
                         disabled={currentPage === totalPages}

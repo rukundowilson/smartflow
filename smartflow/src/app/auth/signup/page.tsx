@@ -1,14 +1,15 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, Shield, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import API from '@/app/utils/axios';
 import Link from 'next/link';
+import { getAllDepartments, Department } from '@/app/services/departmentService';
 interface FormData {
   full_name: string;
   email: string;
   password: string;
   confirmPassword: string;
-  role: string;
+  department_id: number | null;
 }
 
 interface FormErrors {
@@ -26,8 +27,27 @@ export default function RegistrationPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'it'
+    department_id: null
   });
+  
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  
+  // Fetch departments on component mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await getAllDepartments();
+        setDepartments(response.departments);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    
+    fetchDepartments();
+  }, []);
   
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
@@ -79,7 +99,7 @@ export default function RegistrationPage() {
       full_name: formData.full_name,
       email: formData.email,
       password: formData.password,
-      role: formData.role,
+      department_id: formData.department_id,
       is_verified: true,
     };
 
@@ -93,7 +113,7 @@ export default function RegistrationPage() {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'employee',
+      department_id: null,
     });
   } catch (error: any) {
     console.error('Registration error:', error.response?.data || error.message);
@@ -325,23 +345,29 @@ export default function RegistrationPage() {
             )}
           </div>
 
-          {/* Role Selection */}
+          {/* Department Selection */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-              department
+            <label htmlFor="department_id" className="block text-sm font-medium text-gray-700 mb-2">
+              Department
             </label>
             <select
-              id="role"
-              name="role"
-              value={formData.role}
+              id="department_id"
+              name="department_id"
+              value={formData.department_id || ''}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors"
+              disabled={loadingDepartments}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option value="it">IT department</option>
-              <option value="superadmin">superadmin</option>
-              <option value="hr">human resource</option>
-              <option value="other">other</option>
+              <option value="">Select a department</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
             </select>
+            {loadingDepartments && (
+              <p className="mt-1 text-sm text-gray-500">Loading departments...</p>
+            )}
           </div>
 
           {/* Submit Button */}

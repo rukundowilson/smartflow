@@ -47,7 +47,7 @@ async function login(data) {
 }
 
 async function register(data) {
-  const { full_name, email, password, role = 'employee' } = data;
+  const { full_name, email, password, department_id } = data;
 
   try {
     // 1. Check for existing user
@@ -57,19 +57,39 @@ async function register(data) {
       throw new Error('Email already registered');
     }
 
-    // 2. Hash the password
+    // 2. Validate department_id
+    if (!department_id) {
+      throw new Error('Department is required');
+    }
+
+    // 3. Check if department exists
+    const [departments] = await db.query('SELECT id, name FROM departments WHERE id = ?', [department_id]);
+    if (departments.length === 0) {
+      throw new Error('Invalid department selected');
+    }
+
+    const departmentName = departments[0].name;
+
+    // 4. Hash the password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 3. Insert user into users table
+    // 5. Insert user into users table
     const [result] = await db.query(
       'INSERT INTO users (full_name, email, password_hash, department, status) VALUES (?, ?, ?, ?, ?)',
-      [full_name, email, passwordHash, role, 'pending']
+      [full_name, email, passwordHash, departmentName, 'pending']
     );
 
     const userId = result.insertId;
     console.log(`✅ New user created with ID: ${userId}`);
 
-    // 4. Create registration application
+    // 6. Create user_departments relationship
+    await db.query(
+      'INSERT INTO user_departments (user_id, department_id) VALUES (?, ?)',
+      [userId, department_id]
+    );
+    console.log(`🔗 User-department relationship created for user ID: ${userId}`);
+
+    // 7. Create registration application
     await db.query(
       'INSERT INTO registration_applications (user_id, submitted_by) VALUES (?, ?)',
       [userId, full_name]
@@ -79,7 +99,7 @@ async function register(data) {
     return {
       success: true,
       message: 'Registration successful. Awaiting HR approval.',
-      user: { id: userId, full_name, email, role, status: 'pending' }
+      user: { id: userId, full_name, email, department: departmentName, status: 'pending' }
     };
   } catch (error) {
     console.error('❌ Registration error:', error.message);

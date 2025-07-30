@@ -95,6 +95,41 @@ export async function getAllTickets() {
   }
 }
 
+export async function getTicketById(ticketId) {
+  try {
+    const [tickets] = await db.query(
+      `SELECT 
+        t.id,
+        t.issue_type,
+        t.priority,
+        t.description,
+        t.status,
+        t.created_at,
+        t.assigned_to,
+        t.reviewed_by,
+        t.reviewed_at,
+        creator.full_name as created_by_name,
+        assignee.full_name as assigned_to_name,
+        reviewer.full_name as reviewed_by_name
+      FROM tickets t
+      LEFT JOIN users creator ON t.created_by = creator.id
+      LEFT JOIN users assignee ON t.assigned_to = assignee.id
+      LEFT JOIN users reviewer ON t.reviewed_by = reviewer.id
+      WHERE t.id = ?`,
+      [ticketId]
+    );
+    
+    if (tickets.length === 0) {
+      throw new Error("Ticket not found");
+    }
+    
+    return tickets[0];
+  } catch (error) {
+    console.error("Error fetching ticket by ID:", error);
+    throw error;
+  }
+}
+
 export async function updateTicketAssignment(ticketId, assignedTo) {
   try {
     const [result] = await db.query(

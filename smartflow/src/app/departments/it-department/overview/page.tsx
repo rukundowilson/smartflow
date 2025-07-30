@@ -476,18 +476,18 @@ export default function OverView(){
                     >
                       View All
                   </button>
-                  </div>
+                </div>
                   <div className="p-6">
                     {myAssignedRequisitions.length === 0 ? (
                       <div className="text-center py-8">
                         <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No requisitions assigned to you</p>
-                      </div>
+              </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4">
                         {myAssignedRequisitions.slice(0, 3).map(requisition => (
                           <PersonalItemCard key={`requisition-${requisition.id}`} item={requisition} type="requisition" />
-                        ))}
+            ))}
                       </div>
                     )}
                   </div>
@@ -529,15 +529,15 @@ export default function OverView(){
                       <div className="text-center py-8">
                         <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No delivered items yet</p>
-                      </div>
+                </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4">
                         {myDeliveredRequisitions.slice(0, 3).map(requisition => (
                           <PersonalItemCard key={`delivered-${requisition.id}`} item={requisition} type="requisition" />
                         ))}
-                      </div>
+              </div>
                     )}
-                  </div>
+            </div>
                 </div>
               </div>
 
@@ -576,7 +576,7 @@ export default function OverView(){
                       <Activity className="h-6 w-6 text-orange-600 mx-auto mb-2" />
                       <p className="text-sm font-medium text-gray-900">Dashboard</p>
                     </button>
-            </div>
+          </div>
         </div>
       </div>
     </div>

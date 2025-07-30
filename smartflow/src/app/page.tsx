@@ -77,16 +77,16 @@ const ITSystemLogin: React.FC = () => {
     
     try {
       console.log('Login attempt:', formData);
-      const { token, user } = await login(formData);
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+        const { token, user } = await login(formData);
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
       
       setGeneralErr(''); // Clear any errors
       
-      redirectByDepartment(user.department, router);
-    } catch (err : any) {
+        redirectByDepartment(user.department, router);
+      } catch (err : any) {
       console.log("Login error:", err);
-      setGeneralErr(err?.message || "Login failed. Please try again.");
+        setGeneralErr(err?.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +153,7 @@ const ITSystemLogin: React.FC = () => {
              }}>
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 mt-0.5 mr-3" style={{ color: '#EF4444' }} />
-            <div>
+      <div>
               <h3 className="font-semibold text-sm mb-1" style={{ color: '#991B1B' }}>
                 Login Error
               </h3>
@@ -177,7 +177,7 @@ const ITSystemLogin: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+      </div>
       )}
 
       <div className="space-y-6">
