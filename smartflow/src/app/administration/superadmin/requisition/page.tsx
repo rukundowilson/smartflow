@@ -33,6 +33,7 @@ import { getITUsers, ITUser } from '@/app/services/itTicketService';
 import ItemRequestModal from '@/app/components/itemRequestModal';
 import NavBar from '../components/nav';
 import SideBar from '../components/sidebar';
+import { useAuth } from "@/app/contexts/auth-context";
 
 // Comment Modal Component
 const CommentModal = ({ 
@@ -276,6 +277,7 @@ const AssignmentModal = ({
 };
 
 export default function SuperAdminRequisition(){
+  const { user } = useAuth();
   const [itemRequests, setItemRequests] = useState<ItemRequisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
