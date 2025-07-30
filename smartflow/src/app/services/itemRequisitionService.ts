@@ -7,6 +7,7 @@ export interface ItemRequisition {
   justification: string;
   status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'delivered';
   created_at: string;
+  requested_by: number;
   requested_by_name: string;
   reviewed_by_name?: string;
   assigned_to?: number;
