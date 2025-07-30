@@ -26,7 +26,8 @@ import {
   UserCheck,
   UserX,
   UserCog,
-  Calendar
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 import SideBar from '../components/sidebar';
 import NavBar from '../components/nav';
@@ -102,7 +103,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color = '
   );
 
 const Histogram: React.FC<HistogramProps> = ({ data, title, colors }) => {
-    const maxCount = Math.max(...data.map(item => item.count), 1);
+    const maxCount = data.length > 0 ? Math.max(...data.map(item => item.count), 1) : 1;
     
     return (
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
@@ -145,11 +146,13 @@ export default function Overview() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [activities, setActivities] = useState<DashboardStats['recentActivities']>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
+                setError(null);
                 const [statsResponse, activitiesResponse] = await Promise.all([
                     getDashboardStats(),
                     getRecentActivities()
@@ -157,8 +160,9 @@ export default function Overview() {
                 
                 setStats(statsResponse.data);
                 setActivities(activitiesResponse.activities);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error fetching dashboard data:', error);
+                setError(error.message || 'Failed to load dashboard data');
             } finally {
                 setIsLoading(false);
             }
@@ -191,10 +195,36 @@ export default function Overview() {
                     <SideBar />
                     <div className="flex-1 space-y-6">
                         {/* Header */}
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-                            <p className="text-gray-600 mt-2">Monitor system activity and manage resources</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+                                <p className="text-gray-600 mt-2">Monitor system activity and manage resources</p>
+                            </div>
+                            <button 
+                                onClick={() => window.location.reload()}
+                                disabled={isLoading}
+                                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Refresh data"
+                            >
+                                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+                            </button>
                         </div>
+
+                        {/* Error Display */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div className="flex items-center space-x-2">
+                                    <AlertCircle className="h-5 w-5 text-red-600" />
+                                    <span className="text-red-600">{error}</span>
+                                </div>
+                                <button 
+                                    onClick={() => window.location.reload()}
+                                    className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                                >
+                                    Try again
+                                </button>
+                            </div>
+                        )}
 
                         {/* Stats Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -297,22 +327,12 @@ export default function Overview() {
                         {/* Histograms */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Histogram 
-                                data={stats?.tickets.byStatus || [
-                                    { status: 'open', count: 5 },
-                                    { status: 'in_progress', count: 3 },
-                                    { status: 'resolved', count: 8 },
-                                    { status: 'closed', count: 2 }
-                                ]}
+                                data={stats?.tickets.byStatus || []}
                                 title="Tickets by Status"
                                 colors={['bg-blue-500', 'bg-orange-500', 'bg-green-500', 'bg-gray-500', 'bg-purple-500']}
                             />
                             <Histogram 
-                                data={stats?.requisitions.byStatus || [
-                                    { status: 'pending', count: 4 },
-                                    { status: 'approved', count: 6 },
-                                    { status: 'assigned', count: 2 },
-                                    { status: 'delivered', count: 10 }
-                                ]}
+                                data={stats?.requisitions.byStatus || []}
                                 title="Requisitions by Status"
                                 colors={['bg-purple-500', 'bg-orange-500', 'bg-green-500', 'bg-red-500', 'bg-blue-500']}
                             />
