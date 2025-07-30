@@ -7,7 +7,7 @@ async function login(data) {
   try {
     // 1. Find user by email
     const [users] = await db.query(
-      'SELECT id, full_name, email, password_hash, department, status FROM users WHERE email = ?',
+      'SELECT id, full_name, email, password_hash, status FROM users WHERE email = ?',
       [email]
     );
 
@@ -28,7 +28,18 @@ async function login(data) {
       throw new Error('Invalid email or password');
     }
 
-    // 4. Return user data (without password)
+    // 4. Get user's department name from departments table
+    const [departments] = await db.query(
+      `SELECT d.name as department_name 
+       FROM departments d 
+       INNER JOIN user_departments ud ON d.id = ud.department_id 
+       WHERE ud.user_id = ?`,
+      [user.id]
+    );
+
+    const departmentName = departments.length > 0 ? departments[0].department_name : 'Unknown Department';
+
+    // 5. Return user data (without password)
     return {
       success: true,
       message: 'Login successful',
@@ -36,7 +47,7 @@ async function login(data) {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
-        department: user.department,
+        department: departmentName,
         status: user.status
       }
     };
@@ -73,10 +84,10 @@ async function register(data) {
     // 4. Hash the password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 5. Insert user into users table
+    // 5. Insert user into users table (without department column)
     const [result] = await db.query(
-      'INSERT INTO users (full_name, email, password_hash, department, status) VALUES (?, ?, ?, ?, ?)',
-      [full_name, email, passwordHash, departmentName, 'pending']
+      'INSERT INTO users (full_name, email, password_hash, status) VALUES (?, ?, ?, ?)',
+      [full_name, email, passwordHash, 'pending']
     );
 
     const userId = result.insertId;
@@ -113,7 +124,7 @@ async function getSystemUsers() {
       SELECT ra.id AS application_id, 
              u.id AS user_id,
              u.full_name,
-             u.department,
+             COALESCE(d.name, 'Unknown Department') AS department,
              u.email,
              u.status AS user_status,
              ra.status AS application_status,
@@ -122,6 +133,8 @@ async function getSystemUsers() {
              ra.reviewed_at
       FROM registration_applications ra
       JOIN users u ON ra.user_id = u.id
+      LEFT JOIN user_departments ud ON u.id = ud.user_id
+      LEFT JOIN departments d ON ud.department_id = d.id
     `);
     return rows;
   } catch (error) {

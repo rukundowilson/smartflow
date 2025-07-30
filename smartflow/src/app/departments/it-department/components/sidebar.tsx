@@ -22,7 +22,8 @@ function SideBar() {
     { id: 'tickets', name: 'IT Tickets', icon: Ticket },
     { id: 'access-requests', name: 'Access Requests', icon: Key },
     { id: 'revocation', name: 'Access Revocation', icon: UserMinus },
-    { id: 'requisition', name: 'Item Requisition', icon: Package },
+    { id: 'requisition', name: 'My Requests', icon: Package },
+    { id: 'manage-requisitions', name: 'Manage Requisitions', icon: Package },
   ];
 
   // Set active module from URL on mount

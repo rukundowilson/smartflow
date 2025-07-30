@@ -2,9 +2,9 @@
 import React from 'react';
 import NavBar from "../components/navbar"
 import SideBar from "../components/sidebar"
-import ITItemRequests from '@/app/components/itItemRequests';
+import RequisationComponent from '@/app/components/manageRequisitions';
 
-export default function Requisation(){
+export default function ManageRequisitions(){
     return(
         <>
             <div className="min-h-screen bg-[#F0F8F8]">
@@ -19,10 +19,10 @@ export default function Requisation(){
                   <SideBar/>
                   
                   {/* Main Content */}
-                  <ITItemRequests/>
+                  <RequisationComponent/>
                 </div>
               </div>
             </div>
         </>
     )
-}
+} 
