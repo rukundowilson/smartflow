@@ -30,7 +30,22 @@ export async function login(formData : LoginFormData): Promise<LoginResponse> {
 
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Login failed";
-    throw new Error(message);
+    // Extract the actual server error message
+    const serverMessage = error.response?.data?.message;
+    const status = error.response?.status;
+    
+    if (serverMessage) {
+      throw new Error(serverMessage);
+    } else if (status === 404) {
+      throw new Error("User not found. Please check your email address.");
+    } else if (status === 401) {
+      throw new Error("Invalid password. Please try again.");
+    } else if (status === 400) {
+      throw new Error("Invalid credentials. Please check your email and password.");
+    } else if (status >= 500) {
+      throw new Error("Server error. Please try again later.");
+    } else {
+      throw new Error("Login failed. Please check your connection and try again.");
+    }
   }
 }

@@ -103,7 +103,6 @@ async function getSystemUsers() {
       FROM registration_applications ra
       JOIN users u ON ra.user_id = u.id
     `);
-
     return rows;
   } catch (error) {
     console.error("❌ Error fetching system users:", error.message);
