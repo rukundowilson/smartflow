@@ -295,9 +295,9 @@ export default function OverView(){
       );
 
       // Filter tickets by status
-      const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'pending it approval' || t.status === 'pending it review');
-      const inProgressTickets = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned to me');
-      const resolvedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'completed');
+      const openTickets = tickets.filter(t => t.status === 'open');
+      const inProgressTickets = tickets.filter(t => t.status === 'in_progress');
+      const resolvedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
       const highPriorityTickets = tickets.filter(t => t.priority === 'high' || t.priority === 'critical');
 
       // Filter tickets by priority
@@ -344,7 +344,7 @@ export default function OverView(){
       // Items I took action on (resolved tickets, delivered requisitions)
       const myResolvedTickets = tickets.filter(t => 
         t.assigned_to === currentUser?.id && 
-        (t.status === 'resolved' || t.status === 'completed')
+        (t.status === 'resolved' || t.status === 'closed')
       );
       const myDeliveredRequisitions = requisitions.filter(r => 
         r.assigned_to === currentUser?.id && 
