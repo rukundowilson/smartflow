@@ -48,21 +48,6 @@ interface HistogramProps {
     colors: string[];
 }
 
-const getStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'open':
-      case 'pending': return 'text-orange-600 bg-orange-50';
-      case 'in_progress': return 'text-blue-600 bg-blue-50';
-      case 'resolved':
-      case 'approved':
-      case 'delivered': return 'text-green-600 bg-green-50';
-      case 'rejected': return 'text-red-600 bg-red-50';
-      case 'closed': return 'text-gray-600 bg-gray-50';
-      case 'assigned': return 'text-purple-600 bg-purple-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
 const getActivityIcon = (type: string) => {
     switch (type) {
         case 'ticket': return Ticket;

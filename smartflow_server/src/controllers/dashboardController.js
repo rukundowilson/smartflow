@@ -91,12 +91,7 @@ export const getDashboardStats = async (req, res) => {
         byStatus: ticketStatusBreakdown.length > 0 ? ticketStatusBreakdown.map(row => ({
           status: row.status,
           count: row.count
-        })) : [
-          { status: 'open', count: 5 },
-          { status: 'in_progress', count: 3 },
-          { status: 'resolved', count: 8 },
-          { status: 'closed', count: 2 }
-        ]
+        })) : []
       },
       requisitions: {
         total: requisitionStats.total || 0,
@@ -108,12 +103,7 @@ export const getDashboardStats = async (req, res) => {
         byStatus: requisitionStatusBreakdown.length > 0 ? requisitionStatusBreakdown.map(row => ({
           status: row.status,
           count: row.count
-        })) : [
-          { status: 'pending', count: 4 },
-          { status: 'approved', count: 6 },
-          { status: 'assigned', count: 2 },
-          { status: 'delivered', count: 10 }
-        ]
+        })) : []
       },
       users: {
         total: userStats.total || 0,
@@ -123,11 +113,7 @@ export const getDashboardStats = async (req, res) => {
         byStatus: userStatusBreakdown.length > 0 ? userStatusBreakdown.map(row => ({
           status: row.status,
           count: row.count
-        })) : [
-          { status: 'active', count: 15 },
-          { status: 'pending', count: 3 },
-          { status: 'inactive', count: 2 }
-        ]
+        })) : []
       }
     };
 
@@ -137,49 +123,9 @@ export const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    // Return fallback data instead of error
-    res.json({
-      success: true,
-      data: {
-        tickets: {
-          total: 18,
-          open: 5,
-          in_progress: 3,
-          resolved: 8,
-          closed: 2,
-          byStatus: [
-            { status: 'open', count: 5 },
-            { status: 'in_progress', count: 3 },
-            { status: 'resolved', count: 8 },
-            { status: 'closed', count: 2 }
-          ]
-        },
-        requisitions: {
-          total: 22,
-          pending: 4,
-          approved: 6,
-          rejected: 0,
-          assigned: 2,
-          delivered: 10,
-          byStatus: [
-            { status: 'pending', count: 4 },
-            { status: 'approved', count: 6 },
-            { status: 'assigned', count: 2 },
-            { status: 'delivered', count: 10 }
-          ]
-        },
-        users: {
-          total: 20,
-          pending: 3,
-          approved: 15,
-          rejected: 2,
-          byStatus: [
-            { status: 'active', count: 15 },
-            { status: 'pending', count: 3 },
-            { status: 'inactive', count: 2 }
-          ]
-        }
-      }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard statistics'
     });
   }
 };
@@ -217,20 +163,21 @@ export const getRecentActivities = async (req, res) => {
     try {
       const [recentRequisitions] = await db.query(`
         SELECT 
-          id,
+          ir.id,
           'requisition' as type,
           CASE 
-            WHEN status = 'pending' THEN 'created'
-            WHEN status = 'approved' THEN 'approved'
-            WHEN status = 'rejected' THEN 'rejected'
-            WHEN status = 'assigned' THEN 'assigned'
-            WHEN status = 'delivered' THEN 'delivered'
+            WHEN ir.status = 'pending' THEN 'created'
+            WHEN ir.status = 'approved' THEN 'approved'
+            WHEN ir.status = 'rejected' THEN 'rejected'
+            WHEN ir.status = 'assigned' THEN 'assigned'
+            WHEN ir.status = 'delivered' THEN 'delivered'
           END as action,
-          CONCAT('Requisition #', id, ' - ', item_name) as description,
-          created_at as timestamp,
-          requested_by_name as user
-        FROM item_requisitions
-        ORDER BY created_at DESC
+          CONCAT('Requisition #', ir.id, ' - ', ir.item_name) as description,
+          ir.created_at as timestamp,
+          u.full_name as user
+        FROM item_requisitions ir
+        LEFT JOIN users u ON ir.requested_by = u.id
+        ORDER BY ir.created_at DESC
         LIMIT 5
       `);
       allActivities.push(...recentRequisitions.map(r => ({ ...r, id: `R${r.id}` })));
@@ -251,7 +198,7 @@ export const getRecentActivities = async (req, res) => {
           END as action,
           CONCAT('User application - ', u.full_name) as description,
           ra.created_at as timestamp,
-          ra.submitted_by as user
+          u.full_name as user
         FROM registration_applications ra
         LEFT JOIN users u ON ra.user_id = u.id
         ORDER BY ra.created_at DESC
@@ -267,27 +214,8 @@ export const getRecentActivities = async (req, res) => {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 10);
 
-    // If no activities found, provide sample data
-    if (sortedActivities.length === 0) {
-      sortedActivities.push(
-        {
-          id: 'T001',
-          type: 'ticket',
-          action: 'created',
-          description: 'Ticket #1 - Computer won\'t start',
-          timestamp: new Date().toISOString(),
-          user: 'John Smith'
-        },
-        {
-          id: 'R001',
-          type: 'requisition',
-          action: 'approved',
-          description: 'Requisition #1 - Laptop request',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          user: 'Sarah Johnson'
-        }
-      );
-    }
+    // If no activities found, return empty array
+    // No hardcoded fallback data
 
     res.json({
       success: true,
@@ -295,27 +223,9 @@ export const getRecentActivities = async (req, res) => {
     });
   } catch (error) {
     console.error('Recent activities error:', error);
-    // Return sample activities instead of error
-    res.json({
-      success: true,
-      activities: [
-        {
-          id: 'T001',
-          type: 'ticket',
-          action: 'created',
-          description: 'Ticket #1 - Computer won\'t start',
-          timestamp: new Date().toISOString(),
-          user: 'John Smith'
-        },
-        {
-          id: 'R001',
-          type: 'requisition',
-          action: 'approved',
-          description: 'Requisition #1 - Laptop request',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          user: 'Sarah Johnson'
-        }
-      ]
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent activities'
     });
   }
 }; 
