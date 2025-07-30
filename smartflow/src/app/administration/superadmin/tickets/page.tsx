@@ -204,7 +204,7 @@ interface ActionButtonProps {
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Super Admin Ticket Management</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{user?.department || 'Admin'} Ticket Management</h2>
                     <p className="text-sm text-gray-600 mt-1">
                       {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''} found
                     </p>

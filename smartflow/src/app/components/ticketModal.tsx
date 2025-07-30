@@ -8,8 +8,9 @@ import {
   AlertCircle,
   Search
 } from 'lucide-react';
-import { createTicket } from '../services/ticketService';
+import { createTicket, getTicketById } from '../services/ticketService';
 import { getITUsers, updateTicketAssignment, ITUser } from '../services/itTicketService';
+import { createComment, getTicketComments, Comment } from '../services/commentService';
 
 interface NewTicket {
   issue_type: string;
@@ -69,6 +70,14 @@ const Modal: React.FC<ModalProps> = ({
         const [selectedAssignee, setSelectedAssignee] = useState<string>('');
         const [searchTerm, setSearchTerm] = useState('');
         const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+        const [comments, setComments] = useState<Comment[]>([]);
+        const [loadingComments, setLoadingComments] = useState(false);
+        const [currentTicket, setCurrentTicket] = useState<any>(selectedTicket);
+
+        // Update currentTicket when selectedTicket prop changes
+        useEffect(() => {
+          setCurrentTicket(selectedTicket);
+        }, [selectedTicket]);
       
         const handleInputChange = (
           e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -142,15 +151,26 @@ const Modal: React.FC<ModalProps> = ({
         };
       
         const handleCommentSubmit = async () => {
-          if (commentText.trim()) {
+          if (commentText.trim() && currentTicket) {
             setIsSubmitting(true);
             try {
-              // Add your comment submission logic here
-              console.log("Comment submitted:", commentText);
-              closeModal();
+              const newComment = await createComment({
+                comment_type: 'ticket',
+                commented_id: currentTicket.id,
+                commented_by: currentUser,
+                content: commentText.trim()
+              });
+              
+              // Add the new comment to the list
+              setComments(prev => [...prev, newComment]);
               setCommentText('');
+              
+              // Refresh the parent component data
+              if (onTicketCreated) {
+                onTicketCreated();
+              }
             } catch (err) {
-              console.error(err);
+              console.error('Error adding comment:', err);
             } finally {
               setIsSubmitting(false);
             }
@@ -174,18 +194,54 @@ const Modal: React.FC<ModalProps> = ({
 
         // Set initial assignee when ticket is selected
         useEffect(() => {
-          if (selectedTicket && modalType === 'view') {
-            setSelectedAssignee(selectedTicket.assigned_to?.toString() || '');
+          if (currentTicket && modalType === 'view') {
+            setSelectedAssignee(currentTicket.assigned_to?.toString() || '');
           }
-        }, [selectedTicket, modalType]);
+        }, [currentTicket, modalType]);
+
+        // Fetch comments when modal opens for comment or view mode
+        useEffect(() => {
+          if (isModalOpen && currentTicket && (modalType === 'comment' || modalType === 'view')) {
+            const fetchComments = async () => {
+              try {
+                setLoadingComments(true);
+                const response = await getTicketComments(currentTicket.id);
+                setComments(response.comments);
+              } catch (err) {
+                console.error('Error fetching comments:', err);
+              } finally {
+                setLoadingComments(false);
+              }
+            };
+            fetchComments();
+          }
+        }, [isModalOpen, currentTicket, modalType]);
+
+        // Fetch full ticket details when modal opens for view mode
+        useEffect(() => {
+          if (isModalOpen && selectedTicket && modalType === 'view') {
+            const fetchTicketDetails = async () => {
+              try {
+                const response = await getTicketById(selectedTicket.id);
+                if (response.success && response.ticket) {
+                  // Update the current ticket with full details
+                  setCurrentTicket(response.ticket);
+                }
+              } catch (err) {
+                console.error('Error fetching ticket details:', err);
+              }
+            };
+            fetchTicketDetails();
+          }
+        }, [isModalOpen, selectedTicket, modalType]);
 
         const handleAssigneeChange = async (assigneeId: string) => {
-          if (!selectedTicket) return;
+          if (!currentTicket) return;
           
           try {
             setIsSubmitting(true);
             const assigneeIdNum = assigneeId ? parseInt(assigneeId) : null;
-            await updateTicketAssignment(selectedTicket.id, assigneeIdNum);
+            await updateTicketAssignment(currentTicket.id, assigneeIdNum);
             setSelectedAssignee(assigneeId);
             setShowAssigneeDropdown(false);
             setSearchTerm(''); // Clear search term
@@ -252,8 +308,8 @@ const Modal: React.FC<ModalProps> = ({
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">
                 {modalType === 'new' && 'Report New Issue'}
-                {modalType === 'view' && `Ticket Details - ${selectedTicket?.id}`}
-                {modalType === 'comment' && `Add Comment - ${selectedTicket?.id}`}
+                              {modalType === 'view' && `Ticket Details - ${currentTicket?.id}`}
+              {modalType === 'comment' && `Add Comment - ${currentTicket?.id}`}
               </h3>
               <button
                 onClick={closeModal}
@@ -337,15 +393,15 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               )}
 
-              {modalType === 'view' && selectedTicket && (
+              {modalType === 'view' && currentTicket && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">Priority</p>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(selectedTicket.priority)}`}>
-                          {selectedTicket.priority}
+                        <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(currentTicket.priority)}`}>
+                          {currentTicket.priority}
                         </span>
                       </div>
                     </div>
@@ -353,8 +409,8 @@ const Modal: React.FC<ModalProps> = ({
                       <div className="h-5 w-5 rounded-full bg-gray-300"></div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">Status</p>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedTicket.status)}`}>
-                          {selectedTicket.status}
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(currentTicket.status)}`}>
+                          {currentTicket.status}
                         </span>
                       </div>
                     </div>
@@ -363,7 +419,7 @@ const Modal: React.FC<ModalProps> = ({
                       <div>
                         <p className="text-sm font-medium text-gray-900">Created</p>
                         <p className="text-sm text-gray-600">
-                          {new Date(selectedTicket.created_at).toLocaleDateString('en-US', {
+                          {new Date(currentTicket.created_at).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -441,18 +497,155 @@ const Modal: React.FC<ModalProps> = ({
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{selectedTicket.description}</p>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">{currentTicket.description}</p>
+                  </div>
+                  
+                  {/* Ticket Details */}
+                  <div className="bg-gray-50 p-4 rounded-md space-y-3">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Ticket Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">Created by:</span>
+                        <p className="text-gray-900">{currentTicket.created_by_name || 'Unknown'}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Created on:</span>
+                        <p className="text-gray-900">
+                          {new Date(currentTicket.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {currentTicket.reviewed_by_name && (
+                        <div>
+                          <span className="font-medium text-gray-700">Reviewed by:</span>
+                          <p className="text-gray-900">{currentTicket.reviewed_by_name}</p>
+                        </div>
+                      )}
+                      {currentTicket.reviewed_at && (
+                        <div>
+                          <span className="font-medium text-gray-700">Reviewed on:</span>
+                          <p className="text-gray-900">
+                            {new Date(currentTicket.reviewed_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      )}
+                      {currentTicket.assigned_to_name && (
+                        <div>
+                          <span className="font-medium text-gray-700">Assigned to:</span>
+                          <p className="text-gray-900">{currentTicket.assigned_to_name}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Comments Section */}
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Comments ({comments.length})</h4>
+                    
+                    {loadingComments ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600"></div>
+                      </div>
+                    ) : comments.length > 0 ? (
+                      <div className="space-y-3 max-h-40 overflow-y-auto">
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="bg-gray-50 p-3 rounded-md">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-5 w-5 rounded-full bg-sky-100 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-sky-600">
+                                    {comment.commented_by_name ? comment.commented_by_name.charAt(0).toUpperCase() : 'U'}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.commented_by_name || 'Unknown User'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {new Date(comment.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <p className="text-sm">No comments yet</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {modalType === 'comment' && selectedTicket && (
+              {modalType === 'comment' && currentTicket && (
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-md">
-                    <h4 className="font-medium text-gray-900 mb-2">{selectedTicket.title}</h4>
-                    <p className="text-sm text-gray-600">Ticket ID: {selectedTicket.id}</p>
+                                          <h4 className="font-medium text-gray-900 mb-2">Ticket #{currentTicket.id}</h4>
+                      <p className="text-sm text-gray-600">{currentTicket.issue_type}</p>
                   </div>
-                  <div>
+                  
+                  {/* Comments Section */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-gray-900">Comments ({comments.length})</h4>
+                    
+                    {loadingComments ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600"></div>
+                      </div>
+                    ) : comments.length > 0 ? (
+                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="bg-gray-50 p-3 rounded-md">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-6 w-6 rounded-full bg-sky-100 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-sky-600">
+                                    {comment.commented_by_name ? comment.commented_by_name.charAt(0).toUpperCase() : 'U'}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {comment.commented_by_name || 'Unknown User'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {new Date(comment.created_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <p className="text-sm">No comments yet</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Add Comment Form */}
+                  <div className="border-t pt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Add Comment</label>
                     <textarea 
                       rows={4}
@@ -463,13 +656,14 @@ const Modal: React.FC<ModalProps> = ({
                       placeholder="Add your comment or additional information..."
                     />
                   </div>
+                  
                   <div className="flex justify-end space-x-3">
                     <button
                       onClick={closeModal}
                       disabled={isSubmitting}
                       className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Cancel
+                      Close
                     </button>
                     <button
                       onClick={handleCommentSubmit}

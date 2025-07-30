@@ -31,3 +31,13 @@ export const fetchTicketsByUserId = async (userId: any) => {
     throw error;
   }
 };
+
+export const getTicketById = async (ticketId: number) => {
+  try {
+    const response = await API.get(`/api/tickets/${ticketId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch ticket:", error);
+    throw error;
+  }
+};

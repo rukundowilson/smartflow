@@ -363,7 +363,9 @@ export default function RequisationComponent(){
       // Check if current user is IT staff
       const isITStaff = () => {
         const user = getCurrentUser();
-        return user?.role === 'it_staff' || user?.department === 'IT';
+        const itDepartments = ['it_staff', 'IT Department', 'IT'];
+        return user?.role === 'it_staff' || 
+               itDepartments.includes(user?.department);
       };
 
 
@@ -787,7 +789,7 @@ export default function RequisationComponent(){
               >
                 <Calendar className="h-4 w-4 mr-1" />
                 Pickup
-              </button>
+                </button>
             )}
             
             {/* Delivery Actions for Approved and Scheduled Requisitions */}
@@ -884,7 +886,7 @@ export default function RequisationComponent(){
                       value={itemRequests.filter(r => r.status === 'assigned').length} 
                       icon={User} 
                       color="text-blue-600" 
-                    />
+                          />
                         </div>
                       </div>
 
@@ -1074,7 +1076,7 @@ export default function RequisationComponent(){
                                       title="Schedule Pickup"
                                     >
                                       <Calendar className="h-4 w-4" />
-                                    </button>
+                                            </button>
                                   )}
                                   
                                   {/* Delivery Actions for Approved and Scheduled Requisitions */}
@@ -1086,8 +1088,8 @@ export default function RequisationComponent(){
                                       title="Mark as Delivered"
                                     >
                                       <Truck className="h-4 w-4" />
-                                    </button>
-                                  )}
+                                          </button>
+                                        )}
                                   {/* View Details Button for All Requisitions */}
                                   <button 
                                     onClick={() => handleViewDetails(request.id)}
