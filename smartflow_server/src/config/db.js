@@ -33,4 +33,13 @@ export async function query(sql, params) {
   }
 }
 
+export async function clearPool() {
+  try {
+    await pool.end();
+    console.log('✅ Database connection pool cleared');
+  } catch (err) {
+    console.error('❌ Failed to clear connection pool:', err);
+  }
+}
+
 export default pool;

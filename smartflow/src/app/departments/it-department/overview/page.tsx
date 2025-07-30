@@ -123,36 +123,36 @@ const PersonalItemCard = ({ item, type }: {
 }) => {
   const router = useRouter();
   
-  const getStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'open':
-      case 'pending it approval':
+      const getStatusColor = (status: string): string => {
+        switch (status.toLowerCase()) {
+          case 'open':
+          case 'pending it approval':
       case 'pending it review':
       case 'pending': return 'text-orange-600 bg-orange-50';
-      case 'assigned to me':
+          case 'assigned to me':
       case 'in_progress': return 'text-blue-600 bg-blue-50';
-      case 'resolved':
-      case 'approved':
-      case 'it approved':
-      case 'completed': return 'text-green-600 bg-green-50';
+          case 'resolved':
+          case 'approved':
+          case 'it approved':
+          case 'completed': return 'text-green-600 bg-green-50';
       case 'ready for delivery': 
       case 'delivered': return 'text-purple-600 bg-purple-50';
       case 'assigned': return 'text-blue-600 bg-blue-50';
-      case 'rejected': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getPriorityColor = (priority: string): string => {
-    switch (priority.toLowerCase()) {
+          case 'rejected': return 'text-red-600 bg-red-50';
+          default: return 'text-gray-600 bg-gray-50';
+        }
+      };
+    
+      const getPriorityColor = (priority: string): string => {
+        switch (priority.toLowerCase()) {
       case 'critical': return 'text-red-600 bg-red-50';
       case 'high': return 'text-orange-600 bg-orange-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-green-600 bg-green-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
+          case 'medium': return 'text-yellow-600 bg-yellow-50';
+          case 'low': return 'text-green-600 bg-green-50';
+          default: return 'text-gray-600 bg-gray-50';
+        }
+      };
+    
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -295,9 +295,9 @@ export default function OverView(){
       );
 
       // Filter tickets by status
-      const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'pending it approval' || t.status === 'pending it review');
-      const inProgressTickets = tickets.filter(t => t.status === 'in_progress' || t.status === 'assigned to me');
-      const resolvedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'completed');
+      const openTickets = tickets.filter(t => t.status === 'open');
+      const inProgressTickets = tickets.filter(t => t.status === 'in_progress');
+      const resolvedTickets = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
       const highPriorityTickets = tickets.filter(t => t.priority === 'high' || t.priority === 'critical');
 
       // Filter tickets by priority
@@ -344,7 +344,7 @@ export default function OverView(){
       // Items I took action on (resolved tickets, delivered requisitions)
       const myResolvedTickets = tickets.filter(t => 
         t.assigned_to === currentUser?.id && 
-        (t.status === 'resolved' || t.status === 'completed')
+        (t.status === 'resolved' || t.status === 'closed')
       );
       const myDeliveredRequisitions = requisitions.filter(r => 
         r.assigned_to === currentUser?.id && 
@@ -394,9 +394,9 @@ export default function OverView(){
                   </button>
                 </main>
               </div>
-            </div>
           </div>
-        );
+        </div>
+      );
       }
           
     return(
@@ -435,10 +435,10 @@ export default function OverView(){
                   title="Requisition Status Distribution"
                   colors={['#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']}
                 />
-              </div>
+      </div>
 
               {/* Personal Items Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* My Assigned Tickets */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100">
                   <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
@@ -455,13 +455,13 @@ export default function OverView(){
                       <div className="text-center py-8">
                         <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No tickets assigned to you</p>
-                      </div>
+          </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4">
                         {myAssignedTickets.slice(0, 3).map(ticket => (
                           <PersonalItemCard key={`ticket-${ticket.id}`} item={ticket} type="ticket" />
                         ))}
-                      </div>
+                    </div>
                     )}
                   </div>
                 </div>
@@ -475,7 +475,7 @@ export default function OverView(){
                       className="text-sky-600 hover:text-sky-700 text-sm font-medium"
                     >
                       View All
-                    </button>
+                  </button>
                   </div>
                   <div className="p-6">
                     {myAssignedRequisitions.length === 0 ? (
@@ -491,40 +491,40 @@ export default function OverView(){
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
+          </div>
+        </div>
 
               {/* My Actions Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* My Resolved Tickets */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-                  <div className="px-6 py-4 border-b border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900">My Resolved Tickets</h3>
                     <p className="text-sm text-gray-600 mt-1">Tickets I've completed</p>
-                  </div>
-                  <div className="p-6">
+          </div>
+          <div className="p-6">
                     {myResolvedTickets.length === 0 ? (
                       <div className="text-center py-8">
                         <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-500">No resolved tickets yet</p>
-                      </div>
+            </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4">
                         {myResolvedTickets.slice(0, 3).map(ticket => (
                           <PersonalItemCard key={`resolved-${ticket.id}`} item={ticket} type="ticket" />
                         ))}
-                      </div>
+          </div>
                     )}
-                  </div>
-                </div>
+        </div>
+      </div>
 
                 {/* My Delivered Requisitions */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-                  <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-6 py-4 border-b border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900">My Delivered Items</h3>
                     <p className="text-sm text-gray-600 mt-1">Requisitions I've delivered</p>
-                  </div>
-                  <div className="p-6">
+        </div>
+        <div className="p-6">
                     {myDeliveredRequisitions.length === 0 ? (
                       <div className="text-center py-8">
                         <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -576,10 +576,10 @@ export default function OverView(){
                       <Activity className="h-6 w-6 text-orange-600 mx-auto mb-2" />
                       <p className="text-sm font-medium text-gray-900">Dashboard</p>
                     </button>
-                  </div>
-                </div>
-              </div>
             </div>
+        </div>
+      </div>
+    </div>
           </main>
         </div>
       </div>

@@ -60,7 +60,7 @@ const getStatusColor = (status: string): string => {
       case 'assigned': return 'text-purple-600 bg-purple-50';
       default: return 'text-gray-600 bg-gray-50';
     }
-};
+  };
 
 const getActivityIcon = (type: string) => {
     switch (type) {
@@ -99,7 +99,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color = '
         <Icon className={`h-8 w-8 ${color}`} />
       </div>
     </div>
-);
+  );
 
 const Histogram: React.FC<HistogramProps> = ({ data, title, colors }) => {
     const maxCount = Math.max(...data.map(item => item.count), 1);
@@ -176,7 +176,7 @@ export default function Overview() {
                         <SideBar />
                         <div className="flex-1 flex items-center justify-center">
                             <SpinLoading />
-                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -316,13 +316,13 @@ export default function Overview() {
                                 title="Requisitions by Status"
                                 colors={['bg-purple-500', 'bg-orange-500', 'bg-green-500', 'bg-red-500', 'bg-blue-500']}
                             />
-                        </div>
+            </div>
 
                         {/* Recent Activities */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                            <div className="px-6 py-4 border-b border-gray-100">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+            <div className="px-6 py-4 border-b border-gray-100">
                                 <h3 className="text-lg font-medium text-gray-900">Recent Activities</h3>
-                            </div>
+            </div>
                             <div className="divide-y divide-gray-100">
                                 {activities.length > 0 ? (
                                     activities.map((activity) => {
@@ -339,8 +339,8 @@ export default function Overview() {
                                                             <p className="text-xs text-gray-500">
                                                                 by {activity.user} • {activity.action}
                                                             </p>
-                                                        </div>
-                                                    </div>
+                </div>
+                </div>
                                                     <div className="flex items-center space-x-2">
                                                         <span className={`px-2 py-1 text-xs rounded-full ${getActivityColor(activity.action)}`}>
                                                             {activity.action}
@@ -348,9 +348,9 @@ export default function Overview() {
                                                         <span className="text-xs text-gray-400">
                                                             {new Date(activity.timestamp).toLocaleDateString()}
                                                         </span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                </div>
+                </div>
+            </div>
                                         );
                                     })
                                 ) : (
@@ -359,11 +359,11 @@ export default function Overview() {
                                         <p className="text-gray-500">No recent activities</p>
                                     </div>
                                 )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
+        </div>
+        </div>
+      </div>
+    </div>
     );
 }

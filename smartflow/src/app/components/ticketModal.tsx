@@ -22,7 +22,8 @@ interface ModalProps {
   user: any;
   closeModal: () => void;
   modalType : string;
-  selectedTicket : any
+  selectedTicket : any;
+  onTicketCreated?: () => void;
 }
 
 const getStatusColor = (status: string): string => {
@@ -54,6 +55,7 @@ const Modal: React.FC<ModalProps> = ({
   closeModal, 
   modalType,
   selectedTicket,
+  onTicketCreated,
 }) => {
         const currentUser = user?.id;
         const [newTicket, setNewTicket] = useState<NewTicket>({
@@ -95,6 +97,10 @@ const Modal: React.FC<ModalProps> = ({
                 priority: 'Medium',
                 description: '',
               });
+              // Refresh the overview page data
+              if (onTicketCreated) {
+                onTicketCreated();
+              }
             } catch (err) {
               console.error(err);
             } finally {

@@ -5,14 +5,25 @@ export interface ItemRequisition {
   item_name: string;
   quantity: number;
   justification: string;
-  status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'delivered';
+  status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'scheduled' | 'delivered';
   created_at: string;
+  requested_by: number;
   requested_by_name: string;
+  reviewed_by?: number;
   reviewed_by_name?: string;
   assigned_to?: number;
   assigned_by?: number;
   assigned_to_name?: string;
   assigned_by_name?: string;
+}
+
+export interface StatusHistoryEntry {
+  id: number;
+  previous_status: string | null;
+  new_status: string;
+  changed_at: string;
+  changed_by: number | null;
+  changed_by_name: string | null;
 }
 
 export interface CreateItemRequisitionData {
@@ -29,6 +40,7 @@ export interface PickupDetails {
   picked_up_at: string | null;
   delivered_at: string | null;
   notes: string | null;
+  delivered_by: number | null;
   delivered_by_name: string | null;
 }
 
@@ -37,7 +49,7 @@ export interface AssignRequisitionData {
   assignedBy: number;
 }
 
-export async function createItemRequisition(data: CreateItemRequisitionData): Promise<{ success: boolean; message: string; requisition: ItemRequisition }> {
+export async function createItemRequisition(data: CreateItemRequisitionData): Promise<{ success: boolean; message: string; requisitionId: number }> {
   try {
     const response = await API.post("/api/requisitions/new", data);
     return response.data;
@@ -113,7 +125,7 @@ export async function getAssignedRequisitions(userId: number): Promise<{ success
 export async function scheduleItemPickup(requisitionId: number, scheduledPickup: string, notes?: string): Promise<{ success: boolean; message: string }> {
   try {
     const response = await API.post(`/api/requisitions/${requisitionId}/pickup`, {
-      scheduledPickup,
+      scheduled_pickup: scheduledPickup,
       notes
     });
     return response.data;
@@ -125,13 +137,13 @@ export async function scheduleItemPickup(requisitionId: number, scheduledPickup:
 
 export async function markItemAsDelivered(requisitionId: number, deliveredBy: number, notes?: string): Promise<{ success: boolean; message: string }> {
   try {
-    const response = await API.put(`/api/requisitions/${requisitionId}/deliver`, {
-      deliveredBy,
+    const response = await API.post(`/api/requisitions/${requisitionId}/deliver`, {
+      delivered_by: deliveredBy,
       notes
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to mark item as delivered";
+    const message = error.response?.data?.message || "Failed to mark as delivered";
     throw new Error(message);
   }
 }
@@ -142,6 +154,16 @@ export async function getPickupDetails(requisitionId: number): Promise<{ success
     return response.data;
   } catch (error: any) {
     const message = error.response?.data?.message || "Failed to fetch pickup details";
+    throw new Error(message);
+  }
+}
+
+export async function getStatusHistory(recordType: string, recordId: number): Promise<{ success: boolean; history: StatusHistoryEntry[] }> {
+  try {
+    const response = await API.get(`/api/status-history/${recordType}/${recordId}`);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch status history";
     throw new Error(message);
   }
 } 
