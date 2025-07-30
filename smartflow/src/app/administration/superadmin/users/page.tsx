@@ -362,28 +362,6 @@ const AccessRequestDashboard = () => {
                       <td className="px-6 py-4 text-sm text-gray-500">{request.created}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end space-x-2">
-                          {request.status === 'pending' && (
-                            <>
-                              <button 
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  handleAction('approved');
-                                }}
-                                className="p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  handleAction('rejected');
-                                }}
-                                className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
                           <button 
                             onClick={() => handleViewRequest(request)}
                             className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors"
@@ -458,28 +436,6 @@ const AccessRequestDashboard = () => {
                   </div>
 
                   <div className="flex justify-end space-x-2">
-                    {request.status === 'pending' && (
-                      <>
-                        <button 
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            handleAction('approved');
-                          }}
-                          className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            handleAction('rejected');
-                          }}
-                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
                     <button 
                       onClick={() => handleViewRequest(request)}
                       className="p-2 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded-lg transition-colors"
