@@ -324,7 +324,7 @@ export default function SuperAdminTickets(){
                       </div>
                       <div className="text-xs text-gray-500 space-y-1">
                         <p>Assigned to: {ticket.assigned_to_name || 'Unassigned'}</p>
-                        {ticket.reviewed_by_name && (
+                        {ticket.reviewed_by_name && ticket.reviewed_at && (
                           <p>Reviewed by: {ticket.reviewed_by_name} on {new Date(ticket.reviewed_at).toLocaleDateString()}</p>
                         )}
                       </div>
@@ -412,7 +412,7 @@ export default function SuperAdminTickets(){
                               )}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">
-                              {ticket.reviewed_by_name ? (
+                              {ticket.reviewed_by_name && ticket.reviewed_at ? (
                                 <div>
                                   <p className="font-medium">{ticket.reviewed_by_name}</p>
                                   <p className="text-xs">{new Date(ticket.reviewed_at).toLocaleDateString()}</p>
