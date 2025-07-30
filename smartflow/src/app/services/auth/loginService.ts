@@ -31,7 +31,7 @@ export async function login(formData : LoginFormData): Promise<LoginResponse> {
     return response.data;
   } catch (error: any) {
     // Extract the actual server error message
-    const serverMessage = error.response?.data?.message;
+    const serverMessage = error.response?.data?.error || error.response?.data?.message;
     const status = error.response?.status;
     
     if (serverMessage) {

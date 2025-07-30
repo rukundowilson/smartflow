@@ -13,7 +13,7 @@ export async function createTicket(ticket: NewTicket, created_by: any) {
     return response.data;
   } catch (error: any) {
     console.error("Ticket creation failed", error);
-    throw new Error(error.response?.data?.message || "Failed to create ticket");
+    throw new Error(error.response?.data?.error || error.response?.data?.message || "Failed to create ticket");
   }
 }
 

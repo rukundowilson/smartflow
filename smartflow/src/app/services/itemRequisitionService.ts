@@ -74,7 +74,7 @@ export async function getAllItemRequisitions(): Promise<{ success: boolean; requ
     const response = await API.get("/api/requisitions/all");
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch all item requisitions";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch all item requisitions";
     throw new Error(message);
   }
 }
@@ -87,7 +87,7 @@ export async function updateItemRequisitionStatus(requisitionId: number, status:
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to update item requisition status";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to update item requisition status";
     throw new Error(message);
   }
 }
@@ -97,7 +97,7 @@ export async function getItemRequisitionById(requisitionId: number): Promise<{ s
     const response = await API.get(`/api/requisitions/${requisitionId}`);
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch item requisition";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch item requisition";
     throw new Error(message);
   }
 }
@@ -107,7 +107,7 @@ export async function assignItemRequisition(requisitionId: number, data: AssignR
     const response = await API.put(`/api/requisitions/${requisitionId}/assign`, data);
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to assign item requisition";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to assign item requisition";
     throw new Error(message);
   }
 }
@@ -117,7 +117,7 @@ export async function getAssignedRequisitions(userId: number): Promise<{ success
     const response = await API.get(`/api/requisitions/assigned/${userId}`);
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch assigned requisitions";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch assigned requisitions";
     throw new Error(message);
   }
 }
@@ -130,7 +130,7 @@ export async function scheduleItemPickup(requisitionId: number, scheduledPickup:
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to schedule pickup";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to schedule pickup";
     throw new Error(message);
   }
 }
@@ -143,7 +143,7 @@ export async function markItemAsDelivered(requisitionId: number, deliveredBy: nu
     });
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to mark as delivered";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to mark as delivered";
     throw new Error(message);
   }
 }
@@ -153,7 +153,7 @@ export async function getPickupDetails(requisitionId: number): Promise<{ success
     const response = await API.get(`/api/requisitions/${requisitionId}/pickup`);
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch pickup details";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch pickup details";
     throw new Error(message);
   }
 }
@@ -163,7 +163,7 @@ export async function getStatusHistory(recordType: string, recordId: number): Pr
     const response = await API.get(`/api/status-history/${recordType}/${recordId}`);
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to fetch status history";
+    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch status history";
     throw new Error(message);
   }
 } 

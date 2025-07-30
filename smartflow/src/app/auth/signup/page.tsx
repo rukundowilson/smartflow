@@ -34,6 +34,7 @@ export default function RegistrationPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>(null);
+  const [backendError, setBackendError] = useState<string>('');
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -71,6 +72,7 @@ export default function RegistrationPage() {
 
   setIsSubmitting(true);
   setSubmitStatus(null);
+  setBackendError(''); // Clear any previous backend errors
 
   try {
     const payload = {
@@ -81,7 +83,7 @@ export default function RegistrationPage() {
       is_verified: true,
     };
 
-    const res = await API.post('/api/auth/signup', payload); // adjust the endpoint if needed
+    const res = await API.post('/api/auth/signup', payload);
 
     console.log('Registration success:', res.data);
     setSubmitStatus('success');
@@ -95,6 +97,22 @@ export default function RegistrationPage() {
     });
   } catch (error: any) {
     console.error('Registration error:', error.response?.data || error.message);
+    
+    // Extract backend error message with fallbacks
+    let serverMessage = '';
+    if (error.response?.data?.error) {
+      serverMessage = error.response.data.error;
+    } else if (error.response?.data?.message) {
+      serverMessage = error.response.data.message;
+    } else if (error.message) {
+      serverMessage = error.message;
+    } else if (error.code === 'NETWORK_ERROR') {
+      serverMessage = 'Network error. Please check your connection and try again.';
+    } else {
+      serverMessage = 'Registration failed. Please try again.';
+    }
+    
+    setBackendError(serverMessage);
     setSubmitStatus('error');
   } finally {
     setIsSubmitting(false);
@@ -107,6 +125,11 @@ export default function RegistrationPage() {
     
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    
+    // Clear backend error when user starts typing
+    if (backendError) {
+      setBackendError('');
     }
   };
 
@@ -155,6 +178,23 @@ export default function RegistrationPage() {
         </div>
         {/* Form */}
         <div className="px-8 pb-8 space-y-6">
+          {/* Backend Error Display */}
+          {backendError && (
+            <div className="mb-6 p-4 rounded-lg border-l-4 shadow-sm" 
+                 style={{ 
+                   backgroundColor: '#FEF2F2', 
+                   borderLeftColor: '#EF4444',
+                   border: '1px solid #FECACA'
+                 }}>
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 mt-0.5 mr-3" style={{ color: '#EF4444' }} />
+                <div>
+                  <h3 className="font-semibold text-sm mb-1" style={{ color: '#991B1B' }}>Registration Error</h3>
+                  <p className="text-sm" style={{ color: '#7F1D1D' }}>{backendError}</p>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Full Name */}
           <div>
             <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
