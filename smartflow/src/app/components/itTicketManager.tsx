@@ -154,7 +154,8 @@ export default function ITTicketManager(){
   const handleUpdateStatus = async (ticketId: number, status: 'open' | 'in_progress' | 'resolved' | 'closed') => {
     try {
       setUpdatingTicket(ticketId);
-      await updateTicketStatus(ticketId, status);
+      // Include the current user as the reviewer when updating status
+      await updateTicketStatus(ticketId, status, user?.id || null);
       await fetchTickets(); // Refresh the data
     } catch (err) {
       console.error('Error updating ticket status:', err);
@@ -325,6 +326,9 @@ export default function ITTicketManager(){
                 </div>
                 <div className="text-xs text-gray-500 space-y-1">
                   <p>Assigned to: {ticket.assigned_to_name || 'Unassigned'}</p>
+                  {ticket.reviewed_by_name && (
+                    <p>Reviewed by: {ticket.reviewed_by_name} on {new Date(ticket.reviewed_at).toLocaleDateString()}</p>
+                  )}
                 </div>
                 
                 {/* Quick Actions */}
@@ -354,6 +358,7 @@ export default function ITTicketManager(){
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Info</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -388,6 +393,16 @@ export default function ITTicketManager(){
                           <option value="resolved">Resolved</option>
                           <option value="closed">Closed</option>
                         </select>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {ticket.reviewed_by_name ? (
+                          <div>
+                            <p className="font-medium">{ticket.reviewed_by_name}</p>
+                            <p className="text-xs">{new Date(ticket.reviewed_at).toLocaleDateString()}</p>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Not reviewed</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center space-x-2">
                         <button 

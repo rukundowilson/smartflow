@@ -1,5 +1,35 @@
-import {register,getSystemUsers, updateApplicationStatus} from '../services/userService.js';
+import {register, getSystemUsers, updateApplicationStatus, login} from '../services/userService.js';
 
+async function loginUser(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
+    }
+
+    const result = await login({ email, password });
+
+    console.log(`✅ User login successful: ${email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: result.user
+    });
+
+  } catch (error) {
+    console.error(`❌ Login failed for email: ${req.body?.email || 'unknown'} - ${error.message}`);
+
+    res.status(401).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
 
 async function registerUser(req, res) {
   try {
@@ -60,5 +90,5 @@ export async function reviewRegistrationApplication(req, res) {
   }
 }
 
-export {registerUser,systemUsers}
-export default {registerUser,systemUsers}
+export {registerUser, systemUsers, loginUser}
+export default {registerUser, systemUsers, loginUser}

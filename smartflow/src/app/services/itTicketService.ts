@@ -8,8 +8,11 @@ export interface ITTicket {
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   created_at: string;
   assigned_to: number | null;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
   created_by_name: string;
   assigned_to_name: string | null;
+  reviewed_by_name: string | null;
 }
 
 export interface ITUser {
@@ -45,11 +48,13 @@ export async function updateTicketAssignment(
 
 export async function updateTicketStatus(
   ticketId: number, 
-  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  status: 'open' | 'in_progress' | 'resolved' | 'closed',
+  reviewedBy?: number | null
 ): Promise<{ success: boolean; message: string }> {
   try {
     const response = await API.put(`/api/tickets/${ticketId}/status`, {
-      status
+      status,
+      reviewedBy
     });
     return response.data;
   } catch (error: any) {
