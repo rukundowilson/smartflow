@@ -7,6 +7,8 @@ import {
   AlertCircle,
   Eye,
   Laptop,
+  Truck,
+  RefreshCw,
 } from 'lucide-react';
 import {useRouter} from 'next/navigation';
 import NavBar from "../components/navbar";
@@ -38,6 +40,7 @@ export default function OverView(){
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
     const [requestsLoading, setRequestsLoading] = useState<boolean>(false);
+    const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
     const router = useRouter();
 
   const getStatusColor = (status: string): string => {
@@ -85,6 +88,32 @@ export default function OverView(){
       setSelectedTicket(null);
     };
 
+    const refreshData = async () => {
+      if (!user?.id) return;
+      try {
+        setIsLoading(true);
+        setRequestsLoading(true);
+        
+        // Fetch both tickets and requests concurrently
+        const [ticketsResponse, requestsResponse] = await Promise.all([
+          fetchTicketsByUserId(user.id),
+          getUserItemRequisitions(user.id)
+        ]);
+        
+        setMyTickets(ticketsResponse.tickets);
+        setMyRequests(requestsResponse.requisitions);
+        
+        // Show success message briefly
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      } catch (err) {
+        console.error('Error refreshing data:', err);
+      } finally {
+        setIsLoading(false);
+        setRequestsLoading(false);
+      }
+    };
+
     const fetchUserRequests = async () => {
         if (!user?.id) return;
         try {
@@ -127,13 +156,7 @@ export default function OverView(){
     const requests = Array.isArray(myRequests) ? myRequests : [];
     const activeTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress');
     const highPriorityTickets = tickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
-    const resolvedThisMonth = tickets.filter(t => {
-    const created = new Date(t.created);
-    const now = new Date();
-    return t.status === 'resolved' &&
-        created.getMonth() === now.getMonth() &&
-        created.getFullYear() === now.getFullYear();
-    });
+    const deliveredItems = requests.filter(r => r.status === 'delivered');
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -147,12 +170,34 @@ export default function OverView(){
                     
                     {/* Main Content */}
                     <main className="flex-1 lg:ml-4 min-w-0">
+                        {/* Success Message */}
+                        {showSuccessMessage && (
+                            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4 animate-in slide-in-from-top-2 duration-200">
+                                <div className="flex items-center">
+                                    <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                                    <span className="text-green-800 font-medium">Data refreshed successfully!</span>
+                                </div>
+                            </div>
+                        )}
+                        
                         {!isLoading && (
                         <div className="space-y-4 sm:space-y-6">
                             {/* Welcome Section */}
                             <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-sky-100">
-                                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, John!</h2>
-                                <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests and tickets.</p>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, John!</h2>
+                                        <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests and tickets.</p>
+                                    </div>
+                                    <button 
+                                        onClick={refreshData}
+                                        disabled={isLoading || requestsLoading}
+                                        className="p-2 text-sky-600 hover:text-sky-700 hover:bg-sky-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Refresh data"
+                                    >
+                                        <RefreshCw className={`h-5 w-5 ${isLoading || requestsLoading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Stats Grid - Responsive grid that stacks on mobile */}
@@ -172,11 +217,11 @@ export default function OverView(){
   subtitle={requests.find(r => r.status === 'pending')?.item_name || '—'}
 />
 <StatCard
-  title="Resolved This Month"
-  value={resolvedThisMonth.length}
-  icon={CheckCircle}
+  title="Delivered Items"
+  value={deliveredItems.length}
+  icon={Truck}
   color="text-green-600"
-  subtitle="Great progress!"
+  subtitle="Items received"
 />
 <StatCard
   title="Approved Requests"
@@ -286,7 +331,71 @@ export default function OverView(){
                         </div>
                         )}
                         {isLoading && (
-                            <SpinLoading/>
+                            <div className="space-y-4 sm:space-y-6">
+                                {/* Loading Welcome Section */}
+                                <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-sky-100 animate-pulse">
+                                    <div className="h-6 bg-gray-200 rounded w-48 mb-2"></div>
+                                    <div className="h-4 bg-gray-200 rounded w-64"></div>
+                                </div>
+
+                                {/* Loading Stats Grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                                    {[...Array(4)].map((_, i) => (
+                                        <div key={i} className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-100 animate-pulse">
+                                            <div className="flex items-center justify-between">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                                    <div className="h-6 bg-gray-200 rounded w-12 mb-1"></div>
+                                                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                                                </div>
+                                                <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Loading Quick Actions */}
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-6 animate-pulse">
+                                    <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
+                                    <div className="space-y-4">
+                                        {[...Array(2)].map((_, i) => (
+                                            <div key={i} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                                                <div className="flex items-center">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                                                    <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                                                        <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                                                        <div className="h-3 bg-gray-200 rounded w-48"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Loading Recent Activity */}
+                                <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                                    {[...Array(2)].map((_, i) => (
+                                        <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-100 animate-pulse">
+                                            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                                <div className="h-5 bg-gray-200 rounded w-32"></div>
+                                            </div>
+                                            <div className="divide-y divide-gray-100">
+                                                {[...Array(3)].map((_, j) => (
+                                                    <div key={j} className="px-4 sm:px-6 py-3 sm:py-4">
+                                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                                                                <div className="h-3 bg-gray-200 rounded w-24"></div>
+                                                            </div>
+                                                            <div className="h-6 bg-gray-200 rounded w-16"></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </main>
                 </div>
@@ -297,7 +406,7 @@ export default function OverView(){
                 closeModal = {closeModal}
                 modalType = {modalType}
                 selectedTicket = {selectedTicket}
-                
+                onTicketCreated = {refreshData}
                 />
         </div>
     )

@@ -30,10 +30,11 @@ import {
   handleMarkItemAsDelivered,
   handleGetPickupDetails,
   handleAssignItemRequisition,
-  handleGetAssignedRequisitions
+  handleGetAssignedRequisitions,
+  handleGetStatusHistory
 } from '../controllers/itemRequisitionController.js';
 
-import { 
+import {
   getDashboardStats,
   getRecentActivities
 } from '../controllers/dashboardController.js';
@@ -68,7 +69,7 @@ router.get("/requisitions/all", handleGetAllItemRequisitions);
 router.put("/requisitions/:requisitionId/status", handleUpdateItemRequisitionStatus);
 router.get("/requisitions/:requisitionId", handleGetItemRequisitionById);
 router.post("/requisitions/:requisitionId/pickup", handleScheduleItemPickup);
-router.put("/requisitions/:requisitionId/deliver", handleMarkItemAsDelivered);
+router.post("/requisitions/:requisitionId/deliver", handleMarkItemAsDelivered);
 router.get("/requisitions/:requisitionId/pickup", handleGetPickupDetails);
 router.put("/requisitions/:requisitionId/assign", handleAssignItemRequisition);
 router.get("/requisitions/assigned/:userId", handleGetAssignedRequisitions);
@@ -79,5 +80,8 @@ router.get("/users/it", handleGetITUsers);
 // Dashboard Routes
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/dashboard/activities", getRecentActivities);
+
+// Status History Routes
+router.get("/status-history/:recordType/:recordId", handleGetStatusHistory);
 
 export default router;

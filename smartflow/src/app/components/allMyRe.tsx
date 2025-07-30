@@ -9,16 +9,22 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Truck,
+  MessageSquare
 } from 'lucide-react';
 import ItemRequestModal from './itemRequestModal';
-import { getUserItemRequisitions, createItemRequisition, ItemRequisition } from '../services/itemRequisitionService';
+import { getUserItemRequisitions, createItemRequisition, ItemRequisition, getPickupDetails, PickupDetails } from '../services/itemRequisitionService';
 
 export default function Requisition(){
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [requests, setRequests] = useState<ItemRequisition[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [viewModalOpen, setViewModalOpen] = useState(false);
+    const [selectedRequisitionId, setSelectedRequisitionId] = useState<number | null>(null);
+    const [pickupDetails, setPickupDetails] = useState<PickupDetails | null>(null);
 
     // Get current user from localStorage
     const getCurrentUser = () => {
@@ -47,6 +53,26 @@ export default function Requisition(){
         }
     };
 
+    const handleViewDetails = async (requisitionId: number) => {
+        setSelectedRequisitionId(requisitionId);
+        setViewModalOpen(true);
+        
+        // Fetch pickup details for this requisition
+        try {
+            const pickupData = await getPickupDetails(requisitionId);
+            setPickupDetails(pickupData.pickupDetails);
+        } catch (err) {
+            console.error('Error fetching pickup details:', err);
+            setPickupDetails(null);
+        }
+    };
+
+    const handleCloseViewModal = () => {
+        setViewModalOpen(false);
+        setSelectedRequisitionId(null);
+        setPickupDetails(null);
+    };
+
     useEffect(() => {
         fetchUserRequisitions();
     }, []);
@@ -61,6 +87,8 @@ export default function Requisition(){
                 return <CheckCircle className="h-4 w-4 text-green-500" />;
             case 'rejected':
                 return <XCircle className="h-4 w-4 text-red-500" />;
+            case 'assigned':
+                return <User className="h-4 w-4 text-indigo-500" />;
             default:
                 return <AlertCircle className="h-4 w-4 text-gray-500" />;
         }
@@ -74,9 +102,23 @@ export default function Requisition(){
                 return 'bg-blue-50 text-blue-700 border-blue-200';
             case 'rejected':
                 return 'bg-red-50 text-red-700 border-red-200';
+            case 'assigned':
+                return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+            case 'delivered':
+                return 'bg-green-50 text-green-700 border-green-200';
             default:
                 return 'bg-gray-50 text-gray-700 border-gray-200';
         }
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     return(
@@ -89,8 +131,8 @@ export default function Requisition(){
                     <div className="flex items-center">
                         <Package className="h-8 w-8 text-sky-400 mr-3" />
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Item Requisition</h1>
-                            <p className="text-sm sm:text-base text-gray-600 mt-1">Request and track IT equipment and assets</p>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Item Requisitions</h1>
+                            <p className="text-sm sm:text-base text-gray-600 mt-1">Track your IT equipment and asset requests</p>
                         </div>
                     </div>
                     
@@ -120,23 +162,10 @@ export default function Requisition(){
                         </button>
                     </div>
                 </div>
-                
-                {/* Modal state indicator */}
-                {isModalOpen && (
-                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-blue-800 mb-2">✅ Button clicked! Modal would open here.</p>
-                        <button 
-                            onClick={() => setIsModalOpen(false)}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                        >
-                            Close
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <div className="text-2xl font-bold text-[#333]">{requests.length}</div>
                     <div className="text-sm text-gray-600">Total Requests</div>
@@ -149,12 +178,16 @@ export default function Requisition(){
                     <div className="text-2xl font-bold text-blue-600">{requests.filter(r => r.status === 'approved').length}</div>
                     <div className="text-sm text-gray-600">Approved</div>
                 </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <div className="text-2xl font-bold text-green-600">{requests.filter(r => r.status === 'delivered').length}</div>
+                    <div className="text-sm text-gray-600">Delivered</div>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
             {/* Header */}
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-[#333]">Recent Requests</h2>
+                <h2 className="text-lg font-semibold text-[#333]">My Requests</h2>
             </div>
 
             {/* Loading and Error States */}
@@ -207,23 +240,39 @@ export default function Requisition(){
                                             <span className="text-sm font-medium text-gray-500 whitespace-nowrap">
                                                 #{request.id}
                                             </span>
+                                            <button
+                                                onClick={() => handleViewDetails(request.id)}
+                                                className="flex items-center justify-center px-3 py-1.5 bg-sky-100 text-sky-700 rounded-lg font-medium transition-all hover:bg-sky-200 text-sm"
+                                                title="View Details"
+                                            >
+                                                <Eye className="h-4 w-4 mr-1" />
+                                                Details
+                                            </button>
                                         </div>
                                     </div>
 
                                     {/* Details Grid - Responsive */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-sm text-gray-600">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600">
                                         <div className="flex items-center">
                                             <Package className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
                                             <span className="truncate">Qty: {request.quantity}</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                                            <span className="truncate">{request.requested_by_name}</span>
-                                        </div>
-                                        <div className="flex items-center sm:col-span-2 lg:col-span-1">
                                             <Calendar className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
-                                            <span className="truncate">{new Date(request.created_at).toLocaleDateString()}</span>
+                                            <span className="truncate">{formatDate(request.created_at)}</span>
                                         </div>
+                                        {request.reviewed_by_name && (
+                                            <div className="flex items-center">
+                                                <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                                                <span className="truncate">Reviewed by: {request.reviewed_by_name}</span>
+                                            </div>
+                                        )}
+                                        {request.assigned_to_name && (
+                                            <div className="flex items-center">
+                                                <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                                                <span className="truncate">Assigned to: {request.assigned_to_name}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Justification Section */}
@@ -243,6 +292,8 @@ export default function Requisition(){
             )}
         </div>                         
         </main>
+        
+        {/* Create New Request Modal */}
         <ItemRequestModal
             isModalOpen={isModalOpen}
             onClose={() => {
@@ -251,7 +302,15 @@ export default function Requisition(){
                 fetchUserRequisitions();
             }}
             title="Request New Equipment"
-        />     
+        />
+
+        {/* View Details Modal */}
+        <ItemRequestModal
+            isModalOpen={viewModalOpen}
+            onClose={handleCloseViewModal}
+            mode="view"
+            requisitionId={selectedRequisitionId}
+        />
         </>
     )
 }

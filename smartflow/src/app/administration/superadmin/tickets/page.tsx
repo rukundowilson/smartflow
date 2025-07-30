@@ -4,7 +4,7 @@ import {
   Plus, 
   Eye,
   MessageSquare,
-  Search,
+  Search, 
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -48,25 +48,25 @@ export default function SuperAdminTickets(){
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [ticketsPerPage] = useState<number>(10);
 
-  const getStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
+const getStatusColor = (status: string): string => {
+  switch (status.toLowerCase()) {
       case 'open': return 'text-orange-600 bg-orange-50';
       case 'in_progress': return 'text-blue-600 bg-blue-50';
       case 'resolved': return 'text-green-600 bg-green-50';
       case 'closed': return 'text-gray-600 bg-gray-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
 
-  const getPriorityColor = (priority: string): string => {
-    switch (priority.toLowerCase()) {
+const getPriorityColor = (priority: string): string => {
+  switch (priority.toLowerCase()) {
       case 'critical': return 'text-red-600 bg-red-50';
       case 'high': return 'text-orange-600 bg-orange-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-green-600 bg-green-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
+    case 'medium': return 'text-yellow-600 bg-yellow-50';
+    case 'low': return 'text-green-600 bg-green-50';
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
 
   const isUnresolved = (status: string): boolean => {
     return status === 'open' || status === 'in_progress';
@@ -169,26 +169,26 @@ export default function SuperAdminTickets(){
     setSelectedTicket(null);
   };
 
-  interface ActionButtonProps {
-    icon: React.ElementType;
-    label: string;
-    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+interface ActionButtonProps {
+  icon: React.ElementType;
+  label: string;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
     variant?: 'primary' | 'secondary';
-    className?: string;
-  }
+  className?: string;
+}
 
   const ActionButton: React.FC<ActionButtonProps> = ({ icon: Icon, label, onClick, variant = 'primary', className = '' }) => {
     const baseClasses = "inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
-    const variants = {
-      primary: "bg-sky-600 text-white hover:bg-sky-700 focus:ring-sky-500",
+  const variants = {
+    primary: "bg-sky-600 text-white hover:bg-sky-700 focus:ring-sky-500",
       secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-sky-500"
-    };
-    
-    return (
-      <button onClick={onClick} className={`${baseClasses} ${variants[variant]} ${className}`}>
+  };
+  
+  return (
+    <button onClick={onClick} className={`${baseClasses} ${variants[variant]} ${className}`}>
         <Icon className="h-4 w-4 mr-2" />
         {label}
-      </button>
+        </button>
     );
   };
 
@@ -222,16 +222,16 @@ export default function SuperAdminTickets(){
                   <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="flex-1">
-                      <div className="relative">
-                        <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-                        <input
-                          type="text"
+                  <div className="relative">
+                    <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type="text"
                           placeholder="Search tickets by ID, issue type, priority, status, or creator..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
-                        />
-                      </div>
+                    />
+                  </div>
                     </div>
                     
                     {/* Status Filter */}
@@ -247,14 +247,14 @@ export default function SuperAdminTickets(){
                         <option value="resolved">Resolved</option>
                         <option value="closed">Closed</option>
                       </select>
-                    </div>
-                    
+                              </div>
+                              
                     {/* Priority Filter */}
                     <div className="lg:w-48">
                       <select
                         value={priorityFilter}
                         onChange={(e) => setPriorityFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
                       >
                         <option value="all">All Priority</option>
                         <option value="critical">Critical</option>
@@ -262,21 +262,21 @@ export default function SuperAdminTickets(){
                         <option value="medium">Medium</option>
                         <option value="low">Low</option>
                       </select>
-                    </div>
+                                </div>
 
                     {/* Assignment Filter */}
                     <div className="lg:w-48">
                       <select
                         value={assignmentFilter}
                         onChange={(e) => setAssignmentFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
                       >
                         <option value="all">All Assignments</option>
                         <option value="unassigned">Unassigned</option>
                         <option value="assigned">Assigned</option>
                         <option value="assigned_to_me">Assigned to Me</option>
-                      </select>
-                    </div>
+                                  </select>
+                                </div>
                   </div>
                 </div>
 
@@ -289,30 +289,30 @@ export default function SuperAdminTickets(){
                           <div className="flex items-center mb-2">
                             <div className="h-6 w-6 rounded-full bg-sky-100 flex items-center justify-center mr-3">
                               <span className="text-xs font-medium text-sky-600">#{ticket.id}</span>
-                            </div>
+                                </div>
                             <div>
                               <h3 className="font-medium text-gray-900">{ticket.issue_type}</h3>
                               <p className="text-xs text-gray-500">by {ticket.created_by_name}</p>
                             </div>
                           </div>
                           <p className="text-xs text-gray-500">Created: {new Date(ticket.created_at).toLocaleDateString()}</p>
-                        </div>
+                              </div>
                         <div className="flex space-x-2">
-                          <button 
+                                  <button
                             onClick={() => openModal('view', ticket)}
                             className="text-sky-600 hover:text-sky-900 p-1" 
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
-                          </button>
-                          <button 
+                                  </button>
+                                  <button
                             onClick={() => openModal('comment', ticket)}
                             className="text-gray-600 hover:text-gray-900 p-1" 
                             title="Add Comment"
-                          >
+                                  >
                             <MessageSquare className="h-4 w-4" />
-                          </button>
-                        </div>
+                                  </button>
+                                </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(ticket.priority)}`}>
@@ -327,7 +327,7 @@ export default function SuperAdminTickets(){
                         {ticket.reviewed_by_name && ticket.reviewed_at && (
                           <p>Reviewed by: {ticket.reviewed_by_name} on {new Date(ticket.reviewed_at).toLocaleDateString()}</p>
                         )}
-                      </div>
+                            </div>
                       
                       {/* Assignment for unresolved tickets only */}
                       {isUnresolved(ticket.status) && (
@@ -346,16 +346,16 @@ export default function SuperAdminTickets(){
                               </option>
                             ))}
                           </select>
-                        </div>
+                          </div>
                       )}
                     </div>
                   ))}
-                </div>
+              </div>
 
-                {/* Desktop Table View */}
+              {/* Desktop Table View */}
                 <div className="hidden lg:block bg-white shadow-sm rounded-lg border border-gray-100">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue</th>
@@ -366,10 +366,10 @@ export default function SuperAdminTickets(){
                           <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200">
                         {currentTickets?.map((ticket) => (
-                          <tr key={ticket.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4">
+                        <tr key={ticket.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
                               <div className="flex items-center">
                                 <div className="flex-shrink-0">
                                   <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center">
@@ -384,12 +384,12 @@ export default function SuperAdminTickets(){
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">
                               {new Date(ticket.created_at).toLocaleDateString()}
-                            </td>
+                          </td>
                             <td className="px-6 py-4 text-center">
                               <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(ticket.status)}`}>
                                 {ticket.status.replace('_', ' ')}
-                              </span>
-                            </td>
+                            </span>
+                          </td>
                             <td className="px-6 py-4 text-center">
                               {isUnresolved(ticket.status) ? (
                                 <select
@@ -408,7 +408,7 @@ export default function SuperAdminTickets(){
                               ) : (
                                 <span className="text-sm text-gray-500">
                                   {ticket.assigned_to_name || 'Unassigned'}
-                                </span>
+                            </span>
                               )}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">
@@ -420,29 +420,29 @@ export default function SuperAdminTickets(){
                               ) : (
                                 <span className="text-gray-400">Not reviewed</span>
                               )}
-                            </td>
+                          </td>
                             <td className="px-6 py-4 text-center space-x-2">
                               <button 
                                 onClick={() => openModal('view', ticket)}
                                 className="text-sky-600 hover:text-sky-900 p-1" 
                                 title="View Details"
                               >
-                                <Eye className="h-4 w-4" />
-                              </button>
+                              <Eye className="h-4 w-4" />
+                            </button>
                               <button 
                                 onClick={() => openModal('comment', ticket)}
                                 className="text-gray-600 hover:text-gray-900 p-1" 
                                 title="Add Comment"
                               >
                                 <MessageSquare className="h-4 w-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              </div>
 
                 {/* Pagination */}
                 {filteredTickets.length > 0 && (
@@ -517,7 +517,7 @@ export default function SuperAdminTickets(){
                         ? 'Try adjusting your search or filters.' 
                         : 'No tickets have been created yet.'}
                     </p>
-                  </div>
+                </div>
                 )}
               </div>
             )}

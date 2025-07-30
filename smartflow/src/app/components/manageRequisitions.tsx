@@ -366,6 +366,8 @@ export default function RequisationComponent(){
         return user?.role === 'it_staff' || user?.department === 'IT';
       };
 
+
+
       const fetchAllRequisitions = async () => {
         try {
           setLoading(true);
@@ -499,9 +501,9 @@ export default function RequisationComponent(){
 
       const handleSelectAll = (checked: boolean) => {
         if (checked) {
-          // Only select non-delivered requisitions
-          const nonDeliveredRequests = itemRequests.filter(req => req.status !== 'delivered');
-          setSelectedRequests(nonDeliveredRequests.map(req => req.id));
+          // Only select approved requisitions for IT staff (can only assign approved)
+          const selectableRequests = itemRequests.filter(req => req.status === 'approved');
+          setSelectedRequests(selectableRequests.map(req => req.id));
         } else {
           setSelectedRequests([]);
         }
@@ -527,7 +529,7 @@ export default function RequisationComponent(){
             throw new Error('User not found');
           }
 
-          // Filter out delivered requisitions for bulk actions
+          // Only approve/reject non-delivered requisitions for Super Admin
           const pendingRequests = itemRequests.filter(req => req.status !== 'delivered');
 
           // Update all selected requests
@@ -564,8 +566,8 @@ export default function RequisationComponent(){
             throw new Error('User not found');
           }
 
-          // Filter out delivered requisitions for bulk assignment
-          const pendingRequests = itemRequests.filter(req => req.status !== 'delivered');
+          // Only assign approved requisitions for IT staff
+          const pendingRequests = itemRequests.filter(req => req.status === 'approved');
 
           // Assign all selected requests
           for (const requisitionId of selectedRequests) {
@@ -620,16 +622,26 @@ export default function RequisationComponent(){
           handleMarkAsDelivered(selectedRequisitionId);
         }
       };
+
+      // Wrapper functions for modal approve/reject
+      const handleApprove = (requisitionId: number) => {
+        handleStatusUpdate(requisitionId, 'approved');
+      };
+
+      const handleReject = (requisitionId: number) => {
+        handleStatusUpdate(requisitionId, 'rejected');
+      };
     
       const getStatusColor = (status: string, assignedTo?: string): string => {
         switch (status.toLowerCase()) {
           case 'pending': return 'text-orange-700 bg-orange-100 border-orange-200';
-          case 'approved': 
+          case 'approved':
             // If approved and assigned, show a special color
             return assignedTo ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-green-700 bg-green-100 border-green-200';
           case 'rejected': return 'text-red-700 bg-red-100 border-red-200';
           case 'assigned': return 'text-blue-700 bg-blue-100 border-blue-200';
-          case 'delivered': return 'text-purple-700 bg-purple-100 border-purple-200';
+          case 'scheduled': return 'text-purple-700 bg-purple-100 border-purple-200';
+          case 'delivered': return 'text-green-700 bg-green-100 border-green-200';
           default: return 'text-gray-700 bg-gray-100 border-gray-200';
         }
       };
@@ -734,7 +746,7 @@ export default function RequisationComponent(){
                 type="checkbox" 
                 checked={selectedRequests.includes(request.id)}
                 onChange={(e) => handleSelectRequest(request.id, e.target.checked)}
-                disabled={request.status === 'delivered'}
+                disabled={request.status !== 'approved'}
                 className="w-5 h-5 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
@@ -764,62 +776,31 @@ export default function RequisationComponent(){
           </div>
           
           <div className="flex flex-wrap justify-center gap-2 pt-4 border-t border-gray-100">
-            {request.status === 'pending' && (
-              <>
-                {/* Super Admin Actions - Approve/Reject */}
-                {isSuperAdmin() && (
-                  <>
-                    <button 
-                      onClick={() => handleStatusUpdate(request.id, 'approved')}
-                      disabled={updatingStatus === request.id}
-                      className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                      title="Approve"
-                    >
-                      {updatingStatus === request.id ? (
-                        <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                      )}
-                      Approve
-                    </button>
-                    <button 
-                      onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                      disabled={updatingStatus === request.id}
-                      className="flex items-center justify-center px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-all hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                      title="Reject"
-                    >
-                      {updatingStatus === request.id ? (
-                        <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mr-1" />
-                      )}
-                      Reject
-                    </button>
-                  </>
-                )}
-              </>
-            )}
+                                {/* Approve/Reject buttons moved to modal header */}
+            {/* Pickup Actions for Approved Requisitions */}
             {request.status === 'approved' && (
-              <>
-                <button 
-                  onClick={() => handleOpenPickupModal(request.id)}
-                  disabled={updatingStatus === request.id}
-                  className="flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium transition-all hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title="Schedule Pickup"
-                >
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Pickup
-                </button>
-                <button 
-                  onClick={() => handleOpenDeliveryModal(request.id)}
-                  disabled={updatingStatus === request.id}
-                  className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  title="Mark as Delivered"
-                >
-                  <Truck className="h-4 w-4 mr-1" />
-                  Deliver
-                </button>
-              </>
+              <button 
+                onClick={() => handleOpenPickupModal(request.id)}
+                disabled={updatingStatus === request.id}
+                className="flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium transition-all hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                title="Schedule Pickup"
+              >
+                <Calendar className="h-4 w-4 mr-1" />
+                Pickup
+              </button>
+            )}
+            
+            {/* Delivery Actions for Approved and Scheduled Requisitions */}
+            {(request.status === 'approved' || request.status === 'scheduled') && (
+              <button 
+                onClick={() => handleOpenDeliveryModal(request.id)}
+                disabled={updatingStatus === request.id}
+                className="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-all hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                title="Mark as Delivered"
+              >
+                <Truck className="h-4 w-4 mr-1" />
+                Deliver
+              </button>
             )}
             {/* Individual assign button removed - use bulk assign instead */}
             <button 
@@ -868,93 +849,93 @@ export default function RequisationComponent(){
     
     return(
         <>
-            {/* Main Content with proper margins */}
-            <main className="flex-1 lg:ml-6 xl:ml-8">
-              <div className="space-y-4 lg:space-y-6">
-                {/* Desktop Header */}
-                <div className="hidden lg:block">
+                  {/* Main Content with proper margins */}
+                  <main className="flex-1 lg:ml-6 xl:ml-8">
+                    <div className="space-y-4 lg:space-y-6">
+                      {/* Desktop Header */}
+                      <div className="hidden lg:block">
                   <div className="mb-4">
                     <h2 className="text-2xl xl:text-3xl text-gray-900 mb-2">Item Requisitions</h2>
-                    <p className="text-gray-600 lg:text-lg">Manage and track hardware and equipment requests</p>
-                  </div>
-                  
-                  {/* Stats Cards Row */}
+                          <p className="text-gray-600 lg:text-lg">Manage and track hardware and equipment requests</p>
+                        </div>
+                        
+                        {/* Stats Cards Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6 mb-6">
-                    <StatCard 
-                      title="Total Requests" 
-                      value={itemRequests.length} 
-                      icon={Package} 
-                      color="text-blue-600" 
-                    />
-                    <StatCard 
-                      title="Pending Review" 
+                          <StatCard 
+                            title="Total Requests" 
+                            value={itemRequests.length} 
+                            icon={Package} 
+                            color="text-blue-600" 
+                          />
+                          <StatCard 
+                            title="Pending Review" 
                       value={itemRequests.filter(r => r.status === 'pending').length} 
-                      icon={Clock} 
-                      color="text-orange-600" 
-                    />
-                    <StatCard 
+                            icon={Clock} 
+                            color="text-orange-600" 
+                          />
+                          <StatCard 
                       title="Approved" 
                       value={itemRequests.filter(r => r.status === 'approved').length} 
-                      icon={CheckCircle} 
-                      color="text-green-600" 
-                    />
+                            icon={CheckCircle} 
+                            color="text-green-600" 
+                          />
                     <StatCard 
                       title="Assigned" 
                       value={itemRequests.filter(r => r.status === 'assigned').length} 
                       icon={User} 
                       color="text-blue-600" 
                     />
-                  </div>
-                </div>
+                        </div>
+                      </div>
 
-                {/* Mobile Header with Stats */}
-                <div className="lg:hidden mb-4">
-                  <div className="mb-4">
+                      {/* Mobile Header with Stats */}
+                      <div className="lg:hidden mb-4">
+                        <div className="mb-4">
                     <h2 className="text-xl font-bold text-gray-900 mb-1">Item Requisitions</h2>
                     <p className="text-gray-600 text-sm">Manage and track hardware requests</p>
-                  </div>
-                  
-                  {/* Mobile Stats Grid - Fixed overflow */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-500 truncate">Total</p>
-                          <p className="text-xl font-bold text-gray-900">{itemRequests.length}</p>
                         </div>
-                        <Package className="h-5 w-5 text-blue-600 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-500 truncate">Pending</p>
+                        
+                        {/* Mobile Stats Grid - Fixed overflow */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-gray-500 truncate">Total</p>
+                                <p className="text-xl font-bold text-gray-900">{itemRequests.length}</p>
+                              </div>
+                              <Package className="h-5 w-5 text-blue-600 flex-shrink-0 ml-2" />
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-gray-500 truncate">Pending</p>
                           <p className="text-xl font-bold text-gray-900">{itemRequests.filter(r => r.status === 'pending').length}</p>
-                        </div>
-                        <Clock className="h-5 w-5 text-orange-600 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
+                              </div>
+                              <Clock className="h-5 w-5 text-orange-600 flex-shrink-0 ml-2" />
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-gray-500 truncate">Approved</p>
                           <p className="text-xl font-bold text-gray-900">{itemRequests.filter(r => r.status === 'approved').length}</p>
-                        </div>
+                              </div>
                         <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
+                            </div>
+                          </div>
+                          <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-gray-500 truncate">Assigned</p>
                           <p className="text-xl font-bold text-gray-900">{itemRequests.filter(r => r.status === 'assigned').length}</p>
-                        </div>
+                              </div>
                         <User className="h-5 w-5 text-blue-600 flex-shrink-0 ml-2" />
-                      </div>
-                    </div>
-                  </div>
+                            </div>
+                          </div>
+                        </div>
 
-                  {/* Mobile Quick Actions */}
+                  {/* Mobile Quick Actions - Only for approved requisitions */}
                   {selectedRequests.length > 0 && (
                     <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-100 mb-4">
                       <p className="text-sm font-medium text-gray-700 mb-3">
@@ -980,7 +961,7 @@ export default function RequisationComponent(){
                             </button>
                           </>
                         )}
-                        {/* Bulk Assign Action */}
+                        {/* Bulk Assign Action - Only for approved requisitions */}
                         <button 
                           onClick={() => handleOpenAssignmentModal(0)}
                           className="flex items-center justify-center px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium transition-all hover:bg-blue-200 text-xs"
@@ -991,22 +972,22 @@ export default function RequisationComponent(){
                       </div>
                     </div>
                   )}
-                </div>
+                      </div>
 
-                {/* Enhanced Desktop Table */}
-                <div className="hidden lg:block">
+                      {/* Enhanced Desktop Table */}
+                      <div className="hidden lg:block">
                   <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-                    <div className="px-4 lg:px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900">All Requests</h3>
+                          <div className="px-4 lg:px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                            <h3 className="text-lg font-semibold text-gray-900">All Requests</h3>
                       <div className="flex flex-wrap gap-2">
                         {/* Super Admin Actions */}
                         {isSuperAdmin() && (
                           <>
-                            <ActionButton 
-                              icon={CheckCircle} 
+                              <ActionButton 
+                                icon={CheckCircle} 
                               label="Approve Selected" 
-                              variant="success" 
-                              size="sm"
+                                variant="success" 
+                                size="sm"
                               onClick={() => handleBulkAction('approve')}
                               disabled={selectedRequests.length === 0}
                             />
@@ -1020,7 +1001,7 @@ export default function RequisationComponent(){
                             />
                           </>
                         )}
-                        {/* Bulk Assign Action */}
+                        {/* Bulk Assign Action - Only for approved requisitions */}
                         <ActionButton 
                           icon={User} 
                           label="Assign Selected" 
@@ -1028,21 +1009,21 @@ export default function RequisationComponent(){
                           size="sm"
                           onClick={() => handleOpenAssignmentModal(0)}
                           disabled={selectedRequests.length === 0}
-                        />
-                      </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-3 py-3 text-left">
-                              <input 
-                                type="checkbox" 
-                                checked={selectedRequests.length === itemRequests.filter(req => req.status !== 'delivered').length && itemRequests.filter(req => req.status !== 'delivered').length > 0}
-                                onChange={(e) => handleSelectAll(e.target.checked)}
-                                className="w-4 h-4 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500"
                               />
-                            </th>
+                            </div>
+                          </div>
+                          <div className="overflow-x-auto">
+                      <table className="w-full min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                            <th className="px-3 py-3 text-left">
+                                    <input 
+                                      type="checkbox" 
+                                  checked={selectedRequests.length === itemRequests.filter(req => req.status === 'approved').length && itemRequests.filter(req => req.status === 'approved').length > 0}
+                                  onChange={(e) => handleSelectAll(e.target.checked)}
+                                  className="w-4 h-4 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500"
+                                    />
+                                  </th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">ID</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Employee</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Item</th>
@@ -1050,20 +1031,20 @@ export default function RequisationComponent(){
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Assigned</th>
                             <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {itemRequests.map(request => (
-                            <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-100">
+                                {itemRequests.map(request => (
+                                  <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-3 py-3">
-                                <input 
-                                  type="checkbox" 
+                                      <input 
+                                        type="checkbox" 
                                   checked={selectedRequests.includes(request.id)}
                                   onChange={(e) => handleSelectRequest(request.id, e.target.checked)}
-                                  disabled={request.status === 'delivered'}
+                                  disabled={request.status !== 'approved'}
                                   className="w-4 h-4 rounded border-2 border-gray-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                              </td>
+                                      />
+                                    </td>
                               <td className="px-3 py-3 text-sm font-bold text-gray-900">#{request.id}</td>
                               <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] truncate" title={request.requested_by_name}>
                                 {request.requested_by_name}
@@ -1075,67 +1056,37 @@ export default function RequisationComponent(){
                               <td className="px-3 py-3">
                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status, request.assigned_to_name)}`}>
                                   {getStatusDisplay(request.status, request.assigned_to_name)}
-                                </span>
-                              </td>
+                                      </span>
+                                    </td>
                               <td className="px-3 py-3 text-sm font-medium text-gray-900 max-w-[120px] truncate" title={request.assigned_to_name || 'N/A'}>
                                 {request.assigned_to_name || 'N/A'}
                               </td>
                               <td className="px-3 py-3 text-right">
                                 <div className="flex justify-end space-x-1">
-                                  {request.status === 'pending' && (
-                                    <>
-                                      {/* Super Admin Actions - Approve/Reject */}
-                                      {isSuperAdmin() && (
-                                        <>
-                                          <button 
-                                            onClick={() => handleStatusUpdate(request.id, 'approved')}
-                                            disabled={updatingStatus === request.id}
-                                            className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-                                            title="Approve"
-                                          >
-                                            {updatingStatus === request.id ? (
-                                              <RefreshCw className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <CheckCircle className="h-4 w-4" />
-                                            )}
-                                          </button>
-                                          <button 
-                                            onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                                            disabled={updatingStatus === request.id}
-                                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
-                                            title="Reject"
-                                          >
-                                            {updatingStatus === request.id ? (
-                                              <RefreshCw className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <XCircle className="h-4 w-4" />
-                                            )}
-                                          </button>
-                                        </>
-                                      )}
-                                    </>
-                                  )}
+                                  {/* Approve/Reject buttons moved to modal header */}
                                   {/* Individual assign button removed - use bulk assign instead */}
-                                  {/* Pickup and Delivery Actions for Approved Requisitions */}
+                                  {/* Pickup Actions for Approved Requisitions */}
                                   {request.status === 'approved' && (
-                                    <>
-                                      <button 
-                                        onClick={() => handleOpenPickupModal(request.id)}
-                                        disabled={updatingStatus === request.id}
-                                        className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Schedule Pickup"
-                                      >
-                                        <Calendar className="h-4 w-4" />
-                                      </button>
-                                      <button 
-                                        onClick={() => handleOpenDeliveryModal(request.id)}
-                                        disabled={updatingStatus === request.id}
-                                        className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-                                        title="Mark as Delivered"
-                                      >
-                                        <Truck className="h-4 w-4" />
-                                      </button>
-                                    </>
+                                    <button 
+                                      onClick={() => handleOpenPickupModal(request.id)}
+                                      disabled={updatingStatus === request.id}
+                                      className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors disabled:opacity-50"
+                                      title="Schedule Pickup"
+                                    >
+                                      <Calendar className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  
+                                  {/* Delivery Actions for Approved and Scheduled Requisitions */}
+                                  {(request.status === 'approved' || request.status === 'scheduled') && (
+                                    <button 
+                                      onClick={() => handleOpenDeliveryModal(request.id)}
+                                      disabled={updatingStatus === request.id}
+                                      className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                                      title="Mark as Delivered"
+                                    >
+                                      <Truck className="h-4 w-4" />
+                                    </button>
                                   )}
                                   {/* View Details Button for All Requisitions */}
                                   <button 
@@ -1144,18 +1095,18 @@ export default function RequisationComponent(){
                                     title="View Details"
                                   >
                                     <Eye className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Enhanced Mobile Card View - Fixed spacing */}
+                      {/* Enhanced Mobile Card View - Fixed spacing */}
                 <div className="lg:hidden space-y-3">
                   {itemRequests.length === 0 ? (
                     <div className="text-center py-8">
@@ -1207,6 +1158,9 @@ export default function RequisationComponent(){
               onClose={handleCloseViewModal}
               mode="view"
               requisitionId={selectedRequisitionId}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              updatingStatus={updatingStatus}
             />
         </>
     )

@@ -1,15 +1,16 @@
 import { 
   createItemRequisition, 
+  getItemRequisitionById, 
   getItemRequisitionsByUser, 
-  getAllItemRequisitions,
+  getAllItemRequisitions, 
   updateItemRequisitionStatus,
-  getItemRequisitionById,
+  assignItemRequisition,
+  getAssignedRequisitions,
   scheduleItemPickup,
   markItemAsDelivered,
   getPickupDetails,
-  assignItemRequisition,
-  getAssignedRequisitions
-} from "../services/itemRequisitionService.js";
+  getStatusHistory
+} from '../services/itemRequisitionService.js';
 
 export async function handleCreateItemRequisition(req, res) {
   try {
@@ -98,10 +99,10 @@ export async function handleUpdateItemRequisitionStatus(req, res) {
       });
     }
     
-    if (!['pending', 'approved', 'rejected', 'assigned', 'delivered'].includes(status)) {
+    if (!['pending', 'approved', 'rejected', 'assigned', 'scheduled', 'delivered'].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be 'pending', 'approved', 'rejected', 'assigned', or 'delivered'"
+        message: "Status must be 'pending', 'approved', 'rejected', 'assigned', 'scheduled', or 'delivered'"
       });
     }
     
@@ -202,16 +203,16 @@ export async function handleGetAssignedRequisitions(req, res) {
 export async function handleScheduleItemPickup(req, res) {
   try {
     const { requisitionId } = req.params;
-    const { scheduledPickup, notes } = req.body;
+    const { scheduled_pickup, notes } = req.body;
     
-    if (!requisitionId || !scheduledPickup) {
+    if (!requisitionId || !scheduled_pickup) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: requisitionId, scheduledPickup"
+        message: "Missing required fields: requisitionId, scheduled_pickup"
       });
     }
     
-    const result = await scheduleItemPickup(requisitionId, scheduledPickup, notes);
+    const result = await scheduleItemPickup(requisitionId, scheduled_pickup, notes);
     
     res.status(200).json({
       success: true,
@@ -229,16 +230,16 @@ export async function handleScheduleItemPickup(req, res) {
 export async function handleMarkItemAsDelivered(req, res) {
   try {
     const { requisitionId } = req.params;
-    const { deliveredBy, notes } = req.body;
+    const { delivered_by, notes } = req.body;
     
-    if (!requisitionId || !deliveredBy) {
+    if (!requisitionId || !delivered_by) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: requisitionId, deliveredBy"
+        message: "Missing required fields: requisitionId, delivered_by"
       });
     }
     
-    const result = await markItemAsDelivered(requisitionId, deliveredBy, notes);
+    const result = await markItemAsDelivered(requisitionId, delivered_by, notes);
     
     res.status(200).json({
       success: true,
@@ -275,6 +276,32 @@ export async function handleGetPickupDetails(req, res) {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch pickup details"
+    });
+  }
+} 
+
+export async function handleGetStatusHistory(req, res) {
+  try {
+    const { recordType, recordId } = req.params;
+    
+    if (!recordType || !recordId) {
+      return res.status(400).json({
+        success: false,
+        message: "Record type and record ID are required"
+      });
+    }
+    
+    const history = await getStatusHistory(recordType, recordId);
+    
+    res.status(200).json({
+      success: true,
+      history
+    });
+  } catch (error) {
+    console.error("Error fetching status history:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch status history"
     });
   }
 } 
