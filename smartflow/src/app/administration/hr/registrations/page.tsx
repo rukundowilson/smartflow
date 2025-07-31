@@ -2,11 +2,12 @@
 import React from 'react';
 import HRLayout from '../components/HRLayout';
 import EmployeeRegistrations from '../components/EmployeeRegistrations';
+import UserApplication_registrationManagement from '../../superadmin/components/userApplicationsManagement';
 
 const EmployeeRegistrationsPage: React.FC = () => {
   return (
     <HRLayout>
-      <EmployeeRegistrations />
+      <UserApplication_registrationManagement />
     </HRLayout>
   );
 };
