@@ -7,6 +7,7 @@ import { createComment, getRequisitionComments, Comment } from '../services/comm
 export interface ItemRequestModalProps {
   isModalOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   title?: string;
   mode?: 'create' | 'view';
   requisitionId?: number | null;
@@ -18,6 +19,7 @@ export interface ItemRequestModalProps {
 export default function ItemRequestModal({ 
   isModalOpen, 
   onClose, 
+  onSuccess,
   title = "Request New Equipment",
   mode = 'create',
   requisitionId,
@@ -155,6 +157,9 @@ export default function ItemRequestModal({
             });
             
             onClose();
+            if (onSuccess) {
+                onSuccess();
+            }
         } catch (err: any) {
             setError(err.message);
       console.error('Error creating requisition:', err);

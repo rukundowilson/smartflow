@@ -1,0 +1,10 @@
+export { default as HRNavbar } from './HRNavbar';
+export { default as HRSidebar } from './HRSidebar';
+export { default as HRLayout } from './HRLayout';
+export { default as StatCard } from './StatCard';
+export { default as ActionButton } from './ActionButton';
+export { default as StatusBadge } from './StatusBadge';
+export { default as Overview } from './Overview';
+export { default as EmployeeRegistrations } from './EmployeeRegistrations';
+export { default as AccessManagement } from './AccessManagement';
+export { default as EmployeeDirectory } from './EmployeeDirectory'; 

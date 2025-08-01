@@ -10,6 +10,7 @@ import {
   Package,
   Monitor,
   Building2,
+  Shield,
 } from 'lucide-react';
 
 const modules = [
@@ -20,6 +21,7 @@ const modules = [
   { id: 'requisition', name: 'Item Requisition', icon: Package },
   { id: 'users', name: 'User Management', icon: Users },
   { id: 'departments', name: 'Departments', icon: Building2 },
+  { id: 'roles', name: 'Role Management', icon: Shield },
 ];
 
 interface SideBarProps {

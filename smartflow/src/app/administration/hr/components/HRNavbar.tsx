@@ -8,12 +8,10 @@ import {
   LogOut,
   Menu,
   X,
-  Users,
-  Ticket,
-  Key,
-  UserMinus,
-  Package,
   Monitor,
+  UserPlus,
+  Key,
+  Users,
   Shield,
   Building2,
   ChevronDown,
@@ -22,15 +20,16 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 import userRoleService from "@/app/services/userRoleService";
 
-const modules = [
-    { id: 'overview', name: 'Overview', icon: Monitor },
-    { id: 'tickets', name: 'IT Tickets', icon: Ticket },
-    { id: 'access-requests', name: 'Access Requests', icon: Key },
-    { id: 'revocation', name: 'Access Revocation', icon: UserMinus },
-    { id: 'requisition', name: 'Item Requisition', icon: Package },
-  ];
+interface HRNavbarProps {
+  title?: string;
+  subtitle?: string;
+}
 
-export default function NavBar() {
+const HRNavbar: React.FC<HRNavbarProps> = ({ 
+  title = "smartflow", 
+  subtitle = "Human Resources Portal" 
+}) => {
+  const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
@@ -38,7 +37,12 @@ export default function NavBar() {
   const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const { user, token, isAuthenticated, logout } = useAuth();
+  const modules = [
+    { id: 'overview', name: 'Overview', icon: Monitor },
+    { id: 'registrations', name: 'Employee Registrations', icon: UserPlus },
+    { id: 'access-management', name: 'Access Management', icon: Key },
+    { id: 'directory', name: 'Employee Directory', icon: Users },
+  ];
 
   // Fetch user role information
   useEffect(() => {
@@ -57,11 +61,13 @@ export default function NavBar() {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
+    } else if (pathname === '/administration/hr') {
+      setActiveModule('overview');
     }
-  }, [pathname]);
+  }, [pathname, modules]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/it-department/${id}`;
+    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -101,7 +107,10 @@ export default function NavBar() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+                <p className="text-xs text-gray-500">{subtitle}</p>
+              </div>
             </div>
             
             {/* Desktop Navigation */}
@@ -260,4 +269,6 @@ export default function NavBar() {
       </header>
     </>
   );
-}
+};
+
+export default HRNavbar; 

@@ -197,11 +197,11 @@ export const getRecentActivities = async (req, res) => {
             WHEN ra.status = 'rejected' THEN 'rejected'
           END as action,
           CONCAT('User application - ', u.full_name) as description,
-          ra.created_at as timestamp,
+          ra.reviewed_at as timestamp,
           u.full_name as user
         FROM registration_applications ra
         LEFT JOIN users u ON ra.user_id = u.id
-        ORDER BY ra.created_at DESC
+        ORDER BY ra.reviewed_at DESC
         LIMIT 5
       `);
       allActivities.push(...recentUsers.map(u => ({ ...u, id: `U${u.id}` })));

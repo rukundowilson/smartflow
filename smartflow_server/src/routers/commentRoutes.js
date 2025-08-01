@@ -5,20 +5,14 @@ import {
   getRequisitionComments, 
   handleDeleteComment 
 } from '../controllers/commentController.js';
-import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Create a new comment
-router.post('/create', authenticateToken, handleCreateComment);
-
-// Get comments for a specific ticket
-router.get('/ticket/:ticketId', authenticateToken, getTicketComments);
-
-// Get comments for a specific requisition
-router.get('/requisition/:requisitionId', authenticateToken, getRequisitionComments);
-
-// Delete a comment
-router.delete('/:commentId', authenticateToken, handleDeleteComment);
+// Comment Routes
+router.post("/create", verifyToken, handleCreateComment);
+router.get("/ticket/:ticketId", verifyToken, getTicketComments);
+router.get("/requisition/:requisitionId", verifyToken, getRequisitionComments);
+router.delete("/:commentId", verifyToken, handleDeleteComment);
 
 export default router; 

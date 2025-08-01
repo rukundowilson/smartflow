@@ -4,26 +4,23 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Monitor,
-  Ticket,
+  UserPlus,
   Key,
-  UserMinus,
-  Package,
+  Users,
   LogOut,
-  Settings,
-  Shield,
+  Building2,
   HelpCircle,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'IT Dashboard' },
-  { id: 'tickets', name: 'IT Tickets', icon: Ticket, description: 'Manage tickets' },
-  { id: 'access-requests', name: 'Access Requests', icon: Key, description: 'Handle requests' },
-  { id: 'revocation', name: 'Access Revocation', icon: UserMinus, description: 'Revoke access' },
-  { id: 'requisition', name: 'Item Requisition', icon: Package, description: 'Manage items' },
+  { id: 'overview', name: 'Overview', icon: Monitor, description: 'HR Dashboard' },
+  { id: 'registrations', name: 'Employee Registrations', icon: UserPlus, description: 'Review applications' },
+  { id: 'access-management', name: 'Access Management', icon: Key, description: 'Manage permissions' },
+  { id: 'directory', name: 'Employee Directory', icon: Users, description: 'View all employees' },
 ];
 
-export default function Sidebar() {
+export default function HRSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
@@ -35,11 +32,13 @@ export default function Sidebar() {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
+    } else if (pathname === '/administration/hr') {
+      setActiveModule('overview');
     }
-  }, [pathname]);
+  }, [pathname, modules]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/it-department/${id}`;
+    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -52,11 +51,11 @@ export default function Sidebar() {
       <div className="mb-8 pb-6 border-b border-gray-200">
         <div className="flex items-center mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center mr-4 shadow-sm">
-            <Settings className="h-6 w-6 text-white" />
+            <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">IT Department</h2>
-            <p className="text-xs text-gray-500 font-medium">Management Portal</p>
+            <h2 className="text-lg font-bold text-gray-900">HR Portal</h2>
+            <p className="text-xs text-gray-500 font-medium">Human Resources</p>
           </div>
         </div>
         
@@ -64,17 +63,17 @@ export default function Sidebar() {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-sky-50 rounded-lg p-3 border border-sky-100">
             <div className="flex items-center">
-              <Ticket className="h-4 w-4 text-sky-600 mr-2" />
-              <span className="text-xs font-medium text-sky-700">Tickets</span>
+              <Users className="h-4 w-4 text-sky-600 mr-2" />
+              <span className="text-xs font-medium text-sky-700">Employees</span>
             </div>
             <p className="text-lg font-bold text-sky-900 mt-1">Active</p>
           </div>
-          <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+          <div className="bg-green-50 rounded-lg p-3 border border-green-100">
             <div className="flex items-center">
-              <Shield className="h-4 w-4 text-purple-600 mr-2" />
-              <span className="text-xs font-medium text-purple-700">Security</span>
+              <UserPlus className="h-4 w-4 text-green-600 mr-2" />
+              <span className="text-xs font-medium text-green-700">Pending</span>
             </div>
-            <p className="text-lg font-bold text-purple-900 mt-1">Protected</p>
+            <p className="text-lg font-bold text-green-900 mt-1">Reviews</p>
           </div>
         </div>
       </div>
@@ -118,9 +117,9 @@ export default function Sidebar() {
         <div className="flex items-start">
           <HelpCircle className="h-4 w-4 text-sky-600 mt-0.5 mr-2 flex-shrink-0" />
           <div className="flex-1">
-            <h4 className="text-sm font-medium text-sky-900 mb-1">IT Support</h4>
+            <h4 className="text-sm font-medium text-sky-900 mb-1">HR Support</h4>
             <p className="text-xs text-sky-700 mb-3 leading-relaxed">
-              Need technical assistance? Contact the IT support team
+              Need assistance with employee management? Contact HR support
             </p>
             <button className="text-xs bg-sky-600 text-white px-3 py-1.5 rounded-md hover:bg-sky-700 transition-colors shadow-sm font-medium">
               Get Support
@@ -161,4 +160,4 @@ export default function Sidebar() {
       </div>
     </nav>
   );
-}
+} 

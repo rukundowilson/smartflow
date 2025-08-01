@@ -77,9 +77,9 @@ export async function reviewRegistrationApplication(req, res) {
       return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
     }
 
-    const success = await updateApplicationStatus({ id, status, reviewer, reviewed_at });
+    const result = await updateApplicationStatus({ id, status, reviewer, reviewed_at });
 
-    if (!success) {
+    if (!result || !result.success) {
       return res.status(404).json({ error: "Application not found or not updated" });
     }
 

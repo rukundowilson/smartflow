@@ -2,10 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search } from 'lucide-react';
 import { applicationReview, getSystemUsers } from '@/app/services/userService';
-import NavBar from '../components/nav';
 import SideBar from '../components/sidebar';
 import { useAuth } from '@/app/contexts/auth-context';
-import UserApplication_registrationManagement from '../components/userApplicationsManagement';
+import NavBar from '../components/navbar';
+import AccessRequestsPortal from '@/app/components/myAccessRequests';
 
 const SpinLoading = () => (
   <div className="flex justify-center items-center py-8">
@@ -26,9 +26,8 @@ const AccessRequestDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const {user} = useAuth();
 
-
   // Sample data based on your API structure
-  const [accessRequests, setAccessRequests] = useState<any>();
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
 
   const getStatusColor = (status : any) => {
     switch (status?.toLowerCase()) {
@@ -129,9 +128,9 @@ const AccessRequestDashboard = () => {
   async function callHelper() {
           try {
               setIsFetching(true);
-              const sysUsers = await getSystemUsers();
-              console.log("Helper:",sysUsers);
-              setAccessRequests(sysUsers); 
+              const result = await getSystemUsers();
+              console.log("Helper:", result);
+              setAccessRequests(result.transformed); 
           } catch (error) {
               console.error("Failed to fetch system users", error);
           }
@@ -159,7 +158,7 @@ const AccessRequestDashboard = () => {
           />
       )}
       
-      <UserApplication_registrationManagement/>
+      <AccessRequestsPortal/>
   </div>
     </div>
   </div>
