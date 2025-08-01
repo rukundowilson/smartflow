@@ -9,6 +9,8 @@ import ticketRouter from './src/routers/ticketRoutes.js';
 import requisitionRouter from './src/routers/requisitionRoutes.js';
 import commentRouter from './src/routers/commentRoutes.js';
 import dashboardRouter from './src/routers/dashboardRoutes.js';
+import systemRouter from './src/routers/systemRoutes.js';
+import accessRequestRouter from './src/routers/accessRequestRoutes.js';
 
 const app = express();
 const port = 8081;
@@ -37,6 +39,8 @@ app.use('/api/tickets', ticketRouter);
 app.use('/api/requisitions', requisitionRouter);
 app.use('/api/comments', commentRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/systems', systemRouter);
+app.use('/api/access-requests', accessRequestRouter);
 
 async function startServer() {
   try {
