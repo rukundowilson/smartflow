@@ -41,9 +41,9 @@ const departmentSystems: Record<string, string[]> = {
 
 };
 
-export async function getSystemUsers(): Promise<AccessRequest[]> {
+export async function getSystemUsers(): Promise<{ transformed: AccessRequest[], original: any[] }> {
   try {
-    const response = await API.get("/api/users");
+    const response = await API.get("/api/users/users");
     const backendUsers: BackendUser[] = response.data.users;
     console.log(backendUsers)
 
@@ -61,10 +61,10 @@ export async function getSystemUsers(): Promise<AccessRequest[]> {
         department
       };
     });
-    return accessRequests;
+    return { transformed: accessRequests, original: backendUsers };
   } catch (error) {
     console.error("Error fetching system users:", error);
-    return [];
+    return { transformed: [], original: [] };
   }
 }
 
@@ -77,7 +77,7 @@ export async function applicationReview(userData: UpdateStatus, action : string,
     const application_id = extractId(uid_unextracted,"AR");
     const newStatus = {id : application_id, status : action,reviewer : reviewer, reviewed_at : reviewedAt}
     console.log(`ready to bounce ${application_id} ${action}`)
-    const resp = await API.post("/api/application/review", newStatus);
+    const resp = await API.post("/api/users/application/review", newStatus);
     console.log(resp.data)
     return resp.data;
   } catch (error: any) {

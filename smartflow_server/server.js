@@ -1,8 +1,14 @@
 import express, { json } from "express";
 import db from "./src/config/db.js";
 import cors from "cors";
-import router from './src/routers/userRoutes.js';
-
+import userRouter from './src/routers/userRoutes.js';
+import roleRouter from './src/routers/roleRoutes.js';
+import departmentRouter from './src/routers/departmentRoutes.js';
+import authRouter from './src/routers/authRoutes.js';
+import ticketRouter from './src/routers/ticketRoutes.js';
+import requisitionRouter from './src/routers/requisitionRoutes.js';
+import commentRouter from './src/routers/commentRoutes.js';
+import dashboardRouter from './src/routers/dashboardRoutes.js';
 
 const app = express();
 const port = 8081;
@@ -18,13 +24,19 @@ app.use(cors({
 }));
 app.use(json());
 
-
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Hello world" });
 });
 
-app.use('/api', router);
-
+// API routes
+app.use('/api/users', userRouter);
+app.use('/api/roles', roleRouter);
+app.use('/api/departments', departmentRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/tickets', ticketRouter);
+app.use('/api/requisitions', requisitionRouter);
+app.use('/api/comments', commentRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 async function startServer() {
   try {
@@ -43,5 +55,4 @@ async function startServer() {
     process.exit(1); // Exit with error code
   }
 }
-
 startServer();

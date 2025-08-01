@@ -17,6 +17,7 @@ interface FormErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
+  department_id?: string;
 }
 
 type SubmitStatus = 'success' | 'error' | null;
@@ -79,6 +80,10 @@ export default function RegistrationPage() {
     
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!formData.department_id) {
+      newErrors.department_id = 'Department selection is required';
     }
     
     setErrors(newErrors);
@@ -356,7 +361,11 @@ export default function RegistrationPage() {
               value={formData.department_id || ''}
               onChange={handleInputChange}
               disabled={loadingDepartments}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-opacity-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                errors.department_id 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+              }`}
             >
               <option value="">Select a department</option>
               {departments.map((department) => (
@@ -367,6 +376,12 @@ export default function RegistrationPage() {
             </select>
             {loadingDepartments && (
               <p className="mt-1 text-sm text-gray-500">Loading departments...</p>
+            )}
+            {errors.department_id && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.department_id}
+              </p>
             )}
           </div>
 

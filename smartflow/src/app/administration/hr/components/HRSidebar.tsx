@@ -1,39 +1,51 @@
-"use client"
-import React from 'react';
+"use client";
+
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { 
-  Monitor, 
-  UserPlus, 
-  Key, 
-  Users, 
-  UserCheck, 
-  UserMinus
+  Monitor,
+  UserPlus,
+  Key,
+  Users,
+  LogOut,
 } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useAuth } from "@/app/contexts/auth-context";
 
-interface HRSidebarProps {
-  className?: string;
-}
+const modules = [
+  { id: 'overview', name: 'Overview', icon: Monitor },
+  { id: 'registrations', name: 'Employee Registrations', icon: UserPlus },
+  { id: 'access-management', name: 'Access Management', icon: Key },
+  { id: 'directory', name: 'Employee Directory', icon: Users },
+];
 
-const HRSidebar: React.FC<HRSidebarProps> = ({ className = "" }) => {
+export default function HRSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [activeModule, setActiveModule] = useState('overview');
 
-  const modules = [
-    { id: 'overview', name: 'Overview', icon: Monitor, href: '/administration/hr' },
-    { id: 'registrations', name: 'Employee Registrations', icon: UserPlus, href: '/administration/hr/registrations' },
-    { id: 'access-management', name: 'Access Management', icon: Key, href: '/administration/hr/access-management' },
-    { id: 'directory', name: 'Employee Directory', icon: Users, href: '/administration/hr/directory' },
-  ];
+  const { logout } = useAuth();
 
-  const quickActions = [
-    { id: 'approve', name: 'Approve Registration', icon: UserCheck, href: '/administration/hr/registrations' },
-    { id: 'request', name: 'Request Access', icon: Key, href: '/administration/hr/access-management' },
-    { id: 'revoke', name: 'Revoke Access', icon: UserMinus, href: '/administration/hr/access-management' },
-  ];
+  // Set active module from URL on mount
+  useEffect(() => {
+    const path = pathname.split('/').pop();
+    if (path && modules.some(module => module.id === path)) {
+      setActiveModule(path);
+    } else if (pathname === '/administration/hr') {
+      setActiveModule('overview');
+    }
+  }, [pathname, modules]);
+
+  const handleModuleClick = (id: string) => {
+    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
+    if (pathname !== newPath) {
+      setActiveModule(id);
+      router.push(newPath);
+    }
+  };
 
   return (
-    <nav className={`hidden lg:block w-72 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 ${className}`}>
-      {/* Logo/Brand Section */}
+    <nav className="w-72 bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hidden lg:block">
+      {/* Header */}
       <div className="mb-8 pb-6 border-b border-gray-200">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center mr-3 shadow-sm">
@@ -46,63 +58,34 @@ const HRSidebar: React.FC<HRSidebarProps> = ({ className = "" }) => {
         </div>
       </div>
 
-      {/* Main Navigation */}
-      <div className="mb-8">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-3">
-          Navigation
-        </h3>
-        <div className="space-y-2">
-          {modules.map(module => {
-            const isActive = pathname === module.href;
-            return (
-              <Link
-                key={module.id}
-                href={module.href}
-                className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-sky-50 to-sky-100 text-sky-700 border border-sky-200 shadow-sm'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
-                }`}
-              >
-                <module.icon className={`h-4 w-4 mr-3 transition-colors ${
-                  isActive ? 'text-sky-600' : 'text-gray-400 group-hover:text-gray-600'
-                }`} />
-                {module.name}
-              </Link>
-            );
-          })}
-        </div>
+      {/* Navigation Modules */}
+      <div className="space-y-2">
+        {modules.map((module) => (
+          <button
+            key={module.id}
+            onClick={() => handleModuleClick(module.id)}
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              activeModule === module.id
+                ? "bg-sky-100 text-sky-700 border border-sky-200"
+                : "text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            <module.icon className="h-5 w-5 mr-3" />
+            {module.name}
+          </button>
+        ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="pt-6 border-t border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-3">
-          Quick Actions
-        </h3>
-        <div className="space-y-2">
-          {quickActions.map(action => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className="group flex items-center px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all duration-200"
-            >
-              <action.icon className="h-4 w-4 mr-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
-              {action.name}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Footer */}
+      {/* Sign Out */}
       <div className="mt-8 pt-6 border-t border-gray-200">
-        <div className="px-3">
-          <p className="text-xs text-gray-400 text-center">
-            HR Portal v1.0
-          </p>
-        </div>
+        <button
+          onClick={logout}
+          className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="h-5 w-5 mr-3" />
+          Sign Out
+        </button>
       </div>
     </nav>
   );
-};
-
-export default HRSidebar; 
+} 

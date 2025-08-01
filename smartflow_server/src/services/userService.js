@@ -28,16 +28,18 @@ async function login(data) {
       throw new Error('Invalid email or password');
     }
 
-    // 4. Get user's department name from departments table
-    const [departments] = await db.query(
-      `SELECT d.name as department_name 
-       FROM departments d 
-       INNER JOIN user_departments ud ON d.id = ud.department_id 
-       WHERE ud.user_id = ?`,
+    // 4. Get user's department and role information from user_department_roles table
+    const [userRoles] = await db.query(
+      `SELECT d.name as department_name, r.name as role_name, udr.status as assignment_status
+       FROM user_department_roles udr
+       INNER JOIN departments d ON udr.department_id = d.id
+       INNER JOIN roles r ON udr.role_id = r.id
+       WHERE udr.user_id = ? AND udr.status = 'active'`,
       [user.id]
     );
 
-    const departmentName = departments.length > 0 ? departments[0].department_name : 'Unknown Department';
+    const departmentName = userRoles.length > 0 ? userRoles[0].department_name : 'Unknown Department';
+    const roleName = userRoles.length > 0 ? userRoles[0].role_name : 'No Role Assigned';
 
     // 5. Return user data (without password)
     return {
@@ -48,6 +50,7 @@ async function login(data) {
         full_name: user.full_name,
         email: user.email,
         department: departmentName,
+        role: roleName,
         status: user.status
       }
     };
@@ -84,7 +87,11 @@ async function register(data) {
     // 4. Hash the password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 5. Insert user into users table (without department column)
+    // Start transaction
+    await db.query('START TRANSACTION');
+
+    try {
+      // 5. Insert user into users table
     const [result] = await db.query(
       'INSERT INTO users (full_name, email, password_hash, status) VALUES (?, ?, ?, ?)',
       [full_name, email, passwordHash, 'pending']
@@ -93,12 +100,18 @@ async function register(data) {
     const userId = result.insertId;
     console.log(`✅ New user created with ID: ${userId}`);
 
-    // 6. Create user_departments relationship
+      // 6. Create user_department_roles relationship with the chosen department
+      // We'll assign a default role (you can modify this based on your needs)
+      const [defaultRole] = await db.query('SELECT id FROM roles WHERE name = ?', ['User']);
+      const roleId = defaultRole.length > 0 ? defaultRole[0].id : 3; // Default to role ID 3 (User) if 'User' role doesn't exist
+
     await db.query(
-      'INSERT INTO user_departments (user_id, department_id) VALUES (?, ?)',
-      [userId, department_id]
+        'INSERT INTO user_department_roles (user_id, department_id, role_id, assigned_by, status) VALUES (?, ?, ?, ?, ?)',
+        [userId, department_id, roleId, 1, 'active'] // assigned_by = 1 (admin), status = 'active'
     );
-    console.log(`🔗 User-department relationship created for user ID: ${userId}`);
+
+      console.log(`✅ User ${userId} registered successfully and assigned to department: ${departmentName}`);
+      console.log(`🔗 User-department-role relationship created for user ID: ${userId}`);
 
     // 7. Create registration application
     await db.query(
@@ -107,11 +120,19 @@ async function register(data) {
     );
     console.log(`📄 Registration application created for user ID: ${userId}`);
 
+      // Commit transaction
+      await db.query('COMMIT');
+
     return {
       success: true,
       message: 'Registration successful. Awaiting HR approval.',
       user: { id: userId, full_name, email, department: departmentName, status: 'pending' }
     };
+    } catch (error) {
+      // Rollback on error
+      await db.query('ROLLBACK');
+      throw error;
+    }
   } catch (error) {
     console.error('❌ Registration error:', error.message);
     throw error;
@@ -124,17 +145,21 @@ async function getSystemUsers() {
       SELECT ra.id AS application_id, 
              u.id AS user_id,
              u.full_name,
+             COALESCE(udr.department_id, NULL) AS department_id,
              COALESCE(d.name, 'Unknown Department') AS department,
+             COALESCE(r.name, 'No Role Assigned') AS role,
              u.email,
              u.status AS user_status,
              ra.status AS application_status,
              ra.submitted_by,
              ra.reviewed_by,
-             ra.reviewed_at
+             ra.reviewed_at,
+             udr.status AS assignment_status
       FROM registration_applications ra
       JOIN users u ON ra.user_id = u.id
-      LEFT JOIN user_departments ud ON u.id = ud.user_id
-      LEFT JOIN departments d ON ud.department_id = d.id
+      LEFT JOIN user_department_roles udr ON u.id = udr.user_id
+      LEFT JOIN departments d ON udr.department_id = d.id
+      LEFT JOIN roles r ON udr.role_id = r.id
     `);
     return rows;
   } catch (error) {

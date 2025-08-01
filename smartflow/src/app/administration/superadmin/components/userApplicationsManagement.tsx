@@ -1,8 +1,10 @@
 "use client"
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, X, User, Calendar, Hash, Building2, Settings, MessageSquare, Clock, Mail, Filter, Search, Shield } from 'lucide-react';
 import { applicationReview, getSystemUsers } from '@/app/services/userService';
 import { useAuth } from '@/app/contexts/auth-context';
+import API from '../../../utils/axios'; // Fixed import path for API
+import { formatPrefixedId } from '@/app/helpers/formatUid';
 
 const SpinLoading = () => (
   <div className="flex justify-center items-center py-8">
@@ -12,20 +14,24 @@ const SpinLoading = () => (
 
 const UserApplication_registrationManagement = () => {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [comment, setComment] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
+  const [originalBackendData, setOriginalBackendData] = useState<any[]>([]);
+  const [userRoles, setUserRoles] = useState<any>({});
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [comment, setComment] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const {user} = useAuth();
 
 
   // Sample data based on your API structure
-  const [accessRequests, setAccessRequests] = useState<any>();
+  // const [accessRequests, setAccessRequests] = useState<any>();
+  // const [userRoles, setUserRoles] = useState<any>({});
 
   const getStatusColor = (status : any) => {
     switch (status?.toLowerCase()) {
@@ -38,6 +44,11 @@ const UserApplication_registrationManagement = () => {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  // Function to get user role
+  const getUserRole = (userId: number) => {
+    return userRoles[userId] || 'Not Assigned';
   };
 
   const getPriorityColor = (priority : any) => {
@@ -55,35 +66,43 @@ const UserApplication_registrationManagement = () => {
 
   const handleViewRequest = (request : any) => {
     setSelectedRequest(request);
-    setShowModal(true);
+    setIsModalOpen(true);
     setComment('');
   };
 
   const closeModal = () => {
-    setShowModal(false);
+    setIsModalOpen(false);
     setSelectedRequest(null);
     setComment('');
   };
 
-  const handleAction = async (action : string) => {
+  const handleAction = async (action: string) => {
     if (!selectedRequest) return;
-    console.log(action)
 
     setIsProcessing(true);
 
-    setTimeout(() => {
-      setAccessRequests((prev : any) => 
-        prev.map((req : any) => 
+    try {
+      // Role assignment is already done during registration
+      // We only need to update the application status
+      
+      // Update the request status
+      await applicationReview(selectedRequest, action, user?.id);
+      
+      setAccessRequests((prev: any) => 
+        prev.map((req: any) => 
           req.id === selectedRequest.id 
             ? { ...req, status: action, comment: comment || undefined }
             : req
         )
       );
-      applicationReview(selectedRequest,action, user?.id)
-      console.log(user?.id)
+      
       setIsProcessing(false);
       closeModal();
-    },7000);
+    } catch (error) {
+      console.error('Error processing request:', error);
+      alert('Failed to process request. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   const handleSelectItem = (id : any) => {
@@ -126,9 +145,25 @@ const UserApplication_registrationManagement = () => {
   async function callHelper() {
           try {
               setIsFetching(true);
-              const sysUsers = await getSystemUsers();
-              console.log("Helper:",sysUsers);
-              setAccessRequests(sysUsers); 
+              const result = await getSystemUsers();
+              setAccessRequests(result.transformed); 
+              setOriginalBackendData(result.original); // Store original data
+
+              // Fetch user roles
+              try {
+                const rolesResponse = await API.get('/api/roles/assignments/all');
+                if (rolesResponse.data.success && rolesResponse.data.data) {
+                  const rolesMap: any = {};
+                  rolesResponse.data.data.forEach((assignment: any) => {
+                    if (assignment.status === 'active') {
+                      rolesMap[assignment.user_id] = assignment.role_name;
+                    }
+                  });
+                  setUserRoles(rolesMap);
+                }
+              } catch (error) {
+                console.log('Could not load user roles:', error);
+              }
           } catch (error) {
               console.error("Failed to fetch system users", error);
           }
@@ -140,8 +175,6 @@ const UserApplication_registrationManagement = () => {
       useEffect(() => {
           callHelper()
       }, []);
-
-      console.log(selectedRequest)
 
   return (
       <main className="flex-1 lg:ml-4">
@@ -303,6 +336,7 @@ const UserApplication_registrationManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Systems</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
@@ -310,8 +344,8 @@ const UserApplication_registrationManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRequests?.map((request : any) => (
-                    <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                  {filteredRequests?.map((request: any, index: number) => (
+                    <tr key={`request-${request.id}-${index}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <input 
                           type="checkbox" 
@@ -326,10 +360,19 @@ const UserApplication_registrationManagement = () => {
                         <div className="text-xs text-gray-500">{request.email}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">{request.department}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          getUserRole(request.user_id) === 'Not Assigned' 
+                            ? 'bg-gray-100 text-gray-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {getUserRole(request.user_id)}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {request.systems.slice(0, 2).map((system : any) => (
-                            <span key={system} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {request.systems.slice(0, 2).map((system : any, systemIndex: number) => (
+                            <span key={`system-${request.id}-${systemIndex}-${system}`} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {system}
                             </span>
                           ))}
@@ -365,9 +408,9 @@ const UserApplication_registrationManagement = () => {
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
-            {filteredRequests?.map((request : any) => (
+            {filteredRequests?.map((request: any, index: number) => (
               <div 
-                key={request.id} 
+                key={`mobile-${request.id}-${index}`}
                 className={`bg-white rounded-xl shadow-sm border transition-all ${
                   selectedItems.has(request.id) ? 'border-sky-300 bg-sky-50' : 'border-gray-200'
                 }`}
@@ -397,6 +440,16 @@ const UserApplication_registrationManagement = () => {
                       <span>{request.department}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
+                      <Shield className="h-4 w-4 mr-2 text-gray-400" />
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        getUserRole(request.user_id) === 'Not Assigned' 
+                          ? 'bg-gray-100 text-gray-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {getUserRole(request.user_id)}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
                       <Mail className="h-4 w-4 mr-2 text-gray-400" />
                       <span>{request.email}</span>
                     </div>
@@ -408,8 +461,8 @@ const UserApplication_registrationManagement = () => {
 
                   <div className="mb-4">
                     <div className="flex flex-wrap gap-2">
-                      {request.systems.slice(0, 2).map((system : any) => (
-                        <span key={system} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {request.systems.slice(0, 2).map((system: any, systemIndex: number) => (
+                        <span key={`system-${request.id}-${systemIndex}-${system}`} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {system}
                         </span>
                       ))}
@@ -437,7 +490,7 @@ const UserApplication_registrationManagement = () => {
       )}
 
       {/* Modal */}
-      {showModal && selectedRequest && (
+      {isModalOpen && selectedRequest && (
         <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
