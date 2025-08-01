@@ -60,46 +60,42 @@ const RoleManagement: React.FC = () => {
   });
 
   // Load data from API
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [rolesData, departmentsData] = await Promise.all([
-          roleService.getAllRoles(),
-          getAllDepartments()
-        ]);
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // Load roles
+      const rolesData = await roleService.getAllRoles();
+      setRoles(rolesData);
 
-        setRoles(rolesData || []);
-        setDepartments(departmentsData.departments || []);
+      // Load departments
+      const departmentsData = await getAllDepartments();
+      setDepartments(departmentsData.departments || []);
 
-        // Load users from the system - fixed endpoint
-        const response = await API.get('/api/users/users');
-        const data = response.data;
-        if (data.users) {
-          setUsers(data.users);
-        }
-
-        // Load role assignments
-        try {
-          const assignmentsResponse = await API.get('/api/roles/assignments/all');
-          if (assignmentsResponse.data.success && assignmentsResponse.data.data) {
-            setUserRoles(assignmentsResponse.data.data);
-          }
-        } catch (error: any) {
-          console.log('Could not load role assignments:', error);
-          if (error.response?.status === 401) {
-            console.log('Role assignments require authentication. Please log in to view assignments.');
-          }
-          // Set empty array for now - assignments will be loaded when user is authenticated
-          setUserRoles([]);
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
+      // Load users
+      const usersResponse = await API.get('/api/users/users');
+      const usersData = usersResponse.data;
+      if (usersData.users) {
+        // Remove duplicate users based on user_id
+        const uniqueUsers = usersData.users.filter((user: User, index: number, self: User[]) => 
+          index === self.findIndex(u => u.user_id === user.user_id)
+        );
+        setUsers(uniqueUsers);
       }
-    };
 
+      // Load role assignments
+      const assignmentsResponse = await roleService.getAllRoleAssignments();
+      if (assignmentsResponse.success && assignmentsResponse.data) {
+        setUserRoles(assignmentsResponse.data);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -172,10 +168,9 @@ const RoleManagement: React.FC = () => {
         );
 
         // Reload assignments
-        const assignmentsResponse = await API.get('/api/roles/assignments/all');
-        const assignmentsData = assignmentsResponse.data;
-        if (assignmentsData.success && assignmentsData.data) {
-          setUserRoles(assignmentsData.data);
+        const assignmentsResponse = await roleService.getAllRoleAssignments();
+        if (assignmentsResponse.success && assignmentsResponse.data) {
+          setUserRoles(assignmentsResponse.data);
         }
 
         alert('Role assignment revoked successfully!');

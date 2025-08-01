@@ -121,7 +121,7 @@ class RoleService {
   }
 
   // Get all role assignments
-  async getAllRoleAssignments(): Promise<RoleAssignment[]> {
+  async getAllRoleAssignments(): Promise<any> {
     try {
       const response = await axios.get(`${this.baseUrl}/assignments/all`);
       return response.data;
@@ -132,7 +132,7 @@ class RoleService {
   }
 
   // Get user role assignments
-  async getUserRoleAssignments(userId: number): Promise<RoleAssignment[]> {
+  async getUserRoleAssignments(userId: number): Promise<any> {
     try {
       const response = await axios.get(`${this.baseUrl}/assignments/user/${userId}`);
       return response.data;
@@ -143,7 +143,7 @@ class RoleService {
   }
 
   // Assign role to user
-  async assignRoleToUser(assignmentData: AssignRoleData): Promise<RoleAssignment> {
+  async assignRoleToUser(assignmentData: AssignRoleData): Promise<any> {
     try {
       const response = await axios.post(`${this.baseUrl}/assignments/assign`, assignmentData);
       return response.data;
