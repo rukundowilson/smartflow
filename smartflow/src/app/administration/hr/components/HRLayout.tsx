@@ -14,7 +14,7 @@ const HRLayout: React.FC<HRLayoutProps> = ({ children }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         <div className="flex flex-col lg:flex-row lg:gap-8">
           {/* Sidebar - Hidden on mobile, visible on large screens */}
-          <HRSidebar className="lg:flex-shrink-0" />
+          <HRSidebar />
           
           {/* Main Content - Full width on mobile, with sidebar on large screens */}
           <main className="flex-1 w-full lg:w-auto">
