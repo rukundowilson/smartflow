@@ -15,14 +15,11 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'HR Dashboard' },
-  { id: 'registrations', name: 'Employee Registrations', icon: UserPlus, description: 'Review applications' },
-  { id: 'access-management', name: 'Access Management', icon: Key, description: 'Manage permissions' },
-  { id: 'directory', name: 'Employee Directory', icon: Users, description: 'View all employees' },
-  { id: 'role-management', name: 'Role Management', icon: Shield, description: 'Manage employee roles' },
+  { id: 'overview', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
+  { id: 'aceess-request', name: 'access requests', icon: Key, description: 'approve requests' },
 ];
 
-export default function HRSidebar() {
+export default function HodSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
@@ -57,8 +54,8 @@ export default function HRSidebar() {
             <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">HR Portal</h2>
-            <p className="text-xs text-gray-500 font-medium">Human Resources</p>
+            <h2 className="text-lg font-bold text-gray-900"> </h2>
+            <p className="text-xs text-gray-500 font-medium"></p>
           </div>
         </div>
       </div>
