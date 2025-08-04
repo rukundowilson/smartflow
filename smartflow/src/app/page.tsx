@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { AlertCircle, User, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { login } from './services/auth/loginService';
 import { useRouter } from "next/navigation";
-import { redirectByDepartment } from './helpers/redirects';
+import { redirectByDepartment, redirectByDepartmentAndRoles } from './helpers/redirects';
 
 interface LoginFormData {
   personalEmail: string;
@@ -83,7 +83,15 @@ const ITSystemLogin: React.FC = () => {
       
       setGeneralErr(''); // Clear any errors
       
+      // Check if user has multiple roles - if so, go to role selection page
+      if (user.roles && user.roles.length > 1) {
+        console.log('User has multiple roles, redirecting to role selection');
+        window.location.href = '/role-selection';
+      } else {
+        // Single role user - redirect based on department only
+        console.log('User has single role, redirecting based on department:', user.department);
         redirectByDepartment(user.department, router);
+      }
       } catch (err : any) {
       console.log("Login error:", err);
         setGeneralErr(err?.message || "Login failed. Please try again.");

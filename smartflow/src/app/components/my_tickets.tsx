@@ -319,7 +319,7 @@ export default function MyTickets(){
                             </span>
                         </div>
                         <div className="text-xs text-gray-500 space-y-1">
-                            <p>Assigned to: {ticket.assigned_to || 'any'}</p>
+                            <p>Assigned to: {ticket.assigned_to_name || 'Unassigned'}</p>
                             <p>Created: {ticket.created_at}</p>
                         </div>
                         </div>
@@ -356,7 +356,7 @@ export default function MyTickets(){
                                     {ticket.status}
                                 </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-900">{ticket.assigned_to || 'any'}</td>
+                                <td className="px-6 py-4 text-sm text-gray-900">{ticket.assigned_to_name || 'Unassigned'}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{ticket.created_at}</td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                 <button 

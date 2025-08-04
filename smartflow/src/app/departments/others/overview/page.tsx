@@ -186,7 +186,7 @@ export default function OverView(){
                             <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-sky-100">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, John!</h2>
+                                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.full_name}!</h2>
                                         <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests and tickets.</p>
                                     </div>
                                     <button 
@@ -277,7 +277,7 @@ export default function OverView(){
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-sm font-medium text-gray-900 truncate">{ticket.issue_type}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">Assigned to: {ticket.assigned_to || "any"}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Assigned to: {ticket.assigned_to || 'Unassigned'}</p>
                                                     </div>
                                                     <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(ticket.status)}`}>
                                                         {ticket.status}

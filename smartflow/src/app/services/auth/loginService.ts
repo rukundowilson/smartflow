@@ -11,6 +11,8 @@ interface LoginResponse {
     email: string;
     department: string;
     status: string;
+    roles?: string[]; // Add roles to the user object
+    roleNames?: string[]; // Add roleNames to the user object
   };
 }
 interface LoginFormData {
@@ -27,6 +29,14 @@ export async function login(formData : LoginFormData): Promise<LoginResponse> {
       email,
       password,
     });
+
+    // Extract role names from the roles array if available
+    if (response.data.user.roles && Array.isArray(response.data.user.roles)) {
+      const roleNames = response.data.user.roles.map((role: any) => role.role_name);
+      response.data.user.roleNames = roleNames;
+    } else {
+      response.data.user.roleNames = [];
+    }
 
     return response.data;
   } catch (error: any) {

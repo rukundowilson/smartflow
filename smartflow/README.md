@@ -34,3 +34,38 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+# 🏢 System Roles & Departments (Core Entities)
+
+This system supports **dynamic creation** of roles, departments, and assignments. However, certain **critical roles and departments** are required to always exist to ensure consistent decision-making and system flow.
+
+## ✅ Default Roles
+
+The following roles **must always be present** in the system:
+
+| Role Name     | Description                                         |
+|---------------|-----------------------------------------------------|
+| Super Admin   | Full system access. Can manage all users and data. |
+| HR            | Manages employee data, approvals, and HR processes.|
+| IT Department | Handles tickets, tech issues, and system access.   |
+| Line Manager  | First-level approver for requisitions and tickets. |
+| HOD           | Head of Department — approves within the department.|
+
+> ⚠️ These roles should be **seeded during initial setup** and protected from deletion.
+
+---
+
+## 🏬 Default Departments
+
+The following departments are essential to system operation and must always exist:
+
+| Department Name | Description                                         |
+|------------------|-----------------------------------------------------|
+| Human Resources  | Oversees employee onboarding, approvals, and more. |
+| IT               | Technical support and access control.              |
+| Super Admin Unit | Reserved for highest-level system operators.       |
+
+> Departments are created dynamically, but these core ones must exist for workflows to operate correctly.
+
+---

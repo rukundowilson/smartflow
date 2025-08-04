@@ -26,6 +26,8 @@ export interface UpdateStatus {
 interface AccessRequest {
   id: string;
   employee: string;
+  email: string;
+  user_id: number; // Added user_id field for role lookup
   requestedBy: string;
   systems: string[];
   status: string;
@@ -54,6 +56,8 @@ export async function getSystemUsers(): Promise<{ transformed: AccessRequest[], 
       return {
         id: formatPrefixedId("AR", user.application_id),
         employee: user.full_name,
+        email: user.email,
+        user_id: user.user_id,
         requestedBy: user.submitted_by,
         systems,
         status: user.application_status,

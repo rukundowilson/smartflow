@@ -16,7 +16,7 @@ import { useAuth } from "@/app/contexts/auth-context";
 const modules = [
   { id: 'overview', name: 'Overview', icon: Monitor, description: 'Dashboard overview' },
   { id: 'my-tickets', name: 'IT Tickets', icon: Ticket, description: 'Manage your tickets' },
-  { id: 'my-requests', name: 'My Requests', icon: Key, description: 'Access requests' },
+  { id: 'my-requests', name: 'My Requests', icon: Key, description: 'View my requests' },
 ];
 
 export default function Sidebar() {
@@ -28,7 +28,8 @@ export default function Sidebar() {
 
   // Set active module from URL on mount
   useEffect(() => {
-    const path = pathname.split('/').pop();
+    // Extract the last part of the path, removing query parameters
+    const path = pathname.split('/').pop()?.split('?')[0];
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     }
@@ -53,24 +54,6 @@ export default function Sidebar() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Department Portal</h2>
             <p className="text-xs text-gray-500 font-medium">General Access</p>
-          </div>
-        </div>
-        
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-            <div className="flex items-center">
-              <Users className="h-4 w-4 text-blue-600 mr-2" />
-              <span className="text-xs font-medium text-blue-700">Active</span>
-            </div>
-            <p className="text-lg font-bold text-blue-900 mt-1">24/7</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-            <div className="flex items-center">
-              <Ticket className="h-4 w-4 text-green-600 mr-2" />
-              <span className="text-xs font-medium text-green-700">Support</span>
-            </div>
-            <p className="text-lg font-bold text-green-900 mt-1">24/7</p>
           </div>
         </div>
       </div>

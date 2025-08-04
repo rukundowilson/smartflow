@@ -1,13 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
   id: number;
   full_name: string;
   email: string;
   department: string;
+  role: string;
   status: string;
+  roles?: string[]; // Add roles to the user type
+  selectedRole?: any; // Add selected role
   // Add any other fields
 };
 

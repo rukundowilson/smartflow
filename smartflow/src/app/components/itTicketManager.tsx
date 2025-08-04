@@ -358,6 +358,7 @@ export default function ITTicketManager(){
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Info</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -393,6 +394,9 @@ export default function ITTicketManager(){
                           <option value="resolved">Resolved</option>
                           <option value="closed">Closed</option>
                         </select>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {ticket.assigned_to_name || 'Unassigned'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {ticket.reviewed_by_name && ticket.reviewed_at ? (
