@@ -11,7 +11,7 @@ import {
   Loader2,
   MessageSquare
 } from 'lucide-react';
-import accessRequestService, { AccessRequest, ApproveRequestData, RejectRequestData } from '@/app/services/accessRequestService';
+import accessRequestService, { AccessRequest, ApprovalData } from '@/app/services/accessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
 
 const AccessRequestApproval = () => {
@@ -32,7 +32,7 @@ const AccessRequestApproval = () => {
   const loadPendingRequests = async () => {
     setIsLoading(true);
     try {
-      const response = await accessRequestService.getPendingAccessRequests();
+      const response = await accessRequestService.getPendingRequests();
       if (response.success) {
         setPendingRequests(response.requests);
       }
@@ -56,27 +56,27 @@ const AccessRequestApproval = () => {
     setIsProcessing(true);
     try {
       if (action === 'approve') {
-        const approveData: ApproveRequestData = {
+        const approveData: ApprovalData = {
           approver_id: user.id,
           comment: comment || undefined
         };
-        await accessRequestService.approveAccessRequest(selectedRequest.id, approveData);
+        await accessRequestService.approveRequest(selectedRequest.id, approveData);
       } else {
-        const rejectData: RejectRequestData = {
+        const rejectData: ApprovalData = {
           approver_id: user.id,
           rejection_reason: rejectionReason,
           comment: comment || undefined
         };
-        await accessRequestService.rejectAccessRequest(selectedRequest.id, rejectData);
+        await accessRequestService.rejectRequest(selectedRequest.id, rejectData);
       }
 
-      alert(`Request ${action}d successfully!`);
+      alert(`Role access request ${action}d successfully!`);
       setShowModal(false);
       setSelectedRequest(null);
       loadPendingRequests(); // Refresh the list
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
-      alert(`Failed to ${action} request. Please try again.`);
+      alert(`Failed to ${action} role request. Please try again.`);
     } finally {
       setIsProcessing(false);
     }
@@ -103,7 +103,7 @@ const AccessRequestApproval = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          <p className="mt-2 text-gray-600">Loading pending requests...</p>
+          <p className="mt-2 text-gray-600">Loading pending role requests...</p>
         </div>
       </div>
     );
@@ -114,8 +114,8 @@ const AccessRequestApproval = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Access Request Approvals</h1>
-          <p className="text-gray-600">Review and approve pending access requests</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Role Access Request Approvals</h1>
+          <p className="text-gray-600">Review and approve pending role access requests</p>
         </div>
 
         {/* Stats */}
@@ -162,7 +162,7 @@ const AccessRequestApproval = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System & Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department & Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Period</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Justification</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -181,7 +181,7 @@ const AccessRequestApproval = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{request.system_name}</div>
+                        <div className="text-sm font-medium text-gray-900">{request.department_name}</div>
                         <div className="text-sm text-gray-500">{request.role_name}</div>
                       </div>
                     </td>
@@ -228,9 +228,9 @@ const AccessRequestApproval = () => {
           {pendingRequests.length === 0 && (
             <div className="text-center py-12">
               <Shield className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No pending requests</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No pending role requests</h3>
               <p className="mt-1 text-sm text-gray-500">
-                All access requests have been processed.
+                All role access requests have been processed.
               </p>
             </div>
           )}
@@ -242,7 +242,7 @@ const AccessRequestApproval = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Review Access Request</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Review Role Access Request</h2>
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -263,9 +263,9 @@ const AccessRequestApproval = () => {
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">System & Role</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Department & Role</h3>
                   <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="font-medium">{selectedRequest.system_name}</p>
+                    <p className="font-medium">{selectedRequest.department_name}</p>
                     <p className="text-sm text-gray-500">{selectedRequest.role_name}</p>
                   </div>
                 </div>
@@ -296,6 +296,40 @@ const AccessRequestApproval = () => {
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Justification</h3>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="text-sm">{selectedRequest.justification}</p>
+                </div>
+              </div>
+
+              {/* Approval History */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Approval History</h3>
+                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Submitted</span>
+                    <span className="font-medium">{new Date(selectedRequest.submitted_at).toLocaleDateString()}</span>
+                  </div>
+                  {selectedRequest.approved_at && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Processed</span>
+                      <span className="font-medium">{new Date(selectedRequest.approved_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {selectedRequest.rejection_reason && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-red-600">Rejection Reason</span>
+                      <span className="font-medium text-red-600">{selectedRequest.rejection_reason}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Role Assignment Preview */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Role Assignment Preview</h3>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>If approved:</strong> User will be assigned the <strong>{selectedRequest.role_name}</strong> role 
+                    in the <strong>{selectedRequest.department_name}</strong> department with appropriate system access.
+                  </p>
                 </div>
               </div>
 

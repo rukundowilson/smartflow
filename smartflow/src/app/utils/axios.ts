@@ -10,7 +10,7 @@ const API = axios.create({
 // Add token to headers before each request
 API.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

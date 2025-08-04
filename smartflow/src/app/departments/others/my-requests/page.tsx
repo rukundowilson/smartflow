@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import NavBar from "../components/navbar";
 import SideBar from "../components/sidebar";
@@ -7,7 +7,7 @@ import Requisition from '@/app/components/allMyRe';
 import AccessRequestsPortal from '@/app/components/myAccessRequests';
 import { Key, Package, Menu } from 'lucide-react';
 
-export default function MyRequests(){
+function MyRequestsContent() {
     const [activeTab, setActiveTab] = useState<'access' | 'other'>('access');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const router = useRouter();
@@ -124,5 +124,20 @@ export default function MyRequests(){
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MyRequests() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#F0F8F8] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        }>
+            <MyRequestsContent />
+        </Suspense>
     );
 }

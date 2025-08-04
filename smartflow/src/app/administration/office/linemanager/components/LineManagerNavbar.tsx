@@ -16,18 +16,23 @@ import {
   Building2,
   ChevronDown,
   User,
+  CheckCircle,
+  Clock,
+  XCircle,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import userRoleService from "@/app/services/userRoleService";
+import LineManagerSidebar from "./LineManagerSidebar";
 
 interface HRNavbarProps {
   title?: string;
   subtitle?: string;
 }
 
-const HodNavbar: React.FC<HRNavbarProps> = ({ 
+const LineManagerNavBar: React.FC<HRNavbarProps> = ({ 
   title = "smartflow", 
-  subtitle = "Portal" 
+  subtitle = "Line manager" 
 }) => {
   const { user, logout } = useAuth();
   const pathname = usePathname();
@@ -38,10 +43,13 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   const modules = [
-  { id: '', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
-  { id: 'requests', name: 'manage requests', icon: Key, description: 'approve requests' },
+  { id: 'overview', name: 'Overview', icon: Monitor, description: 'Line Manager Dashboard' },
+  { id: 'approvals', name: 'Pending Approvals', icon: Clock, description: 'Review access requests' },
+  { id: 'approved', name: 'Approved Requests', icon: CheckCircle, description: 'View approved requests' },
+  { id: 'rejected', name: 'Rejected Requests', icon: XCircle, description: 'View rejected requests' },
+  { id: 'team', name: 'My Team', icon: Users, description: 'Manage team members' },
+  { id: 'reports', name: 'Reports', icon: TrendingUp, description: 'Analytics & insights' },
 ];
-
 
   // Get user role information from localStorage (selected role) or fallback to database
   useEffect(() => {
@@ -71,13 +79,13 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/office/hod') {
-      setActiveModule('/');
+    } else if (pathname === '/administration/hr') {
+      setActiveModule('overview');
     }
   }, [pathname, modules]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/office/hod/${id === '' ? '' : `/${id}`}`;
+    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -119,7 +127,7 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-                <p className="text-xs text-gray-500">{user?.department}{subtitle}</p>
+                <p className="text-xs text-gray-500">{user?.department} {subtitle}</p>
               </div>
             </div>
             
@@ -281,4 +289,4 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
   );
 };
 
-export default HodNavbar; 
+export default LineManagerNavBar; 

@@ -10,8 +10,6 @@ import {
   Package,
   LogOut,
   Settings,
-  Shield,
-  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
@@ -59,24 +57,6 @@ export default function Sidebar() {
             <p className="text-xs text-gray-500 font-medium">Management Portal</p>
           </div>
         </div>
-        
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-sky-50 rounded-lg p-3 border border-sky-100">
-            <div className="flex items-center">
-              <Ticket className="h-4 w-4 text-sky-600 mr-2" />
-              <span className="text-xs font-medium text-sky-700">Tickets</span>
-            </div>
-            <p className="text-lg font-bold text-sky-900 mt-1">Active</p>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
-            <div className="flex items-center">
-              <Shield className="h-4 w-4 text-purple-600 mr-2" />
-              <span className="text-xs font-medium text-purple-700">Security</span>
-            </div>
-            <p className="text-lg font-bold text-purple-900 mt-1">Protected</p>
-          </div>
-        </div>
       </div>
 
       {/* Navigation Section */}
@@ -113,44 +93,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Help Section */}
-      <div className="mb-8 p-4 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl border border-sky-100">
-        <div className="flex items-start">
-          <HelpCircle className="h-4 w-4 text-sky-600 mt-0.5 mr-2 flex-shrink-0" />
-          <div className="flex-1">
-            <h4 className="text-sm font-medium text-sky-900 mb-1">IT Support</h4>
-            <p className="text-xs text-sky-700 mb-3 leading-relaxed">
-              Need technical assistance? Contact the IT support team
-            </p>
-            <button className="text-xs bg-sky-600 text-white px-3 py-1.5 rounded-md hover:bg-sky-700 transition-colors shadow-sm font-medium">
-              Get Support
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* User Info & Sign Out */}
+      {/* Sign Out */}
       <div className="pt-6 border-t border-gray-200">
-        {user && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center mr-3">
-                <span className="text-white text-xs font-medium">
-                  {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {user.full_name || 'User'}
-                </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        
         <button
           onClick={logout}
           className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"

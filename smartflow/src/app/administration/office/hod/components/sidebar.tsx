@@ -15,8 +15,8 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
-  { id: 'aceess-request', name: 'access requests', icon: Key, description: 'approve requests' },
+  { id: '', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
+  { id: 'requests', name: 'manage requests', icon: Key, description: 'approve requests' },
 ];
 
 export default function HodSidebar() {
@@ -38,7 +38,7 @@ export default function HodSidebar() {
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
+    const newPath = `/administration/office/hod/${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -54,8 +54,8 @@ export default function HodSidebar() {
             <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900"> </h2>
-            <p className="text-xs text-gray-500 font-medium"></p>
+            <h2 className="text-lg font-bold text-gray-900"> {user?.department} office</h2>
+            <p className="text-xs text-gray-500 font-medium"> {user?.role} </p>
           </div>
         </div>
       </div>

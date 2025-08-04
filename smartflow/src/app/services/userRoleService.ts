@@ -24,6 +24,9 @@ class UserRoleService {
       return null;
     } catch (error) {
       console.error('Error fetching user role info:', error);
+      
+      // Return null instead of hardcoded data
+      console.log('Returning null for user role info');
       return null;
     }
   }
@@ -35,6 +38,9 @@ class UserRoleService {
       return response.data.success ? response.data.data : [];
     } catch (error) {
       console.error('Error fetching user role assignments:', error);
+      
+      // Return empty array instead of hardcoded data
+      console.log('Returning empty user role assignments array');
       return [];
     }
   }

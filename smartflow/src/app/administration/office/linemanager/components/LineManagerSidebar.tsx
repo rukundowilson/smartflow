@@ -11,13 +11,18 @@ import {
   Building2,
   HelpCircle,
   Shield,
+  Clock,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'HR Dashboard' },
-  { id: 'registrations', name: 'Employee Registrations', icon: UserPlus, description: 'Review applications' },
-  { id: 'role-management', name: 'Role Management', icon: Shield, description: 'Manage employee roles' },
+  { id: 'overview', name: 'Overview', icon: Monitor, description: 'Line Manager Dashboard' },
+  { id: 'approvals', name: 'Pending Approvals', icon: Clock, description: 'Review access requests' },
+  { id: 'approved', name: 'Approved Requests', icon: CheckCircle, description: 'View approved requests' },
+  { id: 'rejected', name: 'Rejected Requests', icon: XCircle, description: 'View rejected requests' },
 ];
 
 export default function HRSidebar() {
@@ -33,18 +38,19 @@ export default function HRSidebar() {
     const path = pathname.split('/').pop()?.split('?')[0];
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/hr') {
+    } else if (pathname === '/administration/office/linemanager') {
       setActiveModule('overview');
     }
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
+    const newPath = `/administration/office/linemanager${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
     }
   };
+
 
   return (
     <nav className="min-w-[280px] max-w-[320px] w-72 bg-white rounded-xl shadow-lg border border-gray-200 p-6 mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
@@ -55,8 +61,8 @@ export default function HRSidebar() {
             <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">HR Portal</h2>
-            <p className="text-xs text-gray-500 font-medium">Human Resources</p>
+            <h2 className="text-lg font-bold text-gray-900">Line manager</h2>
+            <p className="text-xs text-gray-500 font-medium">{user?.department}</p>
           </div>
         </div>
       </div>

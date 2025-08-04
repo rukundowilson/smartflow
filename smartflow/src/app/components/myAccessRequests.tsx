@@ -25,8 +25,9 @@ import {
   Shield
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/auth-context';
-import systemService, { System, Role } from '@/app/services/systemService';
+import { getAllDepartments, getDepartmentRoles, Department, DepartmentRole } from '@/app/services/departmentService';
 import accessRequestService, { AccessRequest, CreateAccessRequestData } from '@/app/services/accessRequestService';
+import WorkflowStatus from './WorkflowStatus';
 
 const AccessRequestsPortal = () => {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ const AccessRequestsPortal = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Form state
-  const [selectedSystem, setSelectedSystem] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [justification, setJustification] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -46,8 +47,8 @@ const AccessRequestsPortal = () => {
   const [attachments, setAttachments] = useState<string[]>([]);
 
   // Data state
-  const [systems, setSystems] = useState<System[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [roles, setRoles] = useState<DepartmentRole[]>([]);
   const [accessRequests, setAccessRequests] = useState<AccessRequest[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -56,39 +57,45 @@ const AccessRequestsPortal = () => {
     user: user?.id, 
     isLoading, 
     accessRequestsCount: accessRequests.length,
-    systemsCount: systems.length 
+    departmentsCount: departments.length,
+    userDetails: user // Log full user details
   });
 
   // Load systems and user's access requests
   useEffect(() => {
-    console.log('useEffect triggered:', { userId: user?.id });
+    console.log('useEffect triggered:', { userId: user?.id, user: user });
     if (user?.id) {
       // Small delay to ensure auth context is fully loaded
       const timer = setTimeout(() => {
         loadData();
       }, 100);
       return () => clearTimeout(timer);
+    } else {
+      console.log('No user ID available');
     }
   }, [user?.id]);
 
   const loadData = async () => {
-    console.log('Loading data...', { userId: user?.id });
+    console.log('Loading data...', { userId: user?.id, user: user });
     setIsLoading(true);
     try {
-      // Load systems
-      const systemsResponse = await systemService.getAllSystems();
-      console.log('Systems response:', systemsResponse);
-      if (systemsResponse.success) {
-        setSystems(systemsResponse.systems);
+      // Load departments for role-based access requests
+      const departmentsResponse = await getAllDepartments();
+      console.log('Departments response:', departmentsResponse);
+      if (departmentsResponse.success) {
+        setDepartments(departmentsResponse.departments);
       }
 
       // Load user's access requests
       if (user?.id) {
-        const requestsResponse = await accessRequestService.getUserAccessRequests(user.id);
+        console.log('Fetching requests for user ID:', user.id);
+        const requestsResponse = await accessRequestService.getUserRequests(user.id);
         console.log('Requests response:', requestsResponse);
-        if (requestsResponse.success) {
-          setAccessRequests(requestsResponse.requests);
-        }
+        console.log('Requests array length:', requestsResponse.length);
+        // getUserRequests returns the array directly, not wrapped in success object
+        setAccessRequests(requestsResponse);
+      } else {
+        console.log('No user ID available for fetching requests');
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -101,32 +108,33 @@ const AccessRequestsPortal = () => {
 
   // Load roles when system is selected
   useEffect(() => {
-    if (selectedSystem) {
-      loadSystemRoles(parseInt(selectedSystem));
+    if (selectedDepartment) {
+      loadDepartmentRoles(parseInt(selectedDepartment));
     } else {
       setRoles([]);
     }
-  }, [selectedSystem]);
+  }, [selectedDepartment]);
 
-  const loadSystemRoles = async (systemId: number) => {
+  const loadDepartmentRoles = async (departmentId: number) => {
     try {
-      const response = await systemService.getSystemRoles(systemId);
+      const response = await getDepartmentRoles(departmentId);
       if (response.success) {
         setRoles(response.roles);
       }
     } catch (error) {
-      console.error('Error loading system roles:', error);
+      console.error('Error loading department roles:', error);
     }
   };
 
   // Get filtered roles based on selected system
-  const filteredRoles = roles.filter(role => role.system_id === parseInt(selectedSystem));
+  const filteredRoles = roles.filter(role => role.department_id === parseInt(selectedDepartment));
 
   // Get filtered requests
-  const filteredRequests = accessRequests.filter(request => {
+  let filtered = accessRequests.filter(request => {
     const matchesSearch = request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.system_name.toLowerCase().includes(searchTerm.toLowerCase());
+                         request.department_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         request.role_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || request.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -134,16 +142,19 @@ const AccessRequestsPortal = () => {
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedSystem || !selectedRole || !justification || !startDate || !user?.id) {
+    if (!selectedDepartment || !selectedRole || !justification || !startDate || !user?.id) {
       alert('Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      console.log('Submitting access request with user ID:', user.id);
+      console.log('User details:', user);
+      
       const requestData: CreateAccessRequestData = {
         user_id: user.id,
-        system_id: parseInt(selectedSystem),
+        department_id: parseInt(selectedDepartment),
         role_id: parseInt(selectedRole),
         justification,
         start_date: startDate,
@@ -151,13 +162,15 @@ const AccessRequestsPortal = () => {
         is_permanent: isPermanent
       };
 
+      console.log('Request data being sent:', requestData);
+      
       const response = await accessRequestService.createAccessRequest(requestData);
       
       if (response.success) {
-        alert('Access request submitted successfully!');
+        alert('Role access request submitted successfully!');
         
         // Reset form
-        setSelectedSystem('');
+        setSelectedDepartment('');
         setSelectedRole('');
         setJustification('');
         setStartDate('');
@@ -171,7 +184,7 @@ const AccessRequestsPortal = () => {
       }
     } catch (error) {
       console.error('Error submitting request:', error);
-      alert('Failed to submit request. Please try again.');
+      alert('Failed to submit role request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -179,6 +192,9 @@ const AccessRequestsPortal = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'pending_line_manager': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'pending_hod': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'pending_it_manager': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'pending_manager_approval': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'pending_system_owner': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'granted': return 'bg-green-100 text-green-800 border-green-200';
@@ -189,6 +205,9 @@ const AccessRequestsPortal = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'pending_line_manager': return Clock;
+      case 'pending_hod': return Shield;
+      case 'pending_it_manager': return Building2;
       case 'pending_manager_approval': return Clock;
       case 'pending_system_owner': return Shield;
       case 'granted': return Check;
@@ -199,6 +218,9 @@ const AccessRequestsPortal = () => {
 
   const formatStatus = (status: string) => {
     switch (status) {
+      case 'pending_line_manager': return 'Pending Line Manager';
+      case 'pending_hod': return 'Pending HOD';
+      case 'pending_it_manager': return 'Pending IT Manager';
       case 'pending_manager_approval': return 'Pending Manager';
       case 'pending_system_owner': return 'Pending System Owner';
       case 'granted': return 'Granted';
@@ -241,16 +263,16 @@ const AccessRequestsPortal = () => {
               <div className="mb-6 lg:mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Access Requests</h1>
-                    <p className="text-gray-600 text-sm sm:text-base">Request access to systems and manage your pending requests.</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Role Access Requests</h1>
+                    <p className="text-gray-600 text-sm sm:text-base">Request role-based access and manage your pending requests.</p>
                   </div>
                   <button
                     onClick={() => setShowRequestForm(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full sm:w-auto justify-center"
                   >
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">New Request</span>
-                    <span className="sm:hidden">New</span>
+                    <span className="hidden sm:inline">New Role Request</span>
+                    <span className="sm:hidden">New Role</span>
                   </button>
                 </div>
               </div>
@@ -263,7 +285,7 @@ const AccessRequestsPortal = () => {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
                         type="text"
-                        placeholder="Search by name, email, or system..."
+                        placeholder="Search by name, email, department, or role..."
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -298,18 +320,18 @@ const AccessRequestsPortal = () => {
 
               {/* Requests Cards */}
               <div className="space-y-4">
-                {filteredRequests.length === 0 ? (
+                {filtered.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                     <Key className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No access requests</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No role access requests</h3>
                     <p className="mt-1 text-sm text-gray-500">
                       {searchTerm || filterStatus !== 'all' 
                         ? 'No requests match your current filters.' 
-                        : 'No access requests found. Create your first request!'}
+                        : 'No role access requests found. Create your first request!'}
                     </p>
                   </div>
                 ) : (
-                  filteredRequests.map((request) => {
+                  filtered.map((request) => {
                     const StatusIcon = getStatusIcon(request.status);
                     return (
                       <div key={request.id} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
@@ -334,6 +356,11 @@ const AccessRequestsPortal = () => {
                           </div>
                         </div>
 
+                        {/* Workflow Status */}
+                        <div className="mb-4">
+                          <WorkflowStatus status={request.status} className="justify-start" />
+                        </div>
+
                         {/* System & Role Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div className="flex items-start gap-3">
@@ -341,8 +368,8 @@ const AccessRequestsPortal = () => {
                               <Building2 className="h-4 w-4 text-green-600" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{request.system_name}</p>
-                              <p className="text-xs text-gray-500">{request.system_description}</p>
+                              <p className="text-sm font-medium text-gray-900">{request.department_name}</p>
+                              <p className="text-xs text-gray-500">Department</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
@@ -351,7 +378,7 @@ const AccessRequestsPortal = () => {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{request.role_name}</p>
-                              <p className="text-xs text-gray-500">{request.role_description}</p>
+                              <p className="text-xs text-gray-500">Requested Role</p>
                             </div>
                           </div>
                         </div>
@@ -430,7 +457,7 @@ const AccessRequestsPortal = () => {
         <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Access Request</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Role Access Request</h2>
               <button
                 onClick={() => setShowRequestForm(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -440,24 +467,24 @@ const AccessRequestsPortal = () => {
             </div>
             
             <form onSubmit={handleSubmitRequest} className="p-4 sm:p-6 space-y-6">
-              {/* System Selection */}
+              {/* Department Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  System <span className="text-red-500">*</span>
+                  Department <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={selectedSystem}
+                  value={selectedDepartment}
                   onChange={(e) => {
-                    setSelectedSystem(e.target.value);
-                    setSelectedRole(''); // Reset role when system changes
+                    setSelectedDepartment(e.target.value);
+                    setSelectedRole(''); // Reset role when department changes
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  <option value="">Select a system...</option>
-                  {systems.map((system) => (
-                    <option key={system.id} value={system.id}>
-                      {system.name} - {system.description}
+                  <option value="">Select a department...</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name} - {department.description}
                     </option>
                   ))}
                 </select>
@@ -466,13 +493,13 @@ const AccessRequestsPortal = () => {
               {/* Role Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Role <span className="text-red-500">*</span>
+                  Role Needed <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={!selectedSystem}
+                  disabled={!selectedDepartment}
                   required
                 >
                   <option value="">Select a role...</option>
@@ -482,8 +509,11 @@ const AccessRequestsPortal = () => {
                     </option>
                   ))}
                 </select>
-                {!selectedSystem && (
-                  <p className="text-sm text-gray-500 mt-1">Please select a system first</p>
+                {!selectedDepartment && (
+                  <p className="text-sm text-gray-500 mt-1">Please select a department first</p>
+                )}
+                {selectedDepartment && filteredRoles.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">No roles available for this department</p>
                 )}
               </div>
 
@@ -497,7 +527,7 @@ const AccessRequestsPortal = () => {
                   onChange={(e) => setJustification(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Explain why you need this access..."
+                  placeholder="Explain why you need this role and what responsibilities you'll have..."
                   required
                 />
               </div>
@@ -583,7 +613,7 @@ const AccessRequestsPortal = () => {
                   ) : (
                     <Check className="w-4 h-4" />
                   )}
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                  {isSubmitting ? 'Submitting...' : 'Submit Role Request'}
                 </button>
               </div>
             </form>

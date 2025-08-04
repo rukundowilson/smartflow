@@ -1,114 +1,150 @@
 import API from '../utils/axios';
 
+export interface ApprovalHistory {
+  id: number;
+  request_id: number;
+  approver_id: number;
+  action: 'approve' | 'reject';
+  comment?: string;
+  approved_at: string;
+  approver_name: string;
+  approver_email: string;
+}
+
 export interface AccessRequest {
   id: number;
   user_id: number;
-  system_id: number;
+  department_id: number;
   role_id: number;
   justification: string;
   start_date: string;
   end_date?: string;
   is_permanent: boolean;
-  status: 'pending_manager_approval' | 'pending_system_owner' | 'granted' | 'rejected';
+  status: 'pending_line_manager' | 'pending_hod' | 'pending_it_manager' | 'pending_it_review' | 'pending_manager_approval' | 'pending_system_owner' | 'ready_for_assignment' | 'granted' | 'rejected';
   submitted_at: string;
   approved_at?: string;
   approved_by?: number;
   rejection_reason?: string;
-  system_name: string;
-  system_description: string;
+  department_name: string;
+  department_description?: string;
   role_name: string;
-  role_description: string;
+  role_description?: string;
   user_name: string;
   user_email: string;
   approver_name?: string;
+  approval_history?: ApprovalHistory[];
+}
+
+export interface ApprovalData {
+  approver_id: number;
+  comment?: string;
+  rejection_reason?: string;
+  approver_role?: string;
 }
 
 export interface CreateAccessRequestData {
   user_id: number;
-  system_id: number;
+  department_id: number;
   role_id: number;
   justification: string;
   start_date: string;
   end_date?: string;
   is_permanent: boolean;
-}
-
-export interface ApproveRequestData {
-  approver_id: number;
-  comment?: string;
-}
-
-export interface RejectRequestData {
-  approver_id: number;
-  rejection_reason: string;
-  comment?: string;
 }
 
 class AccessRequestService {
   private baseUrl = '/api/access-requests';
 
-  // Create new access request
-  async createAccessRequest(data: CreateAccessRequestData): Promise<{ success: boolean; message: string; request_id: number }> {
+  // Get all access requests for HOD dashboard
+  async getAllRequests(): Promise<AccessRequest[]> {
     try {
-      const response = await API.post(this.baseUrl, data);
-      return response.data;
+      const response = await API.get(`${this.baseUrl}/all`);
+      return response.data.requests || [];
     } catch (error) {
-      console.error('Error creating access request:', error);
+      console.error('Error fetching all requests:', error);
       throw error;
     }
   }
 
-  // Get user's access requests
-  async getUserAccessRequests(userId: number): Promise<{ success: boolean; requests: AccessRequest[] }> {
+  // Get approval history for a specific approver
+  async getApprovalHistory(approverId: number): Promise<{ success: boolean; requests: AccessRequest[] }> {
     try {
-      const response = await API.get(`${this.baseUrl}/user/${userId}`);
+      const response = await API.get(`${this.baseUrl}/history?approver_id=${approverId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching user access requests:', error);
+      console.error('Error fetching approval history:', error);
       throw error;
     }
   }
 
-  // Get pending access requests (for managers/approvers)
-  async getPendingAccessRequests(): Promise<{ success: boolean; requests: AccessRequest[] }> {
+  // Get pending access requests for HOD approval
+  async getPendingRequests(params?: { approver_id?: number; approver_role?: string }): Promise<{ success: boolean; requests: AccessRequest[] }> {
     try {
-      const response = await API.get(`${this.baseUrl}/pending`);
+      const queryParams = params ? new URLSearchParams({
+        approver_id: params.approver_id?.toString() || '',
+        approver_role: params.approver_role || ''
+      }).toString() : '';
+      
+      const url = queryParams ? `${this.baseUrl}/pending?${queryParams}` : `${this.baseUrl}/pending`;
+      const response = await API.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching pending access requests:', error);
+      console.error('Error fetching pending requests:', error);
       throw error;
     }
   }
 
-  // Get access request by ID
-  async getAccessRequestById(requestId: number): Promise<{ success: boolean; request: AccessRequest }> {
+  // Get specific access request by ID with approval history
+  async getRequestById(requestId: number): Promise<{ success: boolean; request: AccessRequest }> {
     try {
       const response = await API.get(`${this.baseUrl}/${requestId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching access request:', error);
+      console.error('Error fetching request:', error);
       throw error;
     }
   }
 
   // Approve access request
-  async approveAccessRequest(requestId: number, data: ApproveRequestData): Promise<{ success: boolean; message: string }> {
+  async approveRequest(requestId: number, approvalData: ApprovalData): Promise<any> {
     try {
-      const response = await API.put(`${this.baseUrl}/${requestId}/approve`, data);
+      const response = await API.put(`${this.baseUrl}/${requestId}/approve`, approvalData);
       return response.data;
     } catch (error) {
-      console.error('Error approving access request:', error);
+      console.error('Error approving request:', error);
       throw error;
     }
   }
 
   // Reject access request
-  async rejectAccessRequest(requestId: number, data: RejectRequestData): Promise<{ success: boolean; message: string }> {
+  async rejectRequest(requestId: number, rejectionData: ApprovalData): Promise<any> {
     try {
-      const response = await API.put(`${this.baseUrl}/${requestId}/reject`, data);
+      const response = await API.put(`${this.baseUrl}/${requestId}/reject`, rejectionData);
       return response.data;
     } catch (error) {
-      console.error('Error rejecting access request:', error);
+      console.error('Error rejecting request:', error);
+      throw error;
+    }
+  }
+
+  // Get user's access requests
+  async getUserRequests(userId: number): Promise<AccessRequest[]> {
+    try {
+      const response = await API.get(`${this.baseUrl}/user/${userId}`);
+      return response.data.requests || [];
+    } catch (error) {
+      console.error('Error fetching user requests:', error);
+      throw error;
+    }
+  }
+
+  // Create new access request
+  async createAccessRequest(requestData: CreateAccessRequestData): Promise<any> {
+    try {
+      const response = await API.post(`${this.baseUrl}`, requestData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating access request:', error);
       throw error;
     }
   }
