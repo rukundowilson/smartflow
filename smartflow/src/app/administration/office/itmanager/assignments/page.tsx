@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, Shield, Building2, User, X, AlertCircle, Users, Settings } from 'lucide-react';
 import accessRequestService, { AccessRequest } from '../../../../services/accessRequestService';
 import ITManagerLayout from '../components/ITManagerLayout';
+import { useAuth } from '@/app/contexts/auth-context';
 
 
 
@@ -98,10 +99,10 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({ request, isOpen, onCl
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select IT team member...</option>
-                <option value="43">John IT (john.it@company.com)</option>
-                <option value="44">Sarah IT (sarah.it@company.com)</option>
-                <option value="45">Mike IT (mike.it@company.com)</option>
-                <option value="46">Lisa IT (lisa.it@company.com)</option>
+                {/* TODO: Fetch IT team members dynamically */}
+                <option value="1">IT Support (itsupport@company.com)</option>
+                <option value="2">Developer (developer@company.com)</option>
+                <option value="3">IT Admin (itadmin@company.com)</option>
               </select>
             </div>
 
@@ -135,6 +136,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({ request, isOpen, onCl
 };
 
 export default function ITManagerAssignments() {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<AccessRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -152,7 +154,7 @@ export default function ITManagerAssignments() {
       setIsLoading(true);
       // Get only requests ready for assignment
       const response = await accessRequestService.getPendingRequests({
-        approver_id: 27, // Sami IT Manager
+        approver_id: user?.id, // Use current user's ID
         approver_role: 'IT Manager'
       });
       

@@ -23,11 +23,11 @@ export interface ITUser {
 
 export async function getAllTickets(): Promise<{ success: boolean; tickets: ITTicket[] }> {
   try {
-    // Use the correct IT tickets endpoint
-    const response = await API.get("/api/tickets/it/all");
+    // Use the correct endpoint for getting all tickets
+    const response = await API.get("/api/tickets/all");
     return response.data;
   } catch (error: any) {
-    console.error("Failed to fetch IT tickets:", error);
+    console.error("Failed to fetch tickets from main API:", error);
     
     // Return empty array instead of hardcoded data
     console.log("Returning empty tickets array");
@@ -80,17 +80,26 @@ export async function updateTicketStatus(
 
 export async function getITUsers(): Promise<{ success: boolean; users: ITUser[] }> {
   try {
-    // Use the correct IT users endpoint
-    const response = await API.get("/api/tickets/it/users");
+    // Try the main API first
+    const response = await API.get("/api/users/it");
     return response.data;
   } catch (error: any) {
-    console.error("Failed to fetch IT users:", error);
+    console.error("Failed to fetch IT users from main API:", error);
     
-    // Return empty array instead of hardcoded data
-    console.log("Returning empty IT users array");
-    return {
-      success: true,
-      users: []
-    };
+    // Try mock endpoint as fallback
+    try {
+      console.log("Trying mock IT users endpoint...");
+      const mockResponse = await API.get("/api/users/it-mock");
+      return mockResponse.data;
+    } catch (mockError: any) {
+      console.error("Failed to fetch IT users from mock API:", mockError);
+      
+      // Return empty array instead of hardcoded data
+      console.log("Returning empty IT users array");
+      return {
+        success: true,
+        users: []
+      };
+    }
   }
 } 

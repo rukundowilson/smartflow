@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import accessRequestService, { AccessRequest, ApprovalData } from '@/app/services/accessRequestService';
+import { useAuth } from '@/app/contexts/auth-context';
 
 interface ApprovalModalProps {
   request: AccessRequest | null;
@@ -31,6 +32,7 @@ interface ApprovalModalProps {
 }
 
 const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose, onApprove, onReject }) => {
+  const { user } = useAuth();
   const [comment, setComment] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,10 +40,15 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
   if (!request || !isOpen) return null;
 
   const handleApprove = async () => {
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       await onApprove({
-        approver_id: 29, // Willy HOD
+        approver_id: user.id, // Use current user's ID
         comment,
         approver_role: 'HOD'
       });
@@ -55,6 +62,11 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
   };
 
   const handleReject = async () => {
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+    
     if (!rejectionReason.trim()) {
       alert('Please provide a rejection reason');
       return;
@@ -62,7 +74,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
     setIsSubmitting(true);
     try {
       await onReject({
-        approver_id: 29, // Willy HOD
+        approver_id: user.id, // Use current user's ID
         rejection_reason: rejectionReason,
         comment,
         approver_role: 'HOD'
@@ -186,6 +198,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
 };
 
 const HODApprovalsDashboard = () => {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
@@ -197,7 +210,7 @@ const HODApprovalsDashboard = () => {
       try {
         setIsLoading(true);
         const response = await accessRequestService.getPendingRequests({
-          approver_id: 29, // Willy HOD
+          approver_id: user?.id, // Use current user's ID
           approver_role: 'HOD'
         });
         
@@ -216,11 +229,15 @@ const HODApprovalsDashboard = () => {
 
   const handleApprove = async (approvalData: ApprovalData) => {
     if (!selectedRequest) return;
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
     
     try {
       await accessRequestService.approveRequest(selectedRequest.id, {
         ...approvalData,
-        approver_id: 29 // Willy HOD
+        approver_id: user.id // Use current user's ID
       });
       
       // Update the request in the list
@@ -239,11 +256,15 @@ const HODApprovalsDashboard = () => {
 
   const handleReject = async (rejectionData: ApprovalData) => {
     if (!selectedRequest) return;
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
     
     try {
       await accessRequestService.rejectRequest(selectedRequest.id, {
         ...rejectionData,
-        approver_id: 29 // Willy HOD
+        approver_id: user.id // Use current user's ID
       });
       
       // Update the request in the list
