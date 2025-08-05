@@ -255,33 +255,33 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             <h3 className="text-sm font-medium text-orange-800 mb-3">Your Decision as Line Manager</h3>
             
             <div className="space-y-4">
-              <div>
+          <div>
                 <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
                   Your Comment (Optional)
-                </label>
-                <textarea
-                  id="comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+            </label>
+            <textarea
+              id="comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
                   placeholder="Add your comment about this request..."
-                />
-              </div>
+            />
+          </div>
 
-              <div>
+          <div>
                 <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
                   Rejection Reason (Required if rejecting)
-                </label>
-                <textarea
-                  id="rejectionReason"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-                  placeholder="Provide a reason for rejection..."
-                />
-              </div>
+            </label>
+            <textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+              placeholder="Provide a reason for rejection..."
+            />
+          </div>
             </div>
           </div>
 
@@ -340,7 +340,7 @@ const LineManagerApprovalsPage: React.FC = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchPendingRequests();
+    fetchPendingRequests();
     }
   }, [user?.id]);
 

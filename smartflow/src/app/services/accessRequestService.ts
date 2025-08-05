@@ -20,7 +20,7 @@ export interface AccessRequest {
   start_date: string;
   end_date?: string;
   is_permanent: boolean;
-  status: 'pending_line_manager' | 'pending_hod' | 'pending_it_manager' | 'pending_it_review' | 'pending_manager_approval' | 'pending_system_owner' | 'ready_for_assignment' | 'granted' | 'rejected';
+  status: 'pending_line_manager' | 'pending_hod' | 'pending_it_manager' | 'pending_it_review' | 'pending_manager_approval' | 'pending_system_owner' | 'ready_for_assignment' | 'granted' | 'rejected' | 'approved' | 'access_granted' | 'it_assigned';
   submitted_at: string;
   approved_at?: string;
   approved_by?: number;
@@ -67,9 +67,14 @@ class AccessRequestService {
   }
 
   // Get approval history for a specific approver
-  async getApprovalHistory(approverId: number): Promise<{ success: boolean; requests: AccessRequest[] }> {
+  async getApprovalHistory(approverId: number, role?: string): Promise<{ success: boolean; requests: AccessRequest[] }> {
     try {
-      const response = await API.get(`${this.baseUrl}/history?approver_id=${approverId}`);
+      const params = new URLSearchParams();
+      params.append('approver_id', approverId.toString());
+      if (role) {
+        params.append('role', role);
+      }
+      const response = await API.get(`${this.baseUrl}/history?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching approval history:', error);
@@ -123,6 +128,22 @@ class AccessRequestService {
       return response.data;
     } catch (error) {
       console.error('Error rejecting request:', error);
+      throw error;
+    }
+  }
+
+  // IT Assignment
+  async assignRequest(requestId: number, assignmentData: {
+    approver_id: number;
+    assignment_type: 'auto' | 'manual';
+    assigned_user_id?: number;
+    comment?: string;
+  }): Promise<any> {
+    try {
+      const response = await API.put(`${this.baseUrl}/${requestId}/assign`, assignmentData);
+      return response.data;
+    } catch (error) {
+      console.error('Error assigning request:', error);
       throw error;
     }
   }

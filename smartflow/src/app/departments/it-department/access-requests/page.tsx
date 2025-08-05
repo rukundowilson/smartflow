@@ -18,12 +18,18 @@ import {
   MessageSquare,
   Loader2,
   RefreshCw,
-  Menu
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreHorizontal,
+  FileText,
+  Check,
+  X
 } from 'lucide-react';
-import accessRequestService, { AccessRequest, ApprovalHistory } from '@/app/services/accessRequestService';
+import accessRequestService, { AccessRequest } from '@/app/services/accessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
-import NavBar from "../components/navbar";
-import SideBar from "../components/sidebar";
+import NavBar from '../components/navbar';
+import Sidebar from '../components/sidebar';
 
 interface ApprovalModalProps {
   request: AccessRequest | null;
@@ -31,10 +37,9 @@ interface ApprovalModalProps {
   onClose: () => void;
   onApprove: (requestId: number, comment: string) => void;
   onReject: (requestId: number, reason: string, comment: string) => void;
+  onAssign: (requestId: number, assignmentType: 'auto' | 'manual', assignedUserId?: number, comment?: string) => void;
   isProcessing: boolean;
 }
-
-
 
 const ApprovalModal: React.FC<ApprovalModalProps> = ({
   request,
@@ -42,91 +47,71 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
   onClose,
   onApprove,
   onReject,
+  onAssign,
   isProcessing
 }) => {
-  const [action, setAction] = useState<'approve' | 'reject'>('approve');
+  const [action, setAction] = useState<'approve' | 'reject' | 'assign'>('approve');
   const [comment, setComment] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
-  const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  // Fetch approval history when modal opens
-  useEffect(() => {
-    if (isOpen && request) {
-      fetchApprovalHistory();
-    }
-  }, [isOpen, request]);
-
-  const fetchApprovalHistory = async () => {
-    if (!request) return;
-    
-    try {
-      setIsLoadingHistory(true);
-      const response = await accessRequestService.getRequestById(request.id);
-      if (response.success && response.request.approval_history) {
-        setApprovalHistory(response.request.approval_history);
-      }
-    } catch (error) {
-      console.error('Error fetching approval history:', error);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  const [assignmentType, setAssignmentType] = useState<'auto' | 'manual'>('auto');
+  const [assignedUserId, setAssignedUserId] = useState<number | undefined>(undefined);
 
   if (!isOpen || !request) return null;
 
   const handleSubmit = () => {
     if (action === 'approve') {
       onApprove(request.id, comment);
-    } else {
+    } else if (action === 'reject') {
       onReject(request.id, rejectionReason, comment);
+    } else if (action === 'assign') {
+      onAssign(request.id, assignmentType, assignedUserId, comment);
     }
   };
 
   const canApprove = request.status === 'pending_it_review';
   const canReject = request.status === 'pending_it_review';
-  const isApproved = request.status === 'ready_for_assignment' || request.status === 'granted';
-  const isRejected = request.status === 'rejected';
+  const canAssign = request.status === 'ready_for_assignment';
+  const isReadOnly = request.status === 'access_granted' || request.status === 'it_assigned' || request.status === 'rejected';
 
   const getStatusIcon = (status: string) => {
     switch(status) {
       case 'pending_manager_approval':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'pending_hod':
-        return <Shield className="h-4 w-4 text-orange-500" />;
+        return <Shield className="h-4 w-4 text-orange-600" />;
       case 'pending_it_manager':
-        return <Building className="h-4 w-4 text-blue-500" />;
+        return <Building className="h-4 w-4 text-blue-600" />;
       case 'pending_it_review':
-        return <Users className="h-4 w-4 text-purple-500" />;
+        return <Users className="h-4 w-4 text-purple-600" />;
       case 'ready_for_assignment':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'granted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-red-600" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+        return <AlertCircle className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'pending_manager_approval':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'text-yellow-600 bg-yellow-50';
       case 'pending_hod':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
+        return 'text-orange-600 bg-orange-50';
       case 'pending_it_manager':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'text-blue-600 bg-blue-50';
       case 'pending_it_review':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'text-purple-600 bg-purple-50';
       case 'ready_for_assignment':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'text-green-600 bg-green-50';
       case 'granted':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'text-green-600 bg-green-50';
       case 'rejected':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'text-red-600 bg-red-50';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'text-gray-600 bg-gray-50';
     }
   };
 
@@ -142,6 +127,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         return 'Pending IT Review';
       case 'ready_for_assignment':
         return 'Ready for Assignment';
+      case 'access_granted':
+        return 'Access Granted';
+      case 'it_assigned':
+        return 'IT Assigned';
       case 'granted':
         return 'Approved';
       case 'rejected':
@@ -152,13 +141,11 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            {isApproved ? 'Approved Access Request' : 
-             isRejected ? 'Rejected Access Request' : 
-             'Review Access Request'}
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {isReadOnly ? 'Request Details' : 'IT Manager Review'}
           </h2>
           <button
             onClick={onClose}
@@ -169,191 +156,297 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         </div>
 
         {/* Request Details */}
-        <div className="space-y-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-2">Request Details</h3>
-              <div className="space-y-2 text-sm">
-                <div><span className="font-medium">Request ID:</span> #{request.id}</div>
-                <div><span className="font-medium">User:</span> {request.user_name}</div>
-                <div><span className="font-medium">Email:</span> {request.user_email}</div>
-                <div><span className="font-medium">Department:</span> {request.department_name}</div>
-                <div><span className="font-medium">Requested Role:</span> {request.role_name}</div>
-                <div><span className="font-medium">Justification:</span> {request.justification}</div>
-                <div><span className="font-medium">Submitted:</span> {new Date(request.submitted_at).toLocaleDateString()}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <User className="h-5 w-5 mr-2 text-blue-600" />
+              Request Details
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Request ID:</span>
+                <span className="font-semibold text-gray-900">#{request.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">User:</span>
+                <span className="font-semibold text-gray-900">{request.user_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Email:</span>
+                <span className="font-semibold text-gray-900">{request.user_email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Department:</span>
+                <span className="font-semibold text-gray-900">{request.department_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Requested Role:</span>
+                <span className="font-semibold text-gray-900">{request.role_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-600">Submitted:</span>
+                <span className="font-semibold text-gray-900">{new Date(request.submitted_at).toLocaleDateString()}</span>
+              </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-2">Current Status</h3>
-              <div className="space-y-2 text-sm">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border border-purple-100">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <Shield className="h-5 w-5 mr-2 text-purple-600" />
+              Current Status
+            </h3>
+            <div className="space-y-4">
+              <div className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium ${getStatusColor(request.status)}`}>
                   {getStatusIcon(request.status)}
-                  <span className="ml-1">{getStatusText(request.status)}</span>
+                <span className="ml-2">{getStatusText(request.status)}</span>
+              </div>
+              {request.approved_at && (
+                <div className="text-sm">
+                  <span className="font-medium text-gray-600">Approved:</span>
+                  <span className="ml-2 font-semibold text-gray-900">{new Date(request.approved_at).toLocaleDateString()}</span>
                 </div>
-                {request.approved_at && (
-                  <div><span className="font-medium">Approved:</span> {new Date(request.approved_at).toLocaleDateString()}</div>
                 )}
                 {request.rejection_reason && (
-                  <div><span className="font-medium">Rejection Reason:</span> {request.rejection_reason}</div>
+                <div className="text-sm">
+                  <span className="font-medium text-gray-600">Rejection Reason:</span>
+                  <span className="ml-2 font-semibold text-gray-900">{request.rejection_reason}</span>
+                </div>
                 )}
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Approval History */}
-        {approvalHistory.length > 0 && (
-          <div className="mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Approval History</h3>
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <div className="space-y-3">
-                {approvalHistory.map((approval, index) => (
-                  <div key={approval.id} className="flex items-start space-x-3 p-3 bg-white rounded-lg border">
-                    <div className={`p-2 rounded-full ${
-                      approval.action === 'approve' ? 'bg-green-100' : 'bg-red-100'
+        {/* Justification */}
+        <div className="mb-8">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+            <FileText className="h-5 w-5 mr-2 text-gray-600" />
+            Justification
+          </h3>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <p className="text-gray-700 leading-relaxed">{request.justification}</p>
+          </div>
+        </div>
+
+        {/* Approval Comments */}
+        {request.approval_history && request.approval_history.length > 0 && (
+          <div className="mb-8">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+              <MessageSquare className="h-5 w-5 mr-2 text-gray-600" />
+              Approval History
+            </h3>
+            <div className="space-y-3">
+              {request.approval_history.map((history, index) => (
+                <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-900">{history.approver_name}</span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${
+                      history.action === 'approve' 
+                        ? 'text-green-600 bg-green-50' 
+                        : 'text-red-600 bg-red-50'
                     }`}>
-                      {approval.action === 'approve' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{approval.approver_name}</span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(approval.approved_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {approval.action === 'approve' ? 'Approved' : 'Rejected'} the request
-                      </p>
-                      {approval.comment && (
-                        <p className="text-sm text-gray-500 mt-1 italic">"{approval.comment}"</p>
-                      )}
-                    </div>
+                      {history.action === 'approve' ? 'Approved' : 'Rejected'}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {new Date(history.approved_at).toLocaleDateString()} at {new Date(history.approved_at).toLocaleTimeString()}
+                  </p>
+                  {history.comment && (
+                    <p className="text-sm text-gray-700 bg-white p-3 rounded-lg border">
+                      "{history.comment}"
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Action Selection - Only show for pending requests */}
-        {!isApproved && !isRejected && (
-          <div className="mb-6">
-            <div className="flex space-x-4 mb-4">
+        {!isReadOnly && (
+          <div className="mb-8">
+                      <div className="flex space-x-4 mb-6">
+            {canApprove && (
               <button
                 onClick={() => setAction('approve')}
-                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                   action === 'approve'
-                    ? 'bg-green-100 text-green-700 border border-green-300'
-                    : 'bg-gray-100 text-gray-700 border border-gray-300'
+                    ? 'bg-green-100 text-green-700 border-2 border-green-300 shadow-sm'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:bg-gray-200'
                 }`}
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Approve
+                <CheckCircle className="h-5 w-5 mr-2" />
+                Approve Request
               </button>
+            )}
+            {canReject && (
               <button
                 onClick={() => setAction('reject')}
-                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
                   action === 'reject'
-                    ? 'bg-red-100 text-red-700 border border-red-300'
-                    : 'bg-gray-100 text-gray-700 border border-gray-300'
+                    ? 'bg-red-100 text-red-700 border-2 border-red-300 shadow-sm'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:bg-gray-200'
                 }`}
               >
-                <XCircle className="h-4 w-4 mr-2" />
-                Reject
+                <XCircle className="h-5 w-5 mr-2" />
+                Reject Request
               </button>
-            </div>
+            )}
+            {canAssign && (
+              <button
+                onClick={() => setAction('assign')}
+                className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  action === 'assign'
+                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300 shadow-sm'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                <Users className="h-5 w-5 mr-2" />
+                Assign Access
+              </button>
+            )}
+          </div>
 
-          {action === 'approve' ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Approval Comment (Optional)
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Add a comment about this approval..."
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
-                rows={3}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
+            {action === 'approve' ? (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason *
-                </label>
-                <select
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200"
-                  required
-                >
-                  <option value="">Select a reason</option>
-                  <option value="insufficient_justification">Insufficient Justification</option>
-                  <option value="role_not_appropriate">Role Not Appropriate</option>
-                  <option value="security_concerns">Security Concerns</option>
-                  <option value="department_mismatch">Department Mismatch</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Comments (Optional)
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Approval Comment (Optional)
                 </label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Provide additional details about the rejection..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200"
+                  placeholder="Add a comment about this approval..."
+                  className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 resize-none"
                   rows={3}
                 />
               </div>
-            </div>
-          )}
-        </div>
+            ) : action === 'reject' ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Rejection Reason *
+                  </label>
+                  <select
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200"
+                    required
+                  >
+                    <option value="">Select a reason</option>
+                    <option value="insufficient_justification">Insufficient Justification</option>
+                    <option value="role_not_appropriate">Role Not Appropriate</option>
+                    <option value="security_concerns">Security Concerns</option>
+                    <option value="department_mismatch">Department Mismatch</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Additional Comments (Optional)
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Provide additional details about the rejection..."
+                    className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 resize-none"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            ) : action === 'assign' ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Assignment Type *
+                  </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="auto"
+                        checked={assignmentType === 'auto'}
+                        onChange={(e) => setAssignmentType(e.target.value as 'auto' | 'manual')}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">Auto-assign to requesting user</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="manual"
+                        checked={assignmentType === 'manual'}
+                        onChange={(e) => setAssignmentType(e.target.value as 'auto' | 'manual')}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">Manually assign to specific user</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {assignmentType === 'manual' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Assign to User ID *
+                    </label>
+                    <input
+                      type="number"
+                      value={assignedUserId || ''}
+                      onChange={(e) => setAssignedUserId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      placeholder="Enter user ID"
+                      className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                      required
+                    />
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Assignment Comment (Optional)
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Add a comment about this assignment..."
+                    className="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3">
-          {isApproved || isRejected ? (
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-8 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium"
+          >
+            {isReadOnly ? 'Close' : 'Cancel'}
+          </button>
+          {!isReadOnly && (
             <button
-              onClick={onClose}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200"
+              onClick={handleSubmit}
+              disabled={isProcessing || (action === 'reject' && !rejectionReason) || (action === 'assign' && assignmentType === 'manual' && !assignedUserId)}
+              className={`px-8 py-3 rounded-xl font-medium transition-all duration-200 ${
+                action === 'approve'
+                  ? 'bg-green-600 text-white hover:bg-green-700 disabled:bg-green-300 shadow-lg hover:shadow-xl'
+                  : action === 'reject'
+                  ? 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 shadow-lg hover:shadow-xl'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 shadow-lg hover:shadow-xl'
+              }`}
             >
-              Close
+              {isProcessing ? (
+                <div className="flex items-center">
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Processing...
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  {action === 'approve' ? <Check className="h-5 w-5 mr-2" /> : action === 'reject' ? <X className="h-5 w-5 mr-2" /> : <Users className="h-5 w-5 mr-2" />}
+                  {action === 'approve' ? 'Approve Request' : action === 'reject' ? 'Reject Request' : 'Assign Access'}
+                </div>
+              )}
             </button>
-          ) : (
-            <>
-              <button
-                onClick={onClose}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isProcessing || (action === 'reject' && !rejectionReason)}
-                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  action === 'approve'
-                    ? 'bg-green-600 text-white hover:bg-green-700 disabled:bg-green-300'
-                    : 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300'
-                }`}
-              >
-                {isProcessing ? (
-                  <div className="flex items-center">
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </div>
-                ) : (
-                  action === 'approve' ? 'Approve Request' : 'Reject Request'
-                )}
-              </button>
-            </>
           )}
         </div>
       </div>
@@ -368,9 +461,9 @@ export default function ITDepartmentAccessRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const { user } = useAuth();
 
   // Load requests
@@ -379,19 +472,22 @@ export default function ITDepartmentAccessRequestsPage() {
       setIsLoading(true);
       console.log('Loading IT department requests for user:', user?.id);
       
-      // Fetch all requests and filter for IT department relevant ones
+      // Get all requests and filter for IT-related ones
       const allRequests = await accessRequestService.getAllRequests();
       
-      console.log('IT Department API Response:', allRequests);
+      console.log('All requests:', allRequests);
       
-      // Filter to only show requests that have reached IT department stage
-      const itRelevantRequests = allRequests.filter(request => 
+      // Filter to show only IT-related requests (pending review, ready for assignment, etc.)
+      const itRequests = allRequests.filter(request => 
         request.status === 'pending_it_review' || 
         request.status === 'ready_for_assignment' || 
-        request.status === 'granted' || 
+        request.status === 'access_granted' || 
+        request.status === 'it_assigned' || 
         request.status === 'rejected'
       );
-      setRequests(itRelevantRequests);
+      
+      console.log('IT Department requests:', itRequests);
+      setRequests(itRequests);
     } catch (error) {
       console.error('Error loading requests:', error);
     } finally {
@@ -407,12 +503,13 @@ export default function ITDepartmentAccessRequestsPage() {
   useEffect(() => {
     let filtered = requests;
 
-    // Filter by tab
-    if (activeTab !== 'all') {
+    // Filter by status
+    if (filterStatus !== 'all') {
       filtered = filtered.filter(request => {
-        if (activeTab === 'pending') return request.status === 'pending_it_review';
-        if (activeTab === 'approved') return request.status === 'ready_for_assignment' || request.status === 'granted';
-        if (activeTab === 'rejected') return request.status === 'rejected';
+        if (filterStatus === 'pending') return request.status === 'pending_it_review';
+        if (filterStatus === 'ready') return request.status === 'ready_for_assignment';
+        if (filterStatus === 'approved') return request.status === 'access_granted' || request.status === 'it_assigned';
+        if (filterStatus === 'rejected') return request.status === 'rejected';
         return true;
       });
     }
@@ -428,11 +525,23 @@ export default function ITDepartmentAccessRequestsPage() {
     }
 
     setFilteredRequests(filtered);
-  }, [requests, activeTab, searchTerm]);
+  }, [requests, filterStatus, searchTerm]);
 
-  const handleViewRequest = (request: AccessRequest) => {
-    setSelectedRequest(request);
-    setIsModalOpen(true);
+  const handleViewRequest = async (request: AccessRequest) => {
+    try {
+      // Fetch the request with approval history
+      const response = await accessRequestService.getRequestById(request.id);
+      if (response.success) {
+        setSelectedRequest(response.request);
+      } else {
+        setSelectedRequest(request);
+      }
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching request details:', error);
+      setSelectedRequest(request);
+      setIsModalOpen(true);
+    }
   };
 
   const handleApprove = async (requestId: number, comment: string) => {
@@ -442,23 +551,19 @@ export default function ITDepartmentAccessRequestsPage() {
     try {
       await accessRequestService.approveRequest(requestId, {
         approver_id: user.id,
-        comment
+        comment,
+        approver_role: 'IT Support'
       });
       
-      // Update local state
-      setRequests(prev => prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'ready_for_assignment' as const }
-          : req
-      ));
+      // Close the modal first
+      setIsModalOpen(false);
+      setSelectedRequest(null);
       
-      // Refresh the selected request to get updated approval history
-      if (selectedRequest?.id === requestId) {
-        const response = await accessRequestService.getRequestById(requestId);
-        if (response.success) {
-          setSelectedRequest(response.request);
-        }
-      }
+      // Refresh the entire list to get updated data
+      await loadRequests();
+      
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
       
     } catch (error) {
       console.error('Error approving request:', error);
@@ -487,6 +592,8 @@ export default function ITDepartmentAccessRequestsPage() {
       ));
       
       setIsModalOpen(false);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('Error rejecting request:', error);
       alert('Failed to reject request. Please try again.');
@@ -495,45 +602,74 @@ export default function ITDepartmentAccessRequestsPage() {
     }
   };
 
+  const handleAssign = async (requestId: number, assignmentType: 'auto' | 'manual', assignedUserId?: number, comment?: string) => {
+    if (!user?.id) return;
+    
+    setIsProcessing(true);
+    try {
+      await accessRequestService.assignRequest(requestId, {
+        approver_id: user.id,
+        assignment_type: assignmentType,
+        assigned_user_id: assignedUserId,
+        comment
+      });
+      
+      // Close the modal first
+      setIsModalOpen(false);
+      setSelectedRequest(null);
+      
+      // Refresh the entire list to get updated data
+      await loadRequests();
+      
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    } catch (error) {
+      console.error('Error assigning request:', error);
+      alert('Failed to assign request. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch(status) {
       case 'pending_manager_approval':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'pending_hod':
-        return <Shield className="h-4 w-4 text-orange-500" />;
+        return <Shield className="h-4 w-4 text-orange-600" />;
       case 'pending_it_manager':
-        return <Building className="h-4 w-4 text-blue-500" />;
+        return <Building className="h-4 w-4 text-blue-600" />;
       case 'pending_it_review':
-        return <Users className="h-4 w-4 text-purple-500" />;
+        return <Users className="h-4 w-4 text-purple-600" />;
       case 'ready_for_assignment':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'granted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-red-600" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+        return <AlertCircle className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'pending_manager_approval':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'text-yellow-600 bg-yellow-50';
       case 'pending_hod':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
+        return 'text-orange-600 bg-orange-50';
       case 'pending_it_manager':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'text-blue-600 bg-blue-50';
       case 'pending_it_review':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'text-purple-600 bg-purple-50';
       case 'ready_for_assignment':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'text-green-600 bg-green-50';
       case 'granted':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'text-green-600 bg-green-50';
       case 'rejected':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'text-red-600 bg-red-50';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'text-gray-600 bg-gray-50';
     }
   };
 
@@ -549,6 +685,10 @@ export default function ITDepartmentAccessRequestsPage() {
         return 'Pending IT Review';
       case 'ready_for_assignment':
         return 'Ready for Assignment';
+      case 'access_granted':
+        return 'Access Granted';
+      case 'it_assigned':
+        return 'IT Assigned';
       case 'granted':
         return 'Approved';
       case 'rejected':
@@ -559,8 +699,10 @@ export default function ITDepartmentAccessRequestsPage() {
   };
 
   const pendingCount = requests.filter(r => r.status === 'pending_it_review').length;
-  const approvedCount = requests.filter(r => r.status === 'ready_for_assignment' || r.status === 'granted').length;
+  const readyCount = requests.filter(r => r.status === 'ready_for_assignment').length;
+  const approvedCount = requests.filter(r => r.status === 'access_granted' || r.status === 'it_assigned').length;
   const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+  const totalCount = requests.length;
 
   if (isLoading) {
     return (
@@ -574,222 +716,152 @@ export default function ITDepartmentAccessRequestsPage() {
   }
 
   return (
+    <>
+    <NavBar/>
     <div className="min-h-screen bg-[#F0F8F8]">
-      <NavBar/>
       
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="bg-white p-2 rounded-lg shadow-lg border border-gray-200"
-        >
-          <Menu className="h-6 w-6 text-gray-600" />
-        </button>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-in slide-in-from-right">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 mr-2" />
+            <span>Action completed successfully!</span>
+          </div>
+        </div>
       )}
 
-      {/* Mobile Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:hidden ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <SideBar />
-      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex">
+        <Sidebar/>
+        <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">IT Department Access Requests</h1>
+                <p className="text-gray-600">Review and manage access requests for IT department</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={loadRequests}
+                  className="flex items-center px-4 py-2 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
-        <div className="flex">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <SideBar/>
+
+
+        {/* Enhanced Filters Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Enhanced Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by employee, department, or role..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all duration-200"
+                />
+              </div>
+
+                {/* Enhanced Status Filter */}
+                <div className="flex items-center space-x-4">
+                  <label className="text-sm font-medium text-gray-700">Filter by:</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all duration-200"
+                  >
+                    <option value="all">All Requests ({totalCount})</option>
+                    <option value="pending">Pending Review ({pendingCount})</option>
+                    <option value="ready">Ready for Assignment ({readyCount})</option>
+                    <option value="approved">Approved ({approvedCount})</option>
+                    <option value="rejected">Rejected ({rejectedCount})</option>
+                  </select>
+                </div>
+            </div>
+          </div>
+        </div>
+
+          {/* Requests Grid */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Access Requests</h3>
           </div>
           
-          {/* Main Content */}
-          <div className="flex-1 w-full">
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Requests</h1>
-              <p className="text-gray-600">Review and approve access requests for IT department</p>
+          {filteredRequests.length === 0 ? (
+              <div className="p-12 text-center">
+                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No requests found</h3>
+              <p className="text-gray-500">There are no access requests matching your current filters.</p>
             </div>
-
-            {/* Simple Stats */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Users className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-gray-500">Total Requests</p>
-                      <p className="text-xl font-semibold text-gray-900">{requests.length}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="p-2 bg-yellow-100 rounded-lg">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-gray-500">Pending Review</p>
-                      <p className="text-xl font-semibold text-gray-900">{pendingCount}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-gray-500">Approved</p>
-                      <p className="text-xl font-semibold text-gray-900">{approvedCount}</p>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={loadRequests}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search requests..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                  {[
-                    { id: 'all', label: 'All', count: requests.length },
-                    { id: 'pending', label: 'Pending', count: pendingCount },
-                    { id: 'approved', label: 'Approved', count: approvedCount },
-                    { id: 'rejected', label: 'Rejected', count: rejectedCount }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      {tab.label}
-                      <span className="ml-1 bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full text-xs">
-                        {tab.count}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Requests Table */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Access Requests</h3>
-              </div>
-              
-              {filteredRequests.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
-                  <p className="text-gray-500">There are no access requests matching your current filters.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Employee
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Department & Role
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Submitted
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredRequests.map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="flex items-center">
-                                <User className="h-4 w-4 text-gray-400 mr-2" />
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">{request.user_name}</p>
-                                  <p className="text-sm text-gray-500">{request.user_email}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center">
-                                <Building className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-900">{request.department_name}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Shield className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-900">{request.role_name}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                              {getStatusText(request.status)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-900">
-                                {new Date(request.submitted_at).toLocaleDateString()}
+          ) : (
+              <div className="divide-y divide-gray-100">
+                  {filteredRequests.map((request) => (
+                  <div key={request.id} className="p-6 hover:bg-gray-50 transition-all duration-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <User className="h-6 w-6 text-white" />
+                          </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="text-lg font-semibold text-gray-900">{request.user_name}</h4>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                #{request.id}
                               </span>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
+                              {getStatusIcon(request.status)}
+                              <span className="ml-1">{getStatusText(request.status)}</span>
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                              <span className="font-medium text-gray-600">Email:</span>
+                              <span className="ml-2 text-gray-900">{request.user_email}</span>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button 
-                              onClick={() => handleViewRequest(request)}
-                              className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                            <div>
+                              <span className="font-medium text-gray-600">Department:</span>
+                              <span className="ml-2 text-gray-900">{request.department_name}</span>
+                          </div>
+                          <div>
+                              <span className="font-medium text-gray-600">Role:</span>
+                              <span className="ml-2 text-gray-900">{request.role_name}</span>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <span className="font-medium text-gray-600">Justification:</span>
+                            <p className="mt-1 text-gray-700 leading-relaxed">{request.justification}</p>
+                        </div>
+                          <div className="mt-3 text-xs text-gray-500">
+                            Submitted: {new Date(request.submitted_at).toLocaleDateString()} at {new Date(request.submitted_at).toLocaleTimeString()}
+                        </div>
+                        </div>
+                        </div>
+                      <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => handleViewRequest(request)}
+                          className="flex items-center px-4 py-2 text-sm font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-all duration-200"
+                          >
+                          <Eye className="h-4 w-4 mr-2" />
+                            Review
+                          </button>
+                        </div>
+                    </div>
+                  </div>
+                  ))}
             </div>
+          )}
           </div>
         </div>
       </div>
@@ -802,9 +874,18 @@ export default function ITDepartmentAccessRequestsPage() {
           onClose={() => setIsModalOpen(false)}
           onApprove={handleApprove}
           onReject={handleReject}
+          onAssign={handleAssign}
           isProcessing={isProcessing}
         />
       )}
+                       
+      </div>
     </div>
+
+      
+
+      
+    </div>
+    </>
   );
 }

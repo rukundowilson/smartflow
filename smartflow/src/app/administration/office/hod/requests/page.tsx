@@ -122,10 +122,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                 Review and make decision on access request
               </p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <XCircle className="w-6 h-6" />
-            </button>
-          </div>
+          </button>
+        </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Request Details */}
@@ -143,17 +143,17 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">Request Information</h4>
                 <div className="space-y-3">
-                  <div>
+              <div>
                     <p className="text-xs font-medium text-gray-500">Employee</p>
                     <p className="text-sm text-gray-900">{request.user_name}</p>
                     <p className="text-xs text-gray-600">{request.user_email}</p>
-                  </div>
-                  <div>
+              </div>
+              <div>
                     <p className="text-xs font-medium text-gray-500">Department & Role</p>
                     <p className="text-sm text-gray-900">{request.department_name}</p>
                     <p className="text-xs text-gray-600">{request.role_name}</p>
-                  </div>
-                  <div>
+              </div>
+              <div>
                     <p className="text-xs font-medium text-gray-500">Access Period</p>
                     <p className="text-sm text-gray-900">
                       {new Date(request.start_date).toLocaleDateString()} - {request.end_date ? new Date(request.end_date).toLocaleDateString() : 'Permanent'}
@@ -161,12 +161,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                     <p className="text-xs text-gray-600">
                       {request.is_permanent ? 'Permanent access' : 'Temporary access'}
                     </p>
-                  </div>
-                  <div>
+              </div>
+              <div>
                     <p className="text-xs font-medium text-gray-500">Status</p>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
                       {getStatusText(request.status)}
-                    </span>
+                </span>
                   </div>
                 </div>
               </div>
@@ -177,12 +177,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                 <p className="text-sm text-gray-900 bg-white p-3 rounded border">
                   {request.justification || 'No justification provided'}
                 </p>
-              </div>
             </div>
+          </div>
 
             {/* Right Column - Approval History & Decision */}
             <div className="space-y-6">
-              {/* Approval History */}
+          {/* Approval History */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">Approval History</h4>
                 {isLoadingHistory ? (
@@ -191,7 +191,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                     <span className="text-sm text-gray-500 ml-2">Loading history...</span>
                   </div>
                 ) : approvalHistory.length > 0 ? (
-                  <div className="space-y-3">
+              <div className="space-y-3">
                     {approvalHistory.map((approval, index) => (
                       <div key={approval.id} className="bg-white rounded border p-3">
                         <div className="flex items-center justify-between mb-2">
@@ -227,7 +227,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                 ) : (
                   <div className="text-center py-4">
                     <p className="text-sm text-gray-500">No approval history available</p>
-                  </div>
+            </div>
                 )}
               </div>
 
@@ -258,55 +258,55 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                     >
                       Reject
                     </button>
-                  </div>
+            </div>
 
-                  {/* Rejection Reason */}
+          {/* Rejection Reason */}
                   {action === 'reject' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                         Rejection Reason (Required)
-                      </label>
+              </label>
                       <input
                         type="text"
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                         placeholder="Enter rejection reason..."
-                      />
-                    </div>
-                  )}
+              />
+            </div>
+          )}
 
                   {/* Comment */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                       Your Comment (Optional)
-                    </label>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      rows={3}
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       placeholder="Add your comment about this request..."
-                    />
+              />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+        </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-3 mt-6 pt-4 border-t border-gray-200">
-            <button
-              onClick={onClose}
+          <button
+            onClick={onClose}
               className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+          >
               Cancel
-            </button>
+          </button>
             <button
               onClick={handleSubmit}
               disabled={isProcessing || (action === 'reject' && !rejectionReason.trim())}
               className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium ${
-                action === 'approve'
+                action === 'approve' 
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-red-600 text-white hover:bg-red-700'
               } disabled:opacity-50`}
@@ -349,7 +349,7 @@ export default function HODRequestsPage() {
 
   useEffect(() => {
     if (user?.id) {
-      loadRequests();
+    loadRequests();
     }
   }, [user?.id]);
 
@@ -472,7 +472,7 @@ export default function HODRequestsPage() {
     <HODLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+            <div>
           <h1 className="text-2xl font-bold text-gray-900">Access Requests</h1>
           <p className="text-gray-600">Review and manage access requests</p>
         </div>
@@ -480,7 +480,7 @@ export default function HODRequestsPage() {
         {/* Clean Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center">
+              <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Shield className="h-5 w-5 text-blue-600" />
               </div>
@@ -492,7 +492,7 @@ export default function HODRequestsPage() {
           </div>
 
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center">
+              <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
                 <Clock className="h-5 w-5 text-orange-600" />
               </div>
@@ -504,7 +504,7 @@ export default function HODRequestsPage() {
           </div>
 
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center">
+              <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
@@ -516,7 +516,7 @@ export default function HODRequestsPage() {
           </div>
 
           <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center">
+              <div className="flex items-center">
               <div className="p-2 bg-red-100 rounded-lg">
                 <XCircle className="h-5 w-5 text-red-600" />
               </div>
@@ -542,26 +542,26 @@ export default function HODRequestsPage() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-            </div>
-            
+              </div>
+
             <div className="flex bg-gray-100 p-1 rounded-lg">
-              {[
+                {[
                 { id: 'all', label: 'All', count: requests.length },
                 { id: 'pending', label: 'Pending', count: pendingCount },
                 { id: 'approved', label: 'Approved', count: approvedCount },
                 { id: 'rejected', label: 'Rejected', count: rejectedCount }
               ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
+                        activeTab === tab.id
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
                   {tab.label} ({tab.count})
-                </button>
+                    </button>
               ))}
             </div>
           </div>
@@ -630,24 +630,24 @@ export default function HODRequestsPage() {
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
                           {getStatusText(request.status)}
-                        </span>
+                            </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
-                            {new Date(request.submitted_at).toLocaleDateString()}
+                          {new Date(request.submitted_at).toLocaleDateString()}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => handleViewRequest(request)}
+                          <button 
+                            onClick={() => handleViewRequest(request)}
                           className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
                           View
-                        </button>
+                          </button>
                       </td>
                     </tr>
                   ))}

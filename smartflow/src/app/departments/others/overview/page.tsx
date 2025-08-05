@@ -9,6 +9,7 @@ import {
   Laptop,
   Truck,
   RefreshCw,
+  Key,
 } from 'lucide-react';
 import {useRouter} from 'next/navigation';
 import NavBar from "../components/navbar";
@@ -17,6 +18,7 @@ import { useAuth } from '@/app/contexts/auth-context';
 import Modal from '@/app/components/ticketModal';
 import { fetchTicketsByUserId } from '@/app/services/ticketService';
 import { getUserItemRequisitions, ItemRequisition } from '@/app/services/itemRequisitionService';
+import accessRequestService, { AccessRequest } from '@/app/services/accessRequestService';
 import SpinLoading from '@/app/administration/superadmin/components/loading';
 
 
@@ -39,7 +41,9 @@ export default function OverView(){
     const [isLoading, setIsLoading] = useState<boolean>();
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
+    const [myAccessRequests, setMyAccessRequests] = useState<AccessRequest[]>([]);
     const [requestsLoading, setRequestsLoading] = useState<boolean>(false);
+    const [accessRequestsLoading, setAccessRequestsLoading] = useState<boolean>(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
     const router = useRouter();
 
@@ -93,15 +97,18 @@ export default function OverView(){
       try {
         setIsLoading(true);
         setRequestsLoading(true);
+        setAccessRequestsLoading(true);
         
-        // Fetch both tickets and requests concurrently
-        const [ticketsResponse, requestsResponse] = await Promise.all([
+        // Fetch tickets, requests, and access requests concurrently
+        const [ticketsResponse, requestsResponse, accessRequestsResponse] = await Promise.all([
           fetchTicketsByUserId(user.id),
-          getUserItemRequisitions(user.id)
+          getUserItemRequisitions(user.id),
+          accessRequestService.getUserRequests(user.id)
         ]);
         
         setMyTickets(ticketsResponse.tickets);
         setMyRequests(requestsResponse.requisitions);
+        setMyAccessRequests(accessRequestsResponse);
         
         // Show success message briefly
         setShowSuccessMessage(true);
@@ -111,6 +118,7 @@ export default function OverView(){
       } finally {
         setIsLoading(false);
         setRequestsLoading(false);
+        setAccessRequestsLoading(false);
       }
     };
 
@@ -124,6 +132,19 @@ export default function OverView(){
             console.error('Error fetching requests:', err);
         } finally {
             setRequestsLoading(false);
+        }
+    };
+
+    const fetchUserAccessRequests = async () => {
+        if (!user?.id) return;
+        try {
+            setAccessRequestsLoading(true);
+            const response = await accessRequestService.getUserRequests(user.id);
+            setMyAccessRequests(response);
+        } catch (err) {
+            console.error('Error fetching access requests:', err);
+        } finally {
+            setAccessRequestsLoading(false);
         }
     };
 
@@ -145,6 +166,7 @@ export default function OverView(){
         };
         getTickets();
         fetchUserRequests();
+        fetchUserAccessRequests();
     },[user?.id])
     const go = function(){
         router.push("/departments/others/my-tickets");
@@ -154,9 +176,12 @@ export default function OverView(){
     // Compute stats dynamically from tickets
     const tickets = Array.isArray(myTickets) ? myTickets : [];
     const requests = Array.isArray(myRequests) ? myRequests : [];
+    const accessRequests = Array.isArray(myAccessRequests) ? myAccessRequests : [];
     const activeTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress');
     const highPriorityTickets = tickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
     const deliveredItems = requests.filter(r => r.status === 'delivered');
+    const pendingAccessRequests = accessRequests.filter(r => r.status.includes('pending'));
+    const grantedAccessRequests = accessRequests.filter(r => r.status === 'granted');
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -187,15 +212,15 @@ export default function OverView(){
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.full_name}!</h2>
-                                        <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests and tickets.</p>
+                                        <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests, tickets, and access requests.</p>
                                     </div>
                                     <button 
                                         onClick={refreshData}
-                                        disabled={isLoading || requestsLoading}
+                                        disabled={isLoading || requestsLoading || accessRequestsLoading}
                                         className="p-2 text-sky-600 hover:text-sky-700 hover:bg-sky-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Refresh data"
                                     >
-                                        <RefreshCw className={`h-5 w-5 ${isLoading || requestsLoading ? 'animate-spin' : ''}`} />
+                                        <RefreshCw className={`h-5 w-5 ${isLoading || requestsLoading || accessRequestsLoading ? 'animate-spin' : ''}`} />
                                     </button>
                                 </div>
                             </div>
@@ -217,18 +242,18 @@ export default function OverView(){
   subtitle={requests.find(r => r.status === 'pending')?.item_name || '—'}
 />
 <StatCard
+  title="Access Requests"
+  value={pendingAccessRequests.length}
+  icon={Key}
+  color="text-purple-600"
+  subtitle={`${grantedAccessRequests.length} granted`}
+/>
+<StatCard
   title="Delivered Items"
   value={deliveredItems.length}
   icon={Truck}
   color="text-green-600"
   subtitle="Items received"
-/>
-<StatCard
-  title="Approved Requests"
-  value={requests.filter(r => r.status === 'approved').length}
-  icon={Laptop}
-  color="text-blue-600"
-  subtitle="This quarter"
 />
 
                             </div>
@@ -259,6 +284,20 @@ export default function OverView(){
                                             <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                                                 <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request IT Equipment</h4>
                                                 <p className="text-xs sm:text-sm text-gray-500">Order laptops, accessories, software</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div 
+                                        onClick={() => router.push('/departments/others/access-request')}
+                                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer"
+                                    >
+                                        <div className="flex items-center">
+                                            <div className="bg-purple-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                                                <Key className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+                                            </div>
+                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request Role Access</h4>
+                                                <p className="text-xs sm:text-sm text-gray-500">Request department roles and permissions</p>
                                             </div>
                                         </div>
                                     </div>
@@ -327,6 +366,35 @@ export default function OverView(){
                                         </button>
                                     </div>
                                 </div>
+
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                        <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Access Requests</h3>
+                                    </div>
+                                    <div className="divide-y divide-gray-100">
+                                        {accessRequests.slice(0, 3).map(request => (
+                                            <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.role_name}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">{request.department_name} • {new Date(request.submitted_at).toLocaleDateString()}</p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(request.status)}`}>
+                                                        {request.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                        <button 
+                                            onClick={() => router.push('/departments/others/access-request')}
+                                            className="text-sky-600 hover:text-sky-700 text-sm font-medium"
+                                        >
+                                            View all access requests →
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         )}
@@ -374,7 +442,7 @@ export default function OverView(){
 
                                 {/* Loading Recent Activity */}
                                 <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                                    {[...Array(2)].map((_, i) => (
+                                    {[...Array(3)].map((_, i) => (
                                         <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-100 animate-pulse">
                                             <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
                                                 <div className="h-5 bg-gray-200 rounded w-32"></div>

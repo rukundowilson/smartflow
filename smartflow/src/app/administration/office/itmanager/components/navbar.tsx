@@ -8,33 +8,29 @@ import {
   LogOut,
   Menu,
   X,
-  Monitor,
-  UserPlus,
-  Key,
   Users,
+  Ticket,
+  Key,
+  UserMinus,
+  Package,
+  Monitor,
   Shield,
   Building2,
   ChevronDown,
   User,
-  CheckCircle,
-  Clock,
-  XCircle,
-  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import userRoleService from "@/app/services/userRoleService";
-import LineManagerSidebar from "./LineManagerSidebar";
 
-interface HRNavbarProps {
-  title?: string;
-  subtitle?: string;
-}
+const modules = [
+    { id: 'overview', name: 'Overview', icon: Monitor },
+    { id: 'tickets', name: 'IT Tickets', icon: Ticket },
+    { id: 'access-requests', name: 'Access Requests', icon: Key },
+    { id: 'revocation', name: 'Access Revocation', icon: UserMinus },
+    { id: 'requisition', name: 'Item Requisition', icon: Package },
+  ];
 
-const LineManagerNavBar: React.FC<HRNavbarProps> = ({ 
-  title = "smartflow", 
-  subtitle = "Line manager" 
-}) => {
-  const { user, logout } = useAuth();
+export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
@@ -42,14 +38,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
   const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'Line Manager Dashboard' },
-  { id: 'approvals', name: 'Pending Approvals', icon: Clock, description: 'Review access requests' },
-  { id: 'approved', name: 'Approved Requests', icon: CheckCircle, description: 'View approved requests' },
-  { id: 'rejected', name: 'Rejected Requests', icon: XCircle, description: 'View rejected requests' },
-  { id: 'team', name: 'My Team', icon: Users, description: 'Manage team members' },
-  { id: 'reports', name: 'Reports', icon: TrendingUp, description: 'Analytics & insights' },
-];
+  const { user, token, isAuthenticated, logout } = useAuth();
 
   // Fetch user role information
   useEffect(() => {
@@ -68,13 +57,11 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/hr') {
-      setActiveModule('overview');
     }
-  }, [pathname, modules]);
+  }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
+    const newPath = `/departments/it-department/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -114,10 +101,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-                <p className="text-xs text-gray-500">{user?.department} {subtitle}</p>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -276,6 +260,4 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
       </header>
     </>
   );
-};
-
-export default LineManagerNavBar; 
+}
