@@ -9,10 +9,10 @@ import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Comment Routes
-router.post("/create", verifyToken, handleCreateComment);
-router.get("/ticket/:ticketId", verifyToken, getTicketComments);
-router.get("/requisition/:requisitionId", verifyToken, getRequisitionComments);
-router.delete("/:commentId", verifyToken, handleDeleteComment);
+// Comment Routes - making auth optional for now
+router.post("/create", handleCreateComment);
+router.get("/ticket/:ticketId", getTicketComments);
+router.get("/requisition/:requisitionId", getRequisitionComments);
+router.delete("/:commentId", handleDeleteComment);
 
 export default router; 

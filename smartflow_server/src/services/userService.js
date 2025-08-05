@@ -30,16 +30,29 @@ async function login(data) {
 
     // 4. Get user's department and role information from user_department_roles table
     const [userRoles] = await db.query(
-      `SELECT d.name as department_name, r.name as role_name, udr.status as assignment_status
+      `SELECT d.name as department_name, r.name as role_name, udr.status as assignment_status,
+              udr.department_id, udr.role_id, d.id as dept_id, r.id as role_id
        FROM user_department_roles udr
        INNER JOIN departments d ON udr.department_id = d.id
        INNER JOIN roles r ON udr.role_id = r.id
-       WHERE udr.user_id = ? AND udr.status = 'active'`,
+       WHERE udr.user_id = ? AND udr.status = 'active'
+       ORDER BY udr.assigned_at DESC`,
       [user.id]
     );
 
-    const departmentName = userRoles.length > 0 ? userRoles[0].department_name : 'Unknown Department';
-    const roleName = userRoles.length > 0 ? userRoles[0].role_name : 'No Role Assigned';
+    // Get all roles for the user
+    const roles = userRoles.map(role => ({
+      department_name: role.department_name,
+      role_name: role.role_name,
+      department_id: role.department_id,
+      role_id: role.role_id,
+      dept_id: role.dept_id
+    }));
+
+    // Default to first role if available, otherwise use fallbacks
+    const primaryRole = userRoles.length > 0 ? userRoles[0] : null;
+    const departmentName = primaryRole ? primaryRole.department_name : 'Unknown Department';
+    const roleName = primaryRole ? primaryRole.role_name : 'No Role Assigned';
 
     // 5. Return user data (without password)
     return {
@@ -51,7 +64,8 @@ async function login(data) {
         email: user.email,
         department: departmentName,
         role: roleName,
-        status: user.status
+        status: user.status,
+        roles: roles // Add all roles to user object
       }
     };
   } catch (error) {
@@ -92,42 +106,48 @@ async function register(data) {
 
     try {
       // 5. Insert user into users table
-    const [result] = await db.query(
-      'INSERT INTO users (full_name, email, password_hash, status) VALUES (?, ?, ?, ?)',
-      [full_name, email, passwordHash, 'pending']
-    );
+      const [result] = await db.query(
+        'INSERT INTO users (full_name, email, password_hash, status) VALUES (?, ?, ?, ?)',
+        [full_name, email, passwordHash, 'pending']
+      );
 
-    const userId = result.insertId;
-    console.log(`✅ New user created with ID: ${userId}`);
+      const userId = result.insertId;
+      console.log(`✅ New user created with ID: ${userId}`);
 
-      // 6. Create user_department_roles relationship with the chosen department
-      // We'll assign a default role (you can modify this based on your needs)
-      const [defaultRole] = await db.query('SELECT id FROM roles WHERE name = ?', ['User']);
-      const roleId = defaultRole.length > 0 ? defaultRole[0].id : 3; // Default to role ID 3 (User) if 'User' role doesn't exist
+      // 6. Assign generic 'User' role to all registered users
+      // HR will assign the appropriate department-specific role after approval
+      const [userRole] = await db.query('SELECT id FROM roles WHERE name = ?', ['User']);
+      
+      if (userRole.length === 0) {
+        throw new Error('Default "User" role not found in the system. Please contact system administrator.');
+      }
+      
+      const roleId = userRole[0].id;
 
-    await db.query(
+      await db.query(
         'INSERT INTO user_department_roles (user_id, department_id, role_id, assigned_by, status) VALUES (?, ?, ?, ?, ?)',
         [userId, department_id, roleId, 1, 'active'] // assigned_by = 1 (admin), status = 'active'
-    );
+      );
 
-      console.log(`✅ User ${userId} registered successfully and assigned to department: ${departmentName}`);
+      console.log(`✅ User ${userId} registered successfully and assigned to department: ${departmentName} with default 'User' role`);
       console.log(`🔗 User-department-role relationship created for user ID: ${userId}`);
+      console.log(`📝 Note: HR will assign appropriate role after approval`);
 
-    // 7. Create registration application
-    await db.query(
-      'INSERT INTO registration_applications (user_id, submitted_by) VALUES (?, ?)',
-      [userId, full_name]
-    );
-    console.log(`📄 Registration application created for user ID: ${userId}`);
+      // 7. Create registration application
+      await db.query(
+        'INSERT INTO registration_applications (user_id, submitted_by) VALUES (?, ?)',
+        [userId, full_name]
+      );
+      console.log(`📄 Registration application created for user ID: ${userId}`);
 
       // Commit transaction
       await db.query('COMMIT');
 
-    return {
-      success: true,
-      message: 'Registration successful. Awaiting HR approval.',
-      user: { id: userId, full_name, email, department: departmentName, status: 'pending' }
-    };
+      return {
+        success: true,
+        message: 'Registration successful. Awaiting HR approval.',
+        user: { id: userId, full_name, email, department: departmentName, status: 'pending' }
+      };
     } catch (error) {
       // Rollback on error
       await db.query('ROLLBACK');
