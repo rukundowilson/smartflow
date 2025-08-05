@@ -177,22 +177,32 @@ export async function updateTicketStatus(ticketId, status, reviewedBy = null) {
 
 export async function getITUsers() {
   try {
-    // Try a more flexible query
-    const [users] = await db.query(
-      "SELECT id, full_name, email FROM users WHERE (LOWER(department) = 'it' OR LOWER(department) = 'it department' OR LOWER(department) = 'information technology') AND status = 'active'"
-    );
+    console.log("🔍 getITUsers: Starting query");
     
-    // If no IT users found, return all active users as fallback
-    if (users.length === 0) {
-      const [fallbackUsers] = await db.query(
-        "SELECT id, full_name, email FROM users WHERE status = 'active' LIMIT 10"
-      );
-      return fallbackUsers;
-    }
+    // Query IT users by joining with user_department_roles and departments tables
+    // Handle various spellings and typos in department names
+    const [users] = await db.query(`
+      SELECT DISTINCT u.id, u.full_name, u.email 
+      FROM users u
+      JOIN user_department_roles udr ON u.id = udr.user_id
+      JOIN departments d ON udr.department_id = d.id
+      WHERE (
+        LOWER(d.name) LIKE '%it%' OR 
+        LOWER(d.name) LIKE '%information%' OR 
+        LOWER(d.name) LIKE '%technology%' OR
+        LOWER(d.name) LIKE '%tech%'
+      )
+      AND u.status = 'active'
+      AND udr.status = 'active'
+    `);
     
+    console.log("🔍 getITUsers: Query result:", users);
+    
+    // Only return IT department users, no fallback to all users
+    console.log(`🔍 getITUsers: Found ${users.length} IT users`);
     return users;
   } catch (error) {
-    console.error("Error fetching IT users:", error);
+    console.error("🔍 getITUsers: Error fetching IT users:", error);
     throw new Error("Failed to fetch IT users");
   }
 }

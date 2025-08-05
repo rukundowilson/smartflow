@@ -1,27 +1,14 @@
 import express from 'express';
-import {
-  handleGetAllDepartments,
-  handleGetDepartmentById,
-  handleCreateDepartment,
-  handleUpdateDepartment,
-  handleDeleteDepartment
-} from '../controllers/departmentController.js';
+import DepartmentController from '../controllers/departmentController.js';
 
 const router = express.Router();
 
-// GET /api/departments - Get all departments
-router.get('/', handleGetAllDepartments);
-
-// GET /api/departments/:departmentId - Get department by ID
-router.get('/:departmentId', handleGetDepartmentById);
-
-// POST /api/departments - Create a new department
-router.post('/', handleCreateDepartment);
-
-// PUT /api/departments/:departmentId - Update a department
-router.put('/:departmentId', handleUpdateDepartment);
-
-// DELETE /api/departments/:departmentId - Delete a department
-router.delete('/:departmentId', handleDeleteDepartment);
+// Department Routes
+router.get('/', DepartmentController.getAllDepartments.bind(DepartmentController));
+router.get('/:id', DepartmentController.getDepartmentById.bind(DepartmentController));
+router.post('/', DepartmentController.createDepartment.bind(DepartmentController));
+router.put('/:id', DepartmentController.updateDepartment.bind(DepartmentController));
+router.delete('/:id', DepartmentController.deleteDepartment.bind(DepartmentController));
+router.get('/:departmentId/roles', DepartmentController.getDepartmentRoles.bind(DepartmentController));
 
 export default router; 

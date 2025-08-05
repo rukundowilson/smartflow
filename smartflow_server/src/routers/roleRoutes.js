@@ -8,6 +8,7 @@ const router = express.Router();
 router.get('/assignments/all', roleController.getAllRoleAssignments);
 router.get('/assignments/user/:userId', roleController.getUserRoleAssignments);
 router.post('/assignments/assign', roleController.assignRoleToUser);
+router.post('/assignments/system', roleController.assignSystemRoleToUser);
 router.put('/assignments/:userId/:departmentId/:roleId/status', roleController.updateRoleAssignmentStatus);
 router.delete('/assignments/:userId/:departmentId/:roleId', roleController.removeRoleAssignment);
 

@@ -510,6 +510,72 @@ class RoleController {
       });
     }
   }
+
+  // Assign system-specific role to user (used when access requests are approved)
+  async assignSystemRoleToUser(req, res) {
+    try {
+      const { userId, systemId, roleId, assignedBy } = req.body;
+      
+      // Validate required fields
+      if (!userId || !systemId || !roleId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID, System ID, and Role ID are required'
+        });
+      }
+      
+      // Check if assignment already exists
+      const [existingAssignment] = await db.query(`
+        SELECT user_id FROM user_department_roles 
+        WHERE user_id = ? AND department_id = ? AND role_id = ?
+      `, [userId, systemId, roleId]);
+      
+      if (existingAssignment.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'System role assignment already exists for this user'
+        });
+      }
+      
+      // Create role assignment (using system_id as department_id for system-specific roles)
+      const [result] = await db.query(`
+        INSERT INTO user_department_roles (user_id, department_id, role_id, assigned_by, status)
+        VALUES (?, ?, ?, ?, 'active')
+      `, [userId, systemId, roleId, assignedBy]);
+      
+      // Get the created assignment with details
+      const [assignment] = await db.query(`
+        SELECT 
+          udr.user_id,
+          udr.department_id as system_id,
+          udr.role_id,
+          udr.assigned_at,
+          udr.assigned_by,
+          udr.status,
+          s.name as system_name,
+          s.description as system_description,
+          r.name as role_name,
+          r.description as role_description
+        FROM user_department_roles udr
+        JOIN systems s ON udr.department_id = s.id
+        JOIN roles r ON udr.role_id = r.id
+        WHERE udr.user_id = ? AND udr.department_id = ? AND udr.role_id = ?
+      `, [userId, systemId, roleId]);
+      
+      res.status(201).json({
+        success: true,
+        message: 'System role assigned successfully',
+        data: assignment[0]
+      });
+    } catch (error) {
+      console.error('Error assigning system role:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to assign system role',
+        error: error.message
+      });
+    }
+  }
 }
 
 export default new RoleController(); 
