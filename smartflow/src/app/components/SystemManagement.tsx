@@ -13,9 +13,10 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  FileText,
 } from 'lucide-react';
-import systemService, { System } from '@/app/services/systemService';
+import systemService, { System, AuditLogEntry } from '@/app/services/systemService';
 
 interface CreateSystemData {
   name: string;
@@ -36,8 +37,11 @@ const SystemManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
   const [selectedSystem, setSelectedSystem] = useState<System | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
 
   // Form states
   const [createForm, setCreateForm] = useState<CreateSystemData>({
@@ -77,6 +81,20 @@ const SystemManagement: React.FC = () => {
     }
   };
 
+  const openLogsModal = async (system: System) => {
+    setSelectedSystem(system);
+    setShowLogsModal(true);
+    setIsLogsLoading(true);
+    try {
+      const resp = await systemService.getSystemLogs(system.id);
+      if (resp.success) setLogs(resp.logs);
+    } catch (e) {
+      console.error('Error loading logs', e);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
+
   const handleCreateSystem = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,10 +112,13 @@ const SystemManagement: React.FC = () => {
         setCreateForm({ name: '', description: '', createDefaultRoles: true });
         setShowCreateModal(false);
         fetchSystems();
+      } else {
+        alert(response.message || 'Failed to create system');
       }
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to create system. Please try again.';
       console.error('Error creating system:', error);
-      alert('Failed to create system. Please try again.');
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -121,10 +142,13 @@ const SystemManagement: React.FC = () => {
         setShowEditModal(false);
         setSelectedSystem(null);
         fetchSystems();
+      } else {
+        alert(response.message || 'Failed to update system');
       }
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to update system. Please try again.';
       console.error('Error updating system:', error);
-      alert('Failed to update system. Please try again.');
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,10 +166,13 @@ const SystemManagement: React.FC = () => {
         setShowDeleteModal(false);
         setSelectedSystem(null);
         fetchSystems();
+      } else {
+        alert(response.message || 'Failed to delete system');
       }
-    } catch (error) {
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to delete system. Please try again.';
       console.error('Error deleting system:', error);
-      alert('Failed to delete system. Please try again.');
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -167,13 +194,13 @@ const SystemManagement: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString();
+    return date.toLocaleString();
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
       </div>
     );
   }
@@ -184,11 +211,11 @@ const SystemManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">System Management</h2>
-          <p className="text-sm text-gray-600 mt-1">Manage systems and their configurations</p>
+          <p className="text-sm text-gray-600 mt-1">Create and manage systems. All changes are logged for audit.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create System
@@ -205,7 +232,7 @@ const SystemManagement: React.FC = () => {
               placeholder="Search systems..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full"
             />
           </div>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -234,7 +261,7 @@ const SystemManagement: React.FC = () => {
                   <tr key={system.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-sky-600 rounded-lg flex items-center justify-center mr-3">
                           <Shield className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -247,6 +274,13 @@ const SystemManagement: React.FC = () => {
                     <td className="px-6 py-4 text-sm text-gray-500">{formatDate(system.created_at)}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        <button 
+                          onClick={() => openLogsModal(system)}
+                          className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                          title="View Logs"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </button>
                         <button 
                           onClick={() => openEditModal(system)}
                           className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
@@ -280,7 +314,7 @@ const SystemManagement: React.FC = () => {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-600 rounded-lg flex items-center justify-center mr-3">
                       <Shield className="h-5 w-5 text-white" />
                     </div>
                     <div>
@@ -289,6 +323,13 @@ const SystemManagement: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => openLogsModal(system)}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                      title="View Logs"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
                     <button 
                       onClick={() => openEditModal(system)}
                       className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
@@ -326,7 +367,7 @@ const SystemManagement: React.FC = () => {
             {!searchTerm && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create First System
@@ -357,7 +398,7 @@ const SystemManagement: React.FC = () => {
                   id="name"
                   value={createForm.name}
                   onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                   placeholder="Enter system name"
                   required
                 />
@@ -372,7 +413,7 @@ const SystemManagement: React.FC = () => {
                   value={createForm.description}
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                   placeholder="Enter system description"
                   required
                 />
@@ -384,7 +425,7 @@ const SystemManagement: React.FC = () => {
                   id="createDefaultRoles"
                   checked={createForm.createDefaultRoles}
                   onChange={(e) => setCreateForm({ ...createForm, createDefaultRoles: e.target.checked })}
-                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-sky-600 focus:ring-sky-500 border-gray-300 rounded"
                 />
                 <label htmlFor="createDefaultRoles" className="ml-2 text-sm text-gray-700">
                   Create default roles for this system
@@ -396,14 +437,14 @@ const SystemManagement: React.FC = () => {
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 transition-colors disabled:opacity-50 flex items-center"
+                  className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-lg hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 transition-colors disabled:opacity-50 flex items-center"
                 >
                   {isSubmitting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -439,7 +480,7 @@ const SystemManagement: React.FC = () => {
                   id="editName"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                   placeholder="Enter system name"
                   required
                 />
@@ -454,7 +495,7 @@ const SystemManagement: React.FC = () => {
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                   placeholder="Enter system description"
                   required
                 />
@@ -465,7 +506,7 @@ const SystemManagement: React.FC = () => {
                   type="button"
                   onClick={() => setShowEditModal(false)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -530,6 +571,54 @@ const SystemManagement: React.FC = () => {
                   Delete System
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logs Modal */}
+      {showLogsModal && selectedSystem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Audit Logs - {selectedSystem.name}</h2>
+              <button onClick={() => setShowLogsModal(false)} className="text-gray-400 hover:text-gray-600">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              {isLogsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="text-sm text-gray-600">No logs found for this system.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actor</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {logs.map((log) => (
+                        <tr key={log.id}>
+                          <td className="px-4 py-2 text-xs text-gray-600">{formatDate(log.created_at)}</td>
+                          <td className="px-4 py-2 text-xs font-medium text-gray-900">{log.action}</td>
+                          <td className="px-4 py-2 text-xs text-gray-700">{log.actor_user_id ?? '-'}</td>
+                          <td className="px-4 py-2 text-xs text-gray-700">
+                            <pre className="whitespace-pre-wrap break-words text-[11px] bg-gray-50 p-2 rounded border border-gray-100 max-h-40 overflow-auto">{JSON.stringify(log.details, null, 2)}</pre>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>

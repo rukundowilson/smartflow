@@ -37,7 +37,7 @@ export default function OverView(){
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [modalType, setModalType] = useState('');
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
-    const {user} = useAuth();
+    const {user, selectedRole} = useAuth();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
@@ -182,6 +182,11 @@ export default function OverView(){
     const deliveredItems = requests.filter(r => r.status === 'delivered');
     const pendingAccessRequests = accessRequests.filter(r => r.status.includes('pending'));
     const grantedAccessRequests = accessRequests.filter(r => r.status === 'granted');
+
+    // Get current role information
+    const currentRole = selectedRole || user;
+    const roleName = selectedRole?.role_name || user?.role || 'User';
+    const departmentName = selectedRole?.department_name || user?.department || 'Department';
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -212,6 +217,9 @@ export default function OverView(){
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.full_name}!</h2>
+                                        <p className="text-sm sm:text-base text-gray-600 mb-2">
+                                          Currently active as: <span className="font-semibold text-sky-700">{roleName}</span> in <span className="font-semibold text-sky-700">{departmentName}</span>
+                                        </p>
                                         <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests, tickets, and access requests.</p>
                                     </div>
                                     <button 

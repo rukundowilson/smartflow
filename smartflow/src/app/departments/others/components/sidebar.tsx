@@ -10,6 +10,8 @@ import {
   Building2,
   Users,
   HelpCircle,
+  X,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
@@ -19,12 +21,17 @@ const modules = [
   { id: 'my-requests', name: 'My Requests', icon: Key, description: 'View my requests' },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
 
-  const { logout, user } = useAuth();
+  const { logout, user, selectedRole } = useAuth();
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -40,20 +47,66 @@ export default function Sidebar() {
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
+      // Close mobile sidebar if it's open
+      if (isMobile && onClose) {
+        onClose();
+      }
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    if (isMobile && onClose) {
+      onClose();
+    }
+  };
+
+  // Get current role and department information
+  const currentRole = selectedRole || user;
+  const roleName = selectedRole?.role_name || user?.role || 'User';
+  const departmentName = selectedRole?.department_name || user?.department || 'Department';
+
   return (
-    <nav className="min-w-[280px] max-w-[320px] w-72 bg-white rounded-xl shadow-lg border border-gray-200 p-6 mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+    <nav className={`${isMobile ? 'w-full' : 'min-w-[280px] max-w-[320px] w-72'} bg-white rounded-xl shadow-lg border border-gray-200 p-6 ${isMobile ? '' : 'mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto'}`}>
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Menu</h2>
+              <p className="text-xs text-gray-500">Navigation</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
       {/* Header Section */}
-      <div className="mb-8 pb-6 border-b border-gray-200">
+      <div className={`${isMobile ? 'mb-6' : 'mb-8'} pb-6 border-b border-gray-200`}>
         <div className="flex items-center mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-4 shadow-sm">
             <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Department Portal</h2>
-            <p className="text-xs text-gray-500 font-medium">General Access</p>
+            <h2 className="text-lg font-bold text-gray-900">{departmentName}</h2>
+            <p className="text-xs text-gray-500 font-medium">{roleName}</p>
+          </div>
+        </div>
+        
+        {/* Current Role Badge */}
+        <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+          <Shield className="h-4 w-4 text-blue-600 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-blue-900 truncate">Current Role</p>
+            <p className="text-xs text-blue-700 truncate">{roleName}</p>
           </div>
         </div>
       </div>
@@ -131,7 +184,7 @@ export default function Sidebar() {
         )}
         
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"
         >
           <LogOut className="h-5 w-5 mr-3" />

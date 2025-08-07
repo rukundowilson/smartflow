@@ -24,6 +24,7 @@ const modules = [
   { id: 'revocation', name: 'Access Revocation', icon: UserMinus },
   { id: 'requisition', name: 'Item Requisition', icon: Package },
   { id: 'users', name: 'User Management', icon: Users },
+  { id: 'systems', name: 'Systems', icon: Settings },
 ];
 
 export default function NavBar() {

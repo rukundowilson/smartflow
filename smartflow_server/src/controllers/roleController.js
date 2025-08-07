@@ -552,12 +552,12 @@ class RoleController {
           udr.assigned_at,
           udr.assigned_by,
           udr.status,
-          s.name as system_name,
-          s.description as system_description,
+          d.name as system_name,
+          d.description as system_description,
           r.name as role_name,
           r.description as role_description
         FROM user_department_roles udr
-        JOIN systems s ON udr.department_id = s.id
+        JOIN departments d ON udr.department_id = d.id
         JOIN roles r ON udr.role_id = r.id
         WHERE udr.user_id = ? AND udr.department_id = ? AND udr.role_id = ?
       `, [userId, systemId, roleId]);

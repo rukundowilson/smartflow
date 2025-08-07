@@ -35,32 +35,6 @@ function MyRequestsContent() {
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
             <NavBar/>
-            
-            {/* Mobile Menu Button */}
-            <div className="lg:hidden fixed top-4 left-4 z-50">
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="bg-white p-2 rounded-lg shadow-lg border border-gray-200"
-                >
-                    <Menu className="h-6 w-6 text-gray-600" />
-                </button>
-            </div>
-
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
-
-            {/* Mobile Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:hidden ${
-                isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}>
-                <SideBar />
-            </div>
-
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
                 <div className="flex">
                     {/* Desktop Sidebar */}

@@ -22,12 +22,16 @@ import {
   Loader2,
   Clock,
   Building2,
-  Shield
+  Shield,
+  Menu,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/auth-context';
 import { getAllDepartments, getDepartmentRoles, Department, DepartmentRole } from '@/app/services/departmentService';
 import accessRequestService, { AccessRequest, CreateAccessRequestData } from '@/app/services/accessRequestService';
 import WorkflowStatus from './WorkflowStatus';
+import { FullScreenLoading, InlineLoading } from './ResponsiveLoading';
+import NotificationToast from './NotificationToast';
 
 const AccessRequestsPortal = () => {
   const { user } = useAuth();
@@ -36,6 +40,8 @@ const AccessRequestsPortal = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   // Form state
   const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -99,6 +105,7 @@ const AccessRequestsPortal = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      addNotification('error', 'Error Loading Data', 'Failed to load access requests. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -139,11 +146,20 @@ const AccessRequestsPortal = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, type, title, message }]);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedDepartment || !selectedRole || !justification || !startDate || !user?.id) {
-      alert('Please fill in all required fields');
+      addNotification('error', 'Validation Error', 'Please fill in all required fields.');
       return;
     }
 
@@ -167,7 +183,7 @@ const AccessRequestsPortal = () => {
       const response = await accessRequestService.createAccessRequest(requestData);
       
       if (response.success) {
-        alert('Role access request submitted successfully!');
+        addNotification('success', 'Request Submitted', 'Role access request submitted successfully!');
         
         // Reset form
         setSelectedDepartment('');
@@ -184,7 +200,7 @@ const AccessRequestsPortal = () => {
       }
     } catch (error) {
       console.error('Error submitting request:', error);
-      alert('Failed to submit role request. Please try again.');
+      addNotification('error', 'Submission Failed', 'Failed to submit role request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -231,29 +247,27 @@ const AccessRequestsPortal = () => {
 
   // Show loading state if user is not available
   if (!user?.id) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          <p className="mt-2 text-gray-600">Loading user information...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading message="Loading user information..." />;
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          <p className="mt-2 text-gray-600">Loading access requests...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoading message="Loading access requests..." />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Notifications */}
+      {notifications.map(notification => (
+        <NotificationToast
+          key={notification.id}
+          id={notification.id}
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+          onClose={removeNotification}
+        />
+      ))}
+
       <div className="flex">
         {/* Main Content */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -277,8 +291,19 @@ const AccessRequestsPortal = () => {
                 </div>
               </div>
 
+              {/* Mobile Filters Toggle */}
+              <div className="lg:hidden mb-4">
+                <button
+                  onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+                  className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                >
+                  <span className="text-sm font-medium text-gray-700">Filters & Search</span>
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isMobileFiltersOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
               {/* Controls */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6">
+              <div className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
                 <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                   <div className="flex-1 w-full max-w-md">
                     <div className="relative">
@@ -319,7 +344,7 @@ const AccessRequestsPortal = () => {
               </div>
 
               {/* Requests Cards */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
                 {filtered.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                     <Key className="mx-auto h-12 w-12 text-gray-400" />
@@ -339,36 +364,37 @@ const AccessRequestsPortal = () => {
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                 <User className="h-5 w-5 text-blue-600" />
                               </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{request.user_name}</h3>
-                                <p className="text-sm text-gray-500">{request.user_email}</p>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-gray-900 truncate">{request.user_name}</h3>
+                                <p className="text-sm text-gray-500 truncate">{request.user_email}</p>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
-                              <StatusIcon className="h-3 w-3" />
-                              {formatStatus(request.status)}
+                              <StatusIcon className="h-3 w-3 flex-shrink-0" />
+                              <span className="hidden sm:inline">{formatStatus(request.status)}</span>
+                              <span className="sm:hidden">{formatStatus(request.status).split(' ')[0]}</span>
                             </span>
                           </div>
                         </div>
 
                         {/* Workflow Status */}
-                        <div className="mb-4">
-                          <WorkflowStatus status={request.status} className="justify-start" />
+                        <div className="mb-4 overflow-x-auto">
+                          <WorkflowStatus status={request.status} className="justify-start min-w-max" />
                         </div>
 
                         {/* System & Role Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                           <div className="flex items-start gap-3">
                             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                               <Building2 className="h-4 w-4 text-green-600" />
                             </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{request.department_name}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{request.department_name}</p>
                               <p className="text-xs text-gray-500">Department</p>
                             </div>
                           </div>
@@ -376,19 +402,19 @@ const AccessRequestsPortal = () => {
                             <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
                               <Shield className="h-4 w-4 text-purple-600" />
                             </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{request.role_name}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{request.role_name}</p>
                               <p className="text-xs text-gray-500">Requested Role</p>
                             </div>
                           </div>
                         </div>
 
                         {/* Access Period */}
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-start gap-3 mb-4">
                           <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Calendar className="h-4 w-4 text-orange-600" />
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900">Access Period</p>
                             <p className="text-sm text-gray-600">
                               {new Date(request.start_date).toLocaleDateString()}
@@ -406,27 +432,29 @@ const AccessRequestsPortal = () => {
                         {/* Justification */}
                         <div className="mb-4">
                           <p className="text-sm font-medium text-gray-900 mb-2">Justification</p>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg break-words">
                             {request.justification}
                           </p>
                         </div>
 
                         {/* Footer */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100">
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Submitted: {new Date(request.submitted_at).toLocaleDateString()}
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className="hidden sm:inline">Submitted: {new Date(request.submitted_at).toLocaleDateString()}</span>
+                              <span className="sm:hidden">Submitted: {new Date(request.submitted_at).toLocaleDateString()}</span>
                             </span>
                             {request.approved_at && (
                               <span className="flex items-center gap-1">
-                                <Check className="h-3 w-3" />
-                                Processed: {new Date(request.approved_at).toLocaleDateString()}
+                                <Check className="h-3 w-3 flex-shrink-0" />
+                                <span className="hidden sm:inline">Processed: {new Date(request.approved_at).toLocaleDateString()}</span>
+                                <span className="sm:hidden">Processed: {new Date(request.approved_at).toLocaleDateString()}</span>
                               </span>
                             )}
                           </div>
                           {request.rejection_reason && (
-                            <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                            <div className="text-xs text-red-600 bg-red-50 p-2 rounded break-words">
                               <strong>Rejection Reason:</strong> {request.rejection_reason}
                             </div>
                           )}
@@ -457,10 +485,18 @@ const AccessRequestsPortal = () => {
         <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Role Access Request</h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowRequestForm(false)}
+                  className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Role Access Request</h2>
+              </div>
               <button
                 onClick={() => setShowRequestForm(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="hidden lg:block text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -609,7 +645,7 @@ const AccessRequestsPortal = () => {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <InlineLoading size="sm" />
                   ) : (
                     <Check className="w-4 h-4" />
                   )}

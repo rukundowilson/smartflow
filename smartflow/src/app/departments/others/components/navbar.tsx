@@ -18,7 +18,6 @@ import {
   User,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
-import userRoleService from "@/app/services/userRoleService";
 
 const modules = [
   { id: 'overview', name: 'Overview', icon: Monitor },
@@ -31,22 +30,9 @@ export default function NavBar() {
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const { user, token, isAuthenticated, logout } = useAuth();
-
-  // Fetch user role information
-  useEffect(() => {
-    const fetchUserRoleInfo = async () => {
-      if (user?.id) {
-        const roleInfo = await userRoleService.getUserRoleInfo(user.id);
-        setUserRoleInfo(roleInfo);
-      }
-    };
-
-    fetchUserRoleInfo();
-  }, [user]);
+  const { user, token, isAuthenticated, logout, selectedRole } = useAuth();
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -89,6 +75,11 @@ export default function NavBar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isUserDropdownOpen]);
+
+  // Get current role info
+  const currentRole = selectedRole || user;
+  const roleName = selectedRole?.role_name || user?.role || 'User';
+  const departmentName = selectedRole?.department_name || user?.department || 'Department';
 
   return (
     <>
@@ -153,9 +144,9 @@ export default function NavBar() {
                         <div className="flex items-center gap-2">
                           <Shield className="h-4 w-4 text-sky-600" />
                           <div>
-                            <p className="text-xs text-gray-500">Role</p>
+                            <p className="text-xs text-gray-500">Current Role</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.role_name || 'User'}
+                              {roleName}
                             </p>
                           </div>
                         </div>
@@ -164,7 +155,7 @@ export default function NavBar() {
                           <div>
                             <p className="text-xs text-gray-500">Department</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.department_name || user?.department || 'Department'}
+                              {departmentName}
                             </p>
                           </div>
                         </div>
@@ -238,10 +229,10 @@ export default function NavBar() {
                       <div className="flex items-center gap-1 mb-1">
                         <Shield className="h-3 w-3 text-sky-600" />
                         <p className="text-sm font-medium text-gray-900">
-                          {userRoleInfo?.role_name || 'User'}
+                          {roleName}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500">{user?.department || 'Department'}</p>
+                      <p className="text-xs text-gray-500">{departmentName}</p>
                       <p className="text-xs text-gray-400">{user?.email}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">

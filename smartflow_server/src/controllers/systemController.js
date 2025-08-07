@@ -1,5 +1,17 @@
 import db from '../config/db.js';
 
+async function insertAuditLog(action, entityType, entityId, actorUserId, details) {
+  try {
+    await db.query(
+      `INSERT INTO audit_logs (action, entity_type, entity_id, actor_user_id, details)
+       VALUES (?, ?, ?, ?, ?)` ,
+      [action, entityType, entityId ?? null, actorUserId ?? null, JSON.stringify(details || {})]
+    );
+  } catch (e) {
+    console.error('Failed to write audit log', e.message);
+  }
+}
+
 class SystemController {
   // Get all systems
   async getAllSystems(req, res) {
@@ -88,6 +100,9 @@ class SystemController {
         `, [systemId]);
         
         await db.query('COMMIT');
+        
+        // Audit log
+        await insertAuditLog('create', 'system', systemId, req.user?.id, { name, description, createDefaultRoles });
         
         res.status(201).json({
           success: true,
@@ -255,6 +270,9 @@ class SystemController {
         WHERE id = ?
       `, [id]);
       
+      // Audit log
+      await insertAuditLog('update', 'system', id, req.user?.id, { name, description });
+
       res.json({
         success: true,
         message: 'System updated successfully',
@@ -289,7 +307,7 @@ class SystemController {
       
       // Check if system has active access requests
       const [activeRequests] = await db.query(`
-        SELECT id FROM access_requests WHERE system_id = ? AND status NOT IN ('rejected', 'granted')
+        SELECT id FROM access_requests WHERE department_id = ? AND status NOT IN ('rejected', 'granted')
       `, [id]);
       
       if (activeRequests.length > 0) {
@@ -302,6 +320,9 @@ class SystemController {
       // Delete system
       await db.query('DELETE FROM systems WHERE id = ?', [id]);
       
+      // Audit log
+      await insertAuditLog('delete', 'system', id, req.user?.id, {});
+
       res.json({
         success: true,
         message: 'System deleted successfully'
