@@ -66,7 +66,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
       case 'request_pending':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'hod_pending':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
       case 'it_hod_pending':
         return 'bg-gray-50 text-gray-700 border-gray-200';
       case 'granted':
@@ -123,12 +123,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
 
         <div className="p-6 space-y-6">
           {/* Current Position */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center">
-              <Shield className="h-5 w-5 text-orange-600 mr-2" />
-              <h3 className="text-sm font-medium text-orange-800">Current Position: HOD Review</h3>
+              <Shield className="h-5 w-5 text-blue-600 mr-2" />
+              <h3 className="text-sm font-medium text-blue-800">Current Position: HOD Review</h3>
             </div>
-            <p className="text-sm text-orange-700 mt-1">You are reviewing this system access request</p>
+            <p className="text-sm text-blue-700 mt-1">You are reviewing this system access request</p>
           </div>
 
           {/* Request Details */}
@@ -154,9 +154,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
                 <span className="text-gray-400 ml-auto">{formatDate(request.submitted_at)}</span>
               </div>
               <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 <span className="text-gray-600 font-medium">Currently at: HOD Review</span>
-                <span className="text-orange-600 ml-auto">You are here</span>
+                <span className="text-blue-600 ml-auto">You are here</span>
               </div>
               <div className="flex items-center text-sm">
                 <div className="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
@@ -214,8 +214,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
           )}
 
           {/* HOD Decision */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-orange-800 mb-3">Your Decision as HOD</h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-blue-800 mb-3">Your Decision as HOD</h3>
             <div className="space-y-4">
               <div>
                 <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
@@ -226,7 +226,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                   placeholder="Add your comment about this request..."
                   disabled={isReadOnly}
                 />
@@ -297,15 +297,20 @@ export default function HODRequestsPage() {
   const [requests, setRequests] = useState<SARequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.id) {
-      fetchPendingRequests();
+    if (!user?.id) {
+      setIsLoading(false);
+      setRequests([]);
+      setFilteredRequests([]);
+      return;
     }
+    setIsLoading(true);
+    fetchPendingRequests();
   }, [user?.id]);
 
   useEffect(() => {
@@ -377,7 +382,7 @@ export default function HODRequestsPage() {
       case 'request_pending':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'hod_pending':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'it_hod_pending':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'granted':
@@ -400,14 +405,28 @@ export default function HODRequestsPage() {
               Review and approve system access requests in your department.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchPendingRequests()}
+              disabled={isLoading || !user?.id}
+              className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50 flex items-center"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Clock className="h-4 w-4 mr-2" />
+              )}
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-600" />
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
@@ -451,7 +470,7 @@ export default function HODRequestsPage() {
                 placeholder="Search requests..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full"
               />
             </div>
           </div>
@@ -460,19 +479,19 @@ export default function HODRequestsPage() {
         {/* Requests List */}
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
             <p className="text-gray-500 mb-4">All system access requests have been reviewed.</p>
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
               <div className="flex items-center space-x-2 mb-2">
-                <Building2 className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-900">Department Filter</span>
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Department Filter</span>
               </div>
-              <p className="text-xs text-orange-700">
+              <p className="text-xs text-blue-700">
                 You can only see requests from users in your department.
               </p>
             </div>
@@ -509,7 +528,7 @@ export default function HODRequestsPage() {
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleViewRequest(request)}
-                            className="p-1 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded transition-colors"
+                            className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -548,7 +567,7 @@ export default function HODRequestsPage() {
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleViewRequest(request)}
-                        className="p-2 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
+                        className="p-2 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded-lg transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </button>

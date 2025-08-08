@@ -16,9 +16,9 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor, description: 'Dashboard overview' },
-  { id: 'my-tickets', name: 'IT Tickets', icon: Ticket, description: 'Manage your tickets' },
-  { id: 'my-requests', name: 'My Requests', icon: Key, description: 'View my requests' },
+  { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
+  { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
+  { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
 ];
 
 interface SidebarProps {
@@ -45,7 +45,7 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/others/${id}`;
+    const newPath = `/administration/it-hod/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -147,7 +147,6 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
           ))}
         </div>
       </div>
-
       {/* User Info & Sign Out */}
       <div className="pt-6 border-t border-gray-200">
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">

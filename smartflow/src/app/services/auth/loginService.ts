@@ -30,13 +30,20 @@ export async function login(formData : LoginFormData): Promise<LoginResponse> {
       password,
     });
 
-    // Extract role names from the roles array if available
-    if (response.data.user.roles && Array.isArray(response.data.user.roles)) {
-      const roleNames = response.data.user.roles.map((role: any) => role.role_name);
-      response.data.user.roleNames = roleNames;
-    } else {
-      response.data.user.roleNames = [];
+    // Normalize role names from various backend shapes
+    const rolesAny: any = (response.data.user as any).roles;
+    let roleNames: string[] = [];
+    if (Array.isArray(rolesAny) && rolesAny.length > 0) {
+      const first = rolesAny[0];
+      if (typeof first === 'string') {
+        roleNames = (rolesAny as string[]).filter(r => typeof r === 'string' && r.length > 0);
+      } else {
+        roleNames = (rolesAny as any[])
+          .map(r => r?.role_name ?? r?.name ?? r)
+          .filter((n: any) => typeof n === 'string' && n.length > 0);
+      }
     }
+    (response.data.user as any).roleNames = roleNames;
 
     return response.data;
   } catch (error: any) {

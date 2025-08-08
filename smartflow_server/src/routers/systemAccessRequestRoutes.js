@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/', createSystemAccessRequest);
 router.get('/user/:userId', getUserSystemAccessRequests);
 
-// Pending for approvers (LM/HOD)
+// Pending for approvers (LM/HOD/IT HOD)
 router.get('/pending', getPendingSystemAccessRequests);
 // Approved by a specific approver
 router.get('/approved-by', getApprovedByApprover);

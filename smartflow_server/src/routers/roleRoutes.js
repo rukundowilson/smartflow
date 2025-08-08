@@ -1,33 +1,20 @@
 import express from 'express';
-import roleController from '../controllers/roleController.js';
-import { verifyToken } from '../middlewares/authMiddleware.js';
+import RoleController from '../controllers/roleController.js';
 
 const router = express.Router();
 
-// Role assignment routes (no authentication required for now) - MUST BE FIRST
-router.get('/assignments/all', roleController.getAllRoleAssignments);
-router.get('/assignments/user/:userId', roleController.getUserRoleAssignments);
-router.post('/assignments/assign', roleController.assignRoleToUser);
-router.post('/assignments/system', roleController.assignSystemRoleToUser);
-router.put('/assignments/:userId/:departmentId/:roleId/status', roleController.updateRoleAssignmentStatus);
-router.delete('/assignments/:userId/:departmentId/:roleId', roleController.removeRoleAssignment);
+router.get('/', (req, res) => RoleController.getAllRoles(req, res));
+router.post('/', (req, res) => RoleController.createRole(req, res));
+router.get('/:id', (req, res) => RoleController.getRoleById(req, res));
+router.put('/:id', (req, res) => RoleController.updateRole(req, res));
+router.delete('/:id', (req, res) => RoleController.deleteRole(req, res));
 
-// Public routes (no authentication required)
-router.get('/', roleController.getAllRoles);
-router.get('/:id', roleController.getRoleById);
-router.post('/', roleController.createRole);
-
-// Protected routes (authentication required)
-router.use(verifyToken);
-
-// Search route (must come before :id routes)
-router.get('/search', roleController.searchRoles);
-
-// Department routes (must come before :id routes)
-router.get('/department/:departmentId', roleController.getRolesByDepartment);
-
-// Role management routes (protected)
-router.put('/:id', roleController.updateRole);
-router.delete('/:id', roleController.deleteRole);
+// assignments
+router.get('/assignments/user/:userId', (req, res) => RoleController.getUserRoleAssignments(req, res));
+router.post('/assignments', (req, res) => RoleController.assignRoleToUser(req, res));
+router.put('/assignments/:userId/:departmentId/:roleId/status', (req, res) => RoleController.updateRoleAssignmentStatus(req, res));
+router.delete('/assignments/:userId/:departmentId/:roleId', (req, res) => RoleController.removeRoleAssignment(req, res));
+router.get('/department/:departmentId', (req, res) => RoleController.getRolesByDepartment(req, res));
+router.post('/system/assign', (req, res) => RoleController.assignSystemRoleToUser(req, res));
 
 export default router; 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Settings,
@@ -26,14 +27,17 @@ const modules = [
   { id: 'my-requests', name: 'My Requests', icon: Key },
 ];
 
-export default function NavBar() {
+function NavBarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const { user, token, isAuthenticated, logout, selectedRole } = useAuth();
+
+  useEffect(() => { setHydrated(true); }, []);
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -78,9 +82,10 @@ export default function NavBar() {
   }, [isUserDropdownOpen]);
 
   // Get current role info
-  const currentRole = selectedRole || user;
-  const roleName = selectedRole?.role_name || user?.role || 'User';
-  const departmentName = selectedRole?.department_name || user?.department || 'Department';
+  const roleName = hydrated ? (selectedRole?.role_name || user?.role || 'User') : 'User';
+  const departmentName = hydrated ? (selectedRole?.department_name || user?.department || 'Department') : 'Department';
+  const displayName = hydrated ? (user?.full_name || 'User') : 'User';
+  const displayEmail = hydrated ? (user?.email || '') : '';
 
   return (
     <>
@@ -103,13 +108,13 @@ export default function NavBar() {
                   onClick={toggleUserDropdown}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{user?.full_name || 'User'}</p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                  <div className="text-right" suppressHydrationWarning>
+                    <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>{displayName}</p>
+                    <p className="text-xs text-gray-500" suppressHydrationWarning>{displayEmail}</p>
                   </div>
                   <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                    <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                      {(displayName && displayName.length > 0) ? displayName.charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
                   <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
@@ -125,13 +130,13 @@ export default function NavBar() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center">
                         <div className="h-10 w-10 bg-sky-600 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-white text-sm font-medium">
-                            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                          <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                            {(displayName && displayName.length > 0) ? displayName.charAt(0).toUpperCase() : 'U'}
                           </span>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-sm font-medium text-gray-900">{user?.full_name}</h3>
-                          <p className="text-xs text-gray-500">{user?.email}</p>
+                        <div className="flex-1" suppressHydrationWarning>
+                          <h3 className="text-sm font-medium text-gray-900" suppressHydrationWarning>{displayName}</h3>
+                          <p className="text-xs text-gray-500" suppressHydrationWarning>{displayEmail}</p>
                         </div>
                       </div>
                     </div>
@@ -143,7 +148,7 @@ export default function NavBar() {
                           <Shield className="h-4 w-4 text-sky-600" />
                           <div>
                             <p className="text-xs text-gray-500">Current Role</p>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                               {roleName}
                             </p>
                           </div>
@@ -152,7 +157,7 @@ export default function NavBar() {
                           <Building2 className="h-4 w-4 text-gray-500" />
                           <div>
                             <p className="text-xs text-gray-500">Department</p>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                               {departmentName}
                             </p>
                           </div>
@@ -183,8 +188,8 @@ export default function NavBar() {
             <div className="lg:hidden flex items-center space-x-4">
               <NotificationBell />
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                  {(displayName && displayName.length > 0) ? displayName.charAt(0).toUpperCase() : 'U'}
                 </span>
               </div>
               <button 
@@ -223,12 +228,12 @@ export default function NavBar() {
                     <div>
                       <div className="flex items-center gap-1 mb-1">
                         <Shield className="h-3 w-3 text-sky-600" />
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                           {roleName}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500">{departmentName}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-gray-500" suppressHydrationWarning>{departmentName}</p>
+                      <p className="text-xs text-gray-400" suppressHydrationWarning>{displayEmail}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">
                       <LogOut onClick={logout} className="h-5 w-5" />
@@ -243,3 +248,5 @@ export default function NavBar() {
     </>
   );
 }
+
+export default dynamic(() => Promise.resolve(NavBarInner), { ssr: false });

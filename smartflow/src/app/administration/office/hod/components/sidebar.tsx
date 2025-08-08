@@ -4,19 +4,17 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Monitor,
-  UserPlus,
   Key,
-  Users,
   LogOut,
   Building2,
-  HelpCircle,
-  Shield,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
-  { id: '', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
-  { id: 'requests', name: 'manage requests', icon: Key, description: 'approve requests' },
+  { id: '', name: 'Overview', icon: Monitor, description: 'HOD dashboard' },
+  { id: 'requests', name: 'Manage Requests', icon: Key, description: 'Approve requests' },
+  { id: 'approved', name: 'Approved', icon: CheckCircle, description: 'You approved' },
 ];
 
 export default function HodSidebar() {
@@ -32,15 +30,15 @@ export default function HodSidebar() {
     const path = pathname.split('/').pop()?.split('?')[0];
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/hr') {
+    } else if (pathname === '/administration/office/hod' || pathname.endsWith('/hod/')) {
       setActiveModule('overview');
     }
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/office/hod/${id === 'overview' ? '' : `/${id}`}`;
+    const newPath = `/administration/office/hod${id === '' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
-      setActiveModule(id);
+      setActiveModule(id || 'overview');
       router.push(newPath);
     }
   };
@@ -115,7 +113,6 @@ export default function HodSidebar() {
             </div>
           </div>
         )}
-        
         <button
           onClick={logout}
           className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 hover:shadow-sm"

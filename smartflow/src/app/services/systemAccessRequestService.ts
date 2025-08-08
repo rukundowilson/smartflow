@@ -43,7 +43,7 @@ export interface SystemAccessRequest {
 
 export interface ApprovalData {
   approver_id: number;
-  approver_role: 'Line Manager' | 'HOD';
+  approver_role: 'Line Manager' | 'HOD' | 'IT HOD';
   comment?: string;
   rejection_reason?: string;
 }
@@ -61,7 +61,7 @@ class SystemAccessRequestService {
     return res.data;
   }
 
-  async getPending(params: { approver_id: number; approver_role: 'Line Manager' | 'HOD' }): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
+  async getPending(params: { approver_id: number; approver_role: 'Line Manager' | 'HOD' | 'IT HOD' }): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
     const q = new URLSearchParams({ approver_id: String(params.approver_id), approver_role: params.approver_role });
     const res = await API.get(`${this.baseUrl}/pending?${q.toString()}`);
     return res.data;
@@ -77,7 +77,7 @@ class SystemAccessRequestService {
     return res.data;
   }
 
-  async getApprovedBy(params: { approver_id: number; approver_role: 'Line Manager' | 'HOD' }): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
+  async getApprovedBy(params: { approver_id: number; approver_role: 'Line Manager' | 'HOD' | 'IT HOD' }): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
     const q = new URLSearchParams({ approver_id: String(params.approver_id), approver_role: params.approver_role });
     const res = await API.get(`${this.baseUrl}/approved-by?${q.toString()}`);
     return res.data;

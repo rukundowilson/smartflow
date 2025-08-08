@@ -1,7 +1,7 @@
 "use client"
-import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
+import React, { useEffect, useState } from 'react';
+import {
+  Shield,
   Clock,
   CheckCircle,
   XCircle,
@@ -18,7 +18,7 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import accessRequestService, { AccessRequest } from '@/app/services/accessRequestService';
+import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
 
 interface RecentActivity {
@@ -33,67 +33,70 @@ interface RecentActivity {
 
 export default function Overview() {
   const { user } = useAuth();
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [pending, setPending] = useState<SARequest[]>([]);
+  const [processed, setProcessed] = useState<SARequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
 
-  // Load data
   useEffect(() => {
-    const loadData = async () => {
+    if (!user?.id) return;
+    const load = async () => {
       try {
         setIsLoading(true);
-        const data = await accessRequestService.getAllRequests();
-        setRequests(data);
-        
-        // Generate recent activities from requests
-        const activities: RecentActivity[] = data.slice(0, 5).map(request => ({
-          id: request.id,
-          type: request.status === 'granted' ? 'approval' : 
-                request.status === 'rejected' ? 'rejection' : 'new_request',
-          title: `${request.user_name} requested access to ${request.department_name}`,
-          description: request.justification.substring(0, 60) + '...',
-          timestamp: request.submitted_at,
-          user: request.user_name,
-          status: request.status
-        }));
-        
+        const [pendingRes, processedRes] = await Promise.all([
+          systemAccessRequestService.getPending({ approver_id: user.id, approver_role: 'HOD' }),
+          systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'HOD' })
+        ]);
+        if (pendingRes.success) setPending(pendingRes.requests);
+        if (processedRes.success) setProcessed(processedRes.requests);
+
+        const activities: RecentActivity[] = [...processedRes.requests, ...pendingRes.requests]
+          .slice(0, 6)
+          .map((r: SARequest) => ({
+            id: r.id,
+            type: r.status === 'rejected' ? 'rejection' : (r.status.endsWith('_pending') ? 'new_request' : 'approval'),
+            title: `${r.user_name || 'User'} requested access to ${r.system_name}`,
+            description: (r.justification || '').slice(0, 60) + (r.justification && r.justification.length > 60 ? '...' : ''),
+            timestamp: r.submitted_at,
+            user: r.user_name || 'User',
+            status: r.status
+          }));
         setRecentActivities(activities);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (e) {
+        console.error('HOD Overview load failed:', e);
       } finally {
         setIsLoading(false);
       }
     };
+    load();
+  }, [user?.id]);
 
-    loadData();
-  }, []);
-
-  const pendingCount = requests.filter(r => r.status === 'pending_hod').length;
-  const approvedCount = requests.filter(r => r.status === 'granted').length;
-  const rejectedCount = requests.filter(r => r.status === 'rejected').length;
-  const totalCount = requests.length;
+  const pendingCount = pending.length;
+  const approvedCount = processed.filter(r => r.status !== 'rejected').length; // HOD-approved moves forward (e.g., it_hod_pending)
+  const rejectedCount = processed.filter(r => r.status === 'rejected').length;
+  const totalCount = pendingCount + processed.length;
 
   const getActivityIcon = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'approval':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'rejection':
         return <XCircle className="h-5 w-5 text-red-500" />;
       case 'new_request':
-        return <Clock className="h-5 w-5 text-yellow-500" />;
+        return <Clock className="h-5 w-5 text-blue-500" />;
       default:
         return <Activity className="h-5 w-5 text-gray-500" />;
     }
   };
 
   const getActivityColor = (type: string) => {
-    switch(type) {
+    switch (type) {
       case 'approval':
         return 'bg-green-50 border-green-200';
       case 'rejection':
         return 'bg-red-50 border-red-200';
       case 'new_request':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-blue-50 border-blue-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -120,7 +123,7 @@ export default function Overview() {
               Welcome back, {user?.full_name || 'HOD'}!
             </h1>
             <p className="text-gray-600 text-lg">
-              As {user?.role || 'Head of Department'}, here's your access request overview
+              As {user?.role || 'Head of Department'}, here's your system access overview
             </p>
           </div>
           <div className="hidden lg:flex items-center space-x-4">
@@ -134,19 +137,18 @@ export default function Overview() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Awaiting Your Review</p>
               <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
             </div>
-            <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl">
+            <div className="p-3 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl">
               <Clock className="h-6 w-6 text-white" />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm text-gray-600">
-            <AlertCircle className="h-4 w-4 mr-1 text-yellow-500" />
+            <AlertCircle className="h-4 w-4 mr-1 text-sky-500" />
             <span>Need your HOD approval</span>
           </div>
         </div>
@@ -191,11 +193,10 @@ export default function Overview() {
             <h2 className="text-lg font-semibold text-gray-900">Your Recent Activities</h2>
             <div className="flex items-center space-x-2">
               <Activity className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-500">Your department's recent requests</span>
+              <span className="text-sm text-gray-500">Latest actions and pending items</span>
             </div>
           </div>
         </div>
-        
         <div className="divide-y divide-gray-200">
           {recentActivities.length === 0 ? (
             <div className="p-8 text-center">
@@ -204,7 +205,7 @@ export default function Overview() {
               <p className="text-gray-500">Activities will appear here as requests are processed</p>
             </div>
           ) : (
-            recentActivities.map((activity, index) => (
+            recentActivities.map((activity) => (
               <div key={activity.id} className={`p-6 hover:bg-gray-50 transition-colors ${getActivityColor(activity.type)}`}>
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
@@ -228,13 +229,11 @@ export default function Overview() {
                         {activity.user}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        activity.status === 'granted' ? 'bg-green-100 text-green-800' :
                         activity.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        activity.status.endsWith('_pending') ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
                       }`}>
-                        {activity.status === 'granted' ? 'Approved' :
-                         activity.status === 'rejected' ? 'Rejected' :
-                         'Pending'}
+                        {activity.status.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </div>
                   </div>
@@ -254,7 +253,7 @@ export default function Overview() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Review Requests</h3>
-              <p className="text-sm text-gray-600">Check pending access requests</p>
+              <p className="text-sm text-gray-600">Check pending system access requests</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -263,7 +262,7 @@ export default function Overview() {
               <span className="font-medium text-gray-900">{pendingCount}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-sky-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${totalCount > 0 ? (pendingCount / totalCount) * 100 : 0}%` }}
               ></div>
@@ -287,7 +286,7 @@ export default function Overview() {
               <span className="font-medium text-gray-900">{approvedCount + rejectedCount}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${totalCount > 0 ? ((approvedCount + rejectedCount) / totalCount) * 100 : 0}%` }}
               ></div>

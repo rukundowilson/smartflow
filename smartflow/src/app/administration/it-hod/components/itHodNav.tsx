@@ -8,10 +8,10 @@ import {
   LogOut,
   Menu,
   X,
-  Monitor,
-  UserPlus,
+  Ticket,
   Key,
-  Users,
+  Monitor,
+  HelpCircle,
   Shield,
   Building2,
   ChevronDown,
@@ -19,66 +19,35 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import NotificationBell from '@/app/components/NotificationBell';
-import userRoleService from "@/app/services/userRoleService";
 
-interface HRNavbarProps {
-  title?: string;
-  subtitle?: string;
-}
+const modules = [
+  { id: 'overview', name: 'Overview', icon: Monitor },
+  { id: 'my-tickets', name: 'IT Tickets', icon: Ticket },
+  { id: 'my-requests', name: 'My Requests', icon: Key },
+];
 
-const HodNavbar: React.FC<HRNavbarProps> = ({ 
-  title = "smartflow", 
-  subtitle = "Portal" 
-}) => {
-  const { user, logout } = useAuth();
+export default function NavBarItHod() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  const modules = [
-  { id: '', name: 'Overview', icon: Monitor, description: 'HOD dasboard' },
-  { id: 'requests', name: 'manage requests', icon: Key, description: 'approve requests' },
-];
+  const { user, token, isAuthenticated, logout, selectedRole } = useAuth();
 
-
-  // Get user role information from localStorage (selected role) or fallback to database
-  useEffect(() => {
-    const getUserRoleInfo = async () => {
-      if (user?.id) {
-        // First try to get the selected role from localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          if (userData.selectedRole) {
-            setUserRoleInfo(userData.selectedRole);
-            return;
-          }
-        }
-        
-        // Fallback to database if no selected role
-        const roleInfo = await userRoleService.getUserRoleInfo(user.id);
-        setUserRoleInfo(roleInfo);
-      }
-    };
-
-    getUserRoleInfo();
-  }, [user]);
+  useEffect(() => { setHydrated(true); }, []);
 
   // Set active module from URL on mount
   useEffect(() => {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/office/hod') {
-      setActiveModule('/');
     }
-  }, [pathname, modules]);
+  }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/office/hod/${id === '' ? '' : `/${id}`}`;
+    const newPath = `/departments/others/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -111,6 +80,13 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isUserDropdownOpen]);
 
+  // Get current role info
+  const currentRole = selectedRole || user;
+  const roleName = hydrated ? (selectedRole?.role_name || user?.role || 'User') : 'User';
+  const departmentName = hydrated ? (selectedRole?.department_name || user?.department || 'Department') : 'Department';
+  const displayName = hydrated ? (user?.full_name || 'User') : 'User';
+  const displayEmail = hydrated ? (user?.email || '') : '';
+
   return (
     <>
       <header className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-200">
@@ -118,10 +94,7 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-                <p className="text-xs text-gray-500">{user?.department}{subtitle}</p>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -136,12 +109,12 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{user?.full_name || 'User'}</p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                    <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>{displayName}</p>
+                    <p className="text-xs text-gray-500" suppressHydrationWarning>{displayEmail}</p>
                   </div>
                   <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                      {(displayName && displayName.length > 0) ? displayName.charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
                   <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
@@ -162,8 +135,8 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
                           </span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-sm font-medium text-gray-900">{user?.full_name}</h3>
-                          <p className="text-xs text-gray-500">{user?.email}</p>
+                          <h3 className="text-sm font-medium text-gray-900" suppressHydrationWarning>{displayName}</h3>
+                          <p className="text-xs text-gray-500" suppressHydrationWarning>{displayEmail}</p>
                         </div>
                       </div>
                     </div>
@@ -174,9 +147,9 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
                         <div className="flex items-center gap-2">
                           <Shield className="h-4 w-4 text-sky-600" />
                           <div>
-                            <p className="text-xs text-gray-500">Role</p>
+                            <p className="text-xs text-gray-500">Current Role</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.role_name || 'User'}
+                              {roleName}
                             </p>
                           </div>
                         </div>
@@ -185,7 +158,7 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
                           <div>
                             <p className="text-xs text-gray-500">Department</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.department_name || user?.department || 'Department'}
+                              {departmentName}
                             </p>
                           </div>
                         </div>
@@ -215,8 +188,8 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
             <div className="lg:hidden flex items-center space-x-4">
               <NotificationBell />
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                  {(displayName && displayName.length > 0) ? displayName.charAt(0).toUpperCase() : 'U'}
                 </span>
               </div>
               <button 
@@ -256,11 +229,11 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
                       <div className="flex items-center gap-1 mb-1">
                         <Shield className="h-3 w-3 text-sky-600" />
                         <p className="text-sm font-medium text-gray-900">
-                          {userRoleInfo?.role_name || 'User'}
+                          {roleName}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500">{user?.department || 'Department'}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-gray-500">{departmentName}</p>
+                      <p className="text-xs text-gray-400" suppressHydrationWarning>{displayEmail}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">
                       <LogOut onClick={logout} className="h-5 w-5" />
@@ -274,6 +247,4 @@ const HodNavbar: React.FC<HRNavbarProps> = ({
       </header>
     </>
   );
-};
-
-export default HodNavbar; 
+}

@@ -42,19 +42,52 @@ export async function authenticateUser(email, password) {
   if (!isValid) {
     throw { status: 401, message: "Invalid password" };
   }
-  console.log(process.env.JWT_SECRET)
+
+  // Enrich with roles and primary department/role from user_department_roles
+  const [userRoles] = await db.query(
+    `SELECT d.name as department_name, r.name as role_name,
+            udr.department_id, udr.role_id, d.id as dept_id, r.id as role_id
+     FROM user_department_roles udr
+     INNER JOIN departments d ON udr.department_id = d.id
+     INNER JOIN roles r ON udr.role_id = r.id
+     WHERE udr.user_id = ? AND udr.status = 'active'
+     ORDER BY udr.assigned_at DESC`,
+    [user.id]
+  );
+
+  const roles = userRoles.map((row) => ({
+    department_name: row.department_name,
+    role_name: row.role_name,
+    department_id: row.department_id,
+    role_id: row.role_id,
+    dept_id: row.dept_id,
+  }));
+
+  const primaryRole = userRoles.length > 0 ? userRoles[0] : null;
+  const departmentName = primaryRole ? primaryRole.department_name : (user.department || "Unknown Department");
+  const roleName = primaryRole ? primaryRole.role_name : (user.role || "User");
+
+  const sanitizedUser = {
+    id: user.id,
+    full_name: user.full_name,
+    email: user.email,
+    department: departmentName,
+    role: roleName,
+    status: user.status,
+    roles: roles,
+  };
 
   const token = jwt.sign(
     {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      department: user.department,
-      status: user.status,
+      id: sanitizedUser.id,
+      full_name: sanitizedUser.full_name,
+      email: sanitizedUser.email,
+      department: sanitizedUser.department,
+      status: sanitizedUser.status,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 
-  return { token, user };
+  return { token, user: sanitizedUser };
 }

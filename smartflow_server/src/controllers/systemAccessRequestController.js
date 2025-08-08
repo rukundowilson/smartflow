@@ -107,8 +107,19 @@ export async function getPendingSystemAccessRequests(req, res) {
       // HOD sees only after LM approval
       statusFilter = "r.status = 'hod_pending'";
       roleName = 'HOD';
+    } else if (approver_role === 'IT HOD') {
+      const [rows] = await db.query(
+        `SELECT r.*, s.name AS system_name, s.description AS system_description,
+                u.full_name AS user_name, u.email AS user_email
+         FROM system_access_requests r
+         JOIN systems s ON r.system_id = s.id
+         JOIN users u ON r.user_id = u.id
+         WHERE r.status = 'it_hod_pending'
+         ORDER BY r.submitted_at DESC`
+      );
+      return res.json({ success: true, requests: rows });
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager or HOD' });
+      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager, HOD, or IT HOD' });
     }
 
     // Department-based visibility: requester and approver must share a department where the approver holds the right role
@@ -173,6 +184,9 @@ export async function approveSystemAccessRequest(req, res) {
     } else if (approver_role === 'HOD' && currentStatus === 'hod_pending') {
       nextStatus = 'it_hod_pending';
       stageColumnSets = 'hod_id = ?, hod_at = NOW()';
+    } else if (approver_role === 'IT HOD' && currentStatus === 'it_hod_pending') {
+      nextStatus = 'it_manager_pending';
+      stageColumnSets = 'it_hod_id = ?, it_hod_at = NOW()';
     } else {
       throw new Error('Invalid stage transition for this approver');
     }
@@ -284,6 +298,8 @@ export async function rejectSystemAccessRequest(req, res) {
       stageColumnSets = 'line_manager_id = ?, line_manager_at = NOW()';
     } else if (approver_role === 'HOD') {
       stageColumnSets = 'hod_id = ?, hod_at = NOW()';
+    } else if (approver_role === 'IT HOD') {
+      stageColumnSets = 'it_hod_id = ?, it_hod_at = NOW()';
     } else {
       throw new Error('Invalid approver_role');
     }
@@ -340,6 +356,9 @@ export async function getApprovedByApprover(req, res) {
     } else if (approver_role === 'HOD') {
       whereClause = 'r.hod_id = ? AND r.hod_at IS NOT NULL';
       orderExpr = 'COALESCE(r.hod_at, r.submitted_at)';
+    } else if (approver_role === 'IT HOD') {
+      whereClause = 'r.it_hod_id = ? AND r.it_hod_at IS NOT NULL';
+      orderExpr = 'COALESCE(r.it_hod_at, r.submitted_at)';
     } else {
       return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager or HOD' });
     }
