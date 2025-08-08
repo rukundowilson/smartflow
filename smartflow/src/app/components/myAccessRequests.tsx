@@ -492,7 +492,7 @@ const AccessRequestsPortal = () => {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Role Access Request</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">New Role Access Request</h2>
               </div>
               <button
                 onClick={() => setShowRequestForm(false)}

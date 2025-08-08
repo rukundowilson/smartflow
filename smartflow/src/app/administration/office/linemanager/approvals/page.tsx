@@ -15,15 +15,16 @@ import {
   Calendar,
   Loader2
 } from 'lucide-react';
-import accessRequestService, { AccessRequest, ApprovalData } from '@/app/services/accessRequestService';
+import systemAccessRequestService, { SystemAccessRequest as SARequest, ApprovalData as SAApprovalData } from '@/app/services/systemAccessRequestService';
+import { getSystemAccessRequestComments, Comment as AppComment } from '@/app/services/commentService';
 import { useAuth } from '@/app/contexts/auth-context';
 
 interface ApprovalModalProps {
-  request: AccessRequest | null;
+  request: SARequest | null;
   isOpen: boolean;
   onClose: () => void;
-  onApprove: (approvalData: ApprovalData) => void;
-  onReject: (rejectionData: ApprovalData) => void;
+  onApprove: (approvalData: SAApprovalData) => void;
+  onReject: (rejectionData: SAApprovalData) => void;
 }
 
 interface ApprovalHistory {
@@ -45,11 +46,22 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
   const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject'>('approve');
+  const isReadOnly = request?.status !== 'request_pending';
+  const [comments, setComments] = useState<AppComment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  // Fetch approval history when modal opens
+  // Fetch request comments when modal opens (for read-only view)
   useEffect(() => {
     if (isOpen && request) {
-      fetchApprovalHistory();
+      (async () => {
+        try {
+          setIsLoadingComments(true);
+          const res = await getSystemAccessRequestComments(request.id);
+          if (res.success) setComments(res.comments);
+        } finally {
+          setIsLoadingComments(false);
+        }
+      })();
     }
   }, [isOpen, request]);
 
@@ -64,16 +76,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'pending_manager_approval':
+      case 'request_pending':
         return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'pending_hod':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'pending_it_manager':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'pending_it_review':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-      case 'ready_for_assignment':
-        return 'bg-green-50 text-green-700 border-green-200';
+      case 'hod_pending':
+        return 'bg-gray-50 text-gray-700 border-gray-200';
       case 'granted':
         return 'bg-green-50 text-green-700 border-green-200';
       case 'rejected':
@@ -86,17 +92,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
   if (!request || !isOpen) return null;
 
   const fetchApprovalHistory = async () => {
-    try {
-      setIsLoadingHistory(true);
-      const response = await accessRequestService.getRequestById(request.id);
-      if (response.success && response.request.approval_history) {
-        setApprovalHistory(response.request.approval_history);
-      }
-    } catch (error) {
-      console.error('Error fetching approval history:', error);
-    } finally {
-      setIsLoadingHistory(false);
-    }
+    // No-op: approval history endpoint not available yet
+    setApprovalHistory([]);
   };
 
   const handleSubmit = () => {
@@ -174,20 +171,19 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
               <Shield className="h-5 w-5 text-blue-600 mr-2" />
               <h3 className="text-sm font-medium text-blue-800">Current Position: Line Manager Review</h3>
             </div>
-            <p className="text-sm text-blue-700 mt-1">You are reviewing this access request as the Line Manager in {request.department_name}</p>
+            <p className="text-sm text-blue-700 mt-1">You are reviewing this system access request</p>
           </div>
 
           {/* Request Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.user_name}</p>
-              <p className="text-sm text-gray-600">{request.user_email}</p>
+              <p className="text-lg font-semibold text-gray-900">{request.user_name || 'Employee'}</p>
+              <p className="text-sm text-gray-600">{request.user_email || ''}</p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Department & Role</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.department_name}</p>
-              <p className="text-sm text-gray-600">{request.role_name}</p>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
+              <p className="text-lg font-semibold text-gray-900">{request.system_name}</p>
             </div>
           </div>
 
@@ -250,9 +246,33 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{request.justification || 'No justification provided'}</p>
           </div>
 
+          {/* Comments (visible after decision) */}
+          {isReadOnly && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+              {isLoadingComments ? (
+                <div className="text-sm text-gray-500">Loading comments...</div>
+              ) : comments.length === 0 ? (
+                <div className="text-sm text-gray-500">No comments</div>
+              ) : (
+                <div className="space-y-3">
+                  {comments.map((c) => (
+                    <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
+                        <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Line Manager Decision */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-orange-800 mb-3">Your Decision as Line Manager</h3>
+          <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-sky-800 mb-3">Your Decision as Line Manager</h3>
             
             <div className="space-y-4">
           <div>
@@ -264,8 +284,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
-                  placeholder="Add your comment about this request..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+              placeholder="Add your comment about this request..."
+              disabled={isReadOnly}
             />
           </div>
 
@@ -280,6 +301,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
               placeholder="Provide a reason for rejection..."
+              disabled={isReadOnly}
             />
           </div>
             </div>
@@ -293,11 +315,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           
+          {!isReadOnly && (
           <button
             onClick={handleReject}
             disabled={isSubmitting}
@@ -310,11 +333,13 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             )}
             Reject
           </button>
+          )}
           
+          {!isReadOnly && (
           <button
             onClick={handleApprove}
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-orange-500 transition-colors disabled:opacity-50 flex items-center"
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-sky-500 transition-colors disabled:opacity-50 flex items-center"
           >
             {isSubmitting ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -323,6 +348,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             )}
             Approve
           </button>
+          )}
         </div>
       </div>
     </div>
@@ -330,11 +356,11 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
 };
 
 const LineManagerApprovalsPage: React.FC = () => {
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<AccessRequest[]>([]);
+  const [requests, setRequests] = useState<SARequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
 
@@ -346,9 +372,9 @@ const LineManagerApprovalsPage: React.FC = () => {
 
   useEffect(() => {
     const filtered = requests.filter(request => 
-      request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (request.department_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      request.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (request.system_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredRequests(filtered);
   }, [requests, searchTerm]);
@@ -356,12 +382,10 @@ const LineManagerApprovalsPage: React.FC = () => {
   const fetchPendingRequests = async () => {
     try {
       setIsLoading(true);
-      
-      const response = await accessRequestService.getPendingRequests({
-        approver_id: user?.id, // Use user's ID as approver_id
+      const response = await systemAccessRequestService.getPending({
+        approver_id: user?.id!,
         approver_role: 'Line Manager'
       });
-      
       if (response.success) {
         setRequests(response.requests);
       }
@@ -372,33 +396,29 @@ const LineManagerApprovalsPage: React.FC = () => {
     }
   };
 
-  const handleApprove = async (approvalData: ApprovalData) => {
+  const handleApprove = async (approvalData: SAApprovalData) => {
     if (!selectedRequest) return;
-
     try {
-      await accessRequestService.approveRequest(selectedRequest.id, approvalData);
-      
-      // Update the local state
+      const res = await systemAccessRequestService.approve(selectedRequest.id, approvalData);
+      await fetchPendingRequests();
       setRequests(prev => prev.filter(req => req.id !== selectedRequest.id));
-      
-      // Show success message
+      // Update modal to read-only and show comment
+      setSelectedRequest(prev => prev ? { ...prev, status: res?.next_status || 'hod_pending', line_manager_at: new Date().toISOString() } as SARequest : prev);
       alert('Request approved successfully!');
     } catch (error) {
       console.error('Error approving request:', error);
       alert('Failed to approve request. Please try again.');
     }
   };
-
-  const handleReject = async (rejectionData: ApprovalData) => {
+ 
+  const handleReject = async (rejectionData: SAApprovalData) => {
     if (!selectedRequest) return;
-
     try {
-      await accessRequestService.rejectRequest(selectedRequest.id, rejectionData);
-      
-      // Update the local state
+      const res = await systemAccessRequestService.reject(selectedRequest.id, rejectionData);
+      await fetchPendingRequests();
       setRequests(prev => prev.filter(req => req.id !== selectedRequest.id));
-      
-      // Show success message
+      // Update modal to read-only and show comment
+      setSelectedRequest(prev => prev ? { ...prev, status: 'rejected', line_manager_at: new Date().toISOString() } as SARequest : prev);
       alert('Request rejected successfully!');
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -406,7 +426,7 @@ const LineManagerApprovalsPage: React.FC = () => {
     }
   };
 
-  const handleViewRequest = (request: AccessRequest) => {
+  const handleViewRequest = (request: SARequest) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
   };
@@ -416,10 +436,16 @@ const LineManagerApprovalsPage: React.FC = () => {
     setSelectedRequest(null);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending_manager_approval':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+  const getStatusChipColor = (status: string) => {
+    switch (status) {
+      case 'request_pending':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'hod_pending':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'granted':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -505,7 +531,7 @@ const LineManagerApprovalsPage: React.FC = () => {
                 placeholder="Search requests..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full"
               />
             </div>
           </div>
@@ -514,7 +540,7 @@ const LineManagerApprovalsPage: React.FC = () => {
         {/* Requests List */}
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
@@ -540,8 +566,7 @@ const LineManagerApprovalsPage: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -551,21 +576,20 @@ const LineManagerApprovalsPage: React.FC = () => {
                     {filteredRequests.map((request, index) => (
                       <tr key={`${request.id}-${index}`} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{request.user_name}</div>
-                          <div className="text-xs text-gray-500">{request.user_email}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.user_name || 'Employee'}</div>
+                          <div className="text-xs text-gray-500">{request.user_email || ''}</div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{request.department_name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{request.role_name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{request.system_name}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                            {request.status === 'pending_manager_approval' ? 'Pending' : request.status}
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusChipColor(request.status)}`}>
+                            {request.status.replace(/_/g, ' ').toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{formatDate(request.submitted_at)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{new Date(request.submitted_at).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-right">
                           <button 
                             onClick={() => handleViewRequest(request)}
-                            className="p-1 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded transition-colors"
+                            className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -587,33 +611,29 @@ const LineManagerApprovalsPage: React.FC = () => {
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{request.user_name}</h3>
-                        <p className="text-sm text-gray-500">{request.user_email}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">{request.user_name || 'Employee'}</h3>
+                        <p className="text-sm text-gray-500">{request.user_email || ''}</p>
                       </div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                        {request.status === 'pending_manager_approval' ? 'Pending' : request.status}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusChipColor(request.status)}`}>
+                        {request.status.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </div>
 
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center text-sm text-gray-600">
                         <Building2 className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{request.department_name}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Shield className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{request.role_name}</span>
+                        <span>{request.system_name}</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{formatDate(request.submitted_at)}</span>
+                        <span>{new Date(request.submitted_at).toLocaleDateString()}</span>
                       </div>
                     </div>
 
                     <div className="flex justify-end space-x-2">
                       <button 
                         onClick={() => handleViewRequest(request)}
-                        className="p-2 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
+                        className="p-2 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded-lg transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </button>

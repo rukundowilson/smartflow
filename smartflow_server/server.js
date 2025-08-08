@@ -11,6 +11,8 @@ import commentRouter from './src/routers/commentRoutes.js';
 import dashboardRouter from './src/routers/dashboardRoutes.js';
 import systemRouter from './src/routers/systemRoutes.js';
 import accessRequestRouter from './src/routers/accessRequestRoutes.js';
+import systemAccessRequestRouter from './src/routers/systemAccessRequestRoutes.js';
+import notificationRouter from './src/routers/notificationRoutes.js';
 
 const app = express();
 const port = 8081;
@@ -41,6 +43,8 @@ app.use('/api/comments', commentRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/systems', systemRouter);
 app.use('/api/access-requests', accessRequestRouter);
+app.use('/api/system-access-requests', systemAccessRequestRouter);
+app.use('/api/notifications', notificationRouter);
 
 async function startServer() {
   try {

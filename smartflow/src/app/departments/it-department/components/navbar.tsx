@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Settings,
-  Bell,
   LogOut,
   Menu,
   X,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import userRoleService from "@/app/services/userRoleService";
+import NotificationBell from "@/app/components/NotificationBell";
 
 const modules = [
     { id: 'overview', name: 'Overview', icon: Monitor },
@@ -106,10 +106,7 @@ export default function NavBar() {
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               
               {/* User Dropdown */}
               <div className="relative">
@@ -196,10 +193,7 @@ export default function NavBar() {
 
             {/* Mobile Navigation Toggle */}
             <div className="lg:hidden flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}

@@ -6,295 +6,37 @@ import {
   Clock, 
   Shield, 
   User, 
-  Building, 
+  Building2, 
   Calendar,
   Search,
-  Filter,
   Loader2,
   Eye
 } from 'lucide-react';
 import LineManagerLayout from '../components/LineManagerLayout';
-import accessRequestService, { AccessRequest, ApprovalHistory } from '@/app/services/accessRequestService';
+import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
+import { getSystemAccessRequestComments, Comment as AppComment } from '@/app/services/commentService';
 
-interface ApprovalHistoryModalProps {
-  request: AccessRequest | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const ApprovalHistoryModal: React.FC<ApprovalHistoryModalProps> = ({ request, isOpen, onClose }) => {
-  const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'granted':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'rejected':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'ready_for_assignment':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'pending_hod':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'pending_it_manager':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'pending_it_review':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'granted':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'ready_for_assignment':
-        return 'Ready for Assignment';
-      case 'pending_hod':
-        return 'Pending HOD Approval';
-      case 'pending_it_manager':
-        return 'Pending IT Manager';
-      case 'pending_it_review':
-        return 'Pending IT Review';
-      default:
-        return status;
-    }
-  };
-
-  // Fetch approval history when modal opens
-  useEffect(() => {
-    if (isOpen && request) {
-      fetchApprovalHistory();
-    }
-  }, [isOpen, request]);
-
-  const fetchApprovalHistory = async () => {
-    if (!request) return;
-    
-    try {
-      setIsLoadingHistory(true);
-      const response = await accessRequestService.getRequestById(request.id);
-      if (response.success && response.request.approval_history) {
-        setApprovalHistory(response.request.approval_history);
-      }
-    } catch (error) {
-      console.error('Error fetching approval history:', error);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  if (!isOpen || !request) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Access Request Approval Details
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Complete information about the request you approved as Line Manager
-              </p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <XCircle className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column - Request Details */}
-            <div className="space-y-6">
-              {/* Current Position in Workflow */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">Your Approval Position</h4>
-                <p className="text-sm text-blue-700">You approved this access request as the <strong>Line Manager</strong> in <strong>{request.department_name}</strong></p>
-                <p className="text-sm text-blue-700 mt-1">Current Status: <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                  {getStatusText(request.status)}
-                </span></p>
-              </div>
-
-              {/* Request Timeline */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Request Timeline</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Request Submitted</p>
-                      <p className="text-xs text-gray-500">{formatDate(request.submitted_at)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">You Approved</p>
-                      <p className="text-xs text-gray-500">{formatDate(request.approved_at)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-
-            </div>
-
-            {/* Right Column - Employee & Role Details */}
-            <div className="space-y-6">
-              {/* Requester Information */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-blue-900 mb-3">Requester Information</h4>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-blue-700">Name</p>
-                    <p className="text-sm text-blue-900 font-medium">{request.user_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-700">Email</p>
-                    <p className="text-sm text-blue-900">{request.user_email}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-700">Current Department</p>
-                    <p className="text-sm text-blue-900">{request.department_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-700">Current Roles</p>
-                    <p className="text-sm text-blue-900">User, Line Manager</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Requested Access */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-green-900 mb-3">Requested Access</h4>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-green-700">Requesting Role</p>
-                    <p className="text-sm text-green-900 font-medium">{request.role_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-green-700">In Department</p>
-                    <p className="text-sm text-green-900">{request.department_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-green-700">Access Type</p>
-                    <p className="text-sm text-green-900">{request.is_permanent ? 'Permanent Access' : 'Temporary Access'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-green-700">Access Period</p>
-                    <p className="text-sm text-green-900">
-                      {formatDate(request.start_date)} 
-                      {request.end_date && ` to ${formatDate(request.end_date)}`}
-                      {!request.end_date && ' (Permanent)'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Justification */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Justification</h4>
-                <p className="text-sm text-gray-900">{request.justification}</p>
-              </div>
-
-              {/* Your Decision */}
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-orange-900 mb-3">Your Line Manager Decision</h4>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-orange-700">Decision</p>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                      {getStatusText(request.status)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-orange-700">Approved On</p>
-                    <p className="text-sm text-orange-900">{formatDate(request.approved_at)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Approval History */}
-          {approvalHistory.length > 0 && (
-            <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Approval History</h4>
-              {isLoadingHistory ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {approvalHistory.map((approval, index) => (
-                    <div key={approval.id} className="flex items-center justify-between p-3 bg-white rounded border">
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-3 ${approval.action === 'approve' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{approval.approver_name}</p>
-                          <p className="text-xs text-gray-500">{approval.approver_email}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                          approval.action === 'approve' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                          {approval.action === 'approve' ? 'Approved' : 'Rejected'}
-                        </span>
-                        <p className="text-xs text-gray-500 mt-1">{formatDate(approval.approved_at)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Close Button */}
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+// Simple inline modal replacement is omitted for brevity; we keep page focus on listing
 
 export default function LineManagerApprovedPage() {
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<AccessRequest[]>([]);
+  const [requests, setRequests] = useState<SARequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [comments, setComments] = useState<AppComment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewScope, setViewScope] = useState<'me' | 'department'>('me');
   const { user } = useAuth();
 
-  const loadApprovalHistory = async () => {
+  const loadApproved = async () => {
     try {
       setIsLoading(true);
-      const response = await accessRequestService.getApprovalHistory(user?.id || 0, 'Line Manager');
+      const response = viewScope === 'me'
+        ? await systemAccessRequestService.getApprovedBy({ approver_id: user?.id || 0, approver_role: 'Line Manager' })
+        : await systemAccessRequestService.getApprovedDepartment({ approver_id: user?.id || 0 });
       
       if (response.success) {
         setRequests(response.requests);
@@ -308,9 +50,9 @@ export default function LineManagerApprovedPage() {
 
   useEffect(() => {
     if (user?.id) {
-      loadApprovalHistory();
+      loadApproved();
     }
-  }, [user]);
+  }, [user, viewScope]);
 
   // Filter requests - show all requests you approved
   useEffect(() => {
@@ -319,19 +61,28 @@ export default function LineManagerApprovedPage() {
     // Filter by search
     if (searchTerm) {
       filtered = filtered.filter(request =>
-        request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.department_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+        (request.user_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (request.user_email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (request.system_name || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     setFilteredRequests(filtered);
   }, [requests, searchTerm]);
 
-  const handleViewRequest = (request: AccessRequest) => {
+  const handleViewRequest = (request: SARequest) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
+    // load comments
+    (async () => {
+      try {
+        setIsLoadingComments(true);
+        const res = await getSystemAccessRequestComments(request.id);
+        if (res.success) setComments(res.comments);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    })();
   };
 
   const getStatusColor = (status: string) => {
@@ -340,33 +91,8 @@ export default function LineManagerApprovedPage() {
         return 'bg-green-50 text-green-700 border-green-200';
       case 'rejected':
         return 'bg-red-50 text-red-700 border-red-200';
-      case 'ready_for_assignment':
+      default:
         return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'pending_hod':
-      case 'pending_it_manager':
-      case 'pending_it_review':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'granted':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'ready_for_assignment':
-        return 'Ready for Assignment';
-      case 'pending_hod':
-        return 'Pending HOD Approval';
-      case 'pending_it_manager':
-        return 'Pending IT Manager';
-      case 'pending_it_review':
-        return 'Pending IT Review';
-      default:
-        return status;
     }
   };
 
@@ -378,7 +104,16 @@ export default function LineManagerApprovedPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Requests You Approved</h1>
-          <p className="text-gray-600">Track access requests you approved as Line Manager</p>
+          <p className="text-gray-600">Track system access requests you approved as Line Manager</p>
+        </div>
+
+        {/* Scope Toggle */}
+        <div className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+          <div className="text-sm text-gray-700">View:</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setViewScope('me')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='me' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Approved by me</button>
+            <button onClick={() => setViewScope('department')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='department' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Department</button>
+          </div>
         </div>
 
         {/* Simple Stats */}
@@ -388,7 +123,7 @@ export default function LineManagerApprovedPage() {
               <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-500">Requests You Approved</p>
+              <p className="text-sm text-gray-500">{viewScope==='me' ? 'Requests You Approved' : 'Department Approved Requests'}</p>
               <p className="text-xl font-semibold text-gray-900">{approvedCount}</p>
             </div>
           </div>
@@ -400,24 +135,24 @@ export default function LineManagerApprovedPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search requests you approved..."
+              placeholder="Search approved requests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
             />
           </div>
         </div>
 
-        {/* Approval History Table */}
+        {/* Approved Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests approved</h3>
-            <p className="text-gray-500">You haven't approved any access requests yet.</p>
+            <p className="text-gray-500">You haven't approved any system access requests yet.</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -429,13 +164,13 @@ export default function LineManagerApprovedPage() {
                       Employee
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Department & Role
+                      System
                     </th>
                                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                       Your Decision
+                      Status
                      </th>
                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                       When You Approved
+                      Approved On
                      </th>
                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                        Actions
@@ -446,45 +181,37 @@ export default function LineManagerApprovedPage() {
                   {filteredRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div>
                           <div className="flex items-center">
                             <User className="h-4 w-4 text-gray-400 mr-2" />
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{request.user_name}</p>
-                              <p className="text-sm text-gray-500">{request.user_email}</p>
-                            </div>
+                            <p className="text-sm font-medium text-gray-900">{request.user_name || 'Employee'}</p>
+                            <p className="text-sm text-gray-500">{request.user_email || ''}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
                           <div className="flex items-center">
-                            <Building className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">{request.department_name}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Shield className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">{request.role_name}</span>
-                          </div>
+                          <Building2 className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-900">{request.system_name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                          {getStatusText(request.status)}
+                          {request.status.replace(/_/g, ' ').toUpperCase()}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
-                            {request.approved_at ? new Date(request.approved_at).toLocaleDateString() : 'N/A'}
+                            {request.line_manager_at ? new Date(request.line_manager_at as unknown as string).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => handleViewRequest(request)}
-                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View
@@ -499,14 +226,104 @@ export default function LineManagerApprovedPage() {
         )}
       </div>
 
-      <ApprovalHistoryModal
-        request={selectedRequest}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedRequest(null);
-        }}
-      />
+      {isModalOpen && selectedRequest && (
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Approved Request Details</h2>
+              <button onClick={() => { setIsModalOpen(false); setSelectedRequest(null); }} className="text-gray-400 hover:text-gray-600">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-700">You approved this system access request as Line Manager.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
+                  <p className="text-lg font-semibold text-gray-900">{selectedRequest.user_name || 'Employee'}</p>
+                  <p className="text-sm text-gray-600">{selectedRequest.user_email || ''}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
+                  <p className="text-lg font-semibold text-gray-900">{selectedRequest.system_name}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Access Period</h3>
+                  <div className="space-y-1 text-sm text-gray-900">
+                    <p><span className="font-medium">Start:</span> {selectedRequest.start_date ? new Date(selectedRequest.start_date).toLocaleDateString() : 'N/A'}</p>
+                    <p><span className="font-medium">End:</span> {selectedRequest.end_date ? new Date(selectedRequest.end_date).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-gray-600">{selectedRequest.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedRequest.status)}`}>
+                    {selectedRequest.status.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                  <div className="mt-2 text-sm text-gray-700">
+                    <p><span className="font-medium">Approved on:</span> {selectedRequest.line_manager_at ? new Date(selectedRequest.line_manager_at as unknown as string).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Approval</h3>
+                  <div className="text-sm text-gray-900">
+                    <p>
+                      <span className="font-medium">Approved by:</span> {selectedRequest.line_manager_name || (comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number))?.commented_by_name) || 'Line Manager'}
+                    </p>
+                    {(() => {
+                      const approvalComment = comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number));
+                      return approvalComment ? (
+                        <p className="mt-1"><span className="font-medium">Reason:</span> {approvalComment.content}</p>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Justification</h3>
+                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedRequest.justification || 'No justification provided'}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+                {isLoadingComments ? (
+                  <div className="text-sm text-gray-500">Loading comments...</div>
+                ) : comments.length === 0 ? (
+                  <div className="text-sm text-gray-500">No comments</div>
+                ) : (
+                  <div className="space-y-3">
+                    {comments.map((c) => (
+                      <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
+                          <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => { setIsModalOpen(false); setSelectedRequest(null); }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </LineManagerLayout>
   );
 } 

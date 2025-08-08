@@ -22,8 +22,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
-import userRoleService from "@/app/services/userRoleService";
 import LineManagerSidebar from "./LineManagerSidebar";
+import NotificationBell from '@/app/components/NotificationBell';
 
 interface HRNavbarProps {
   title?: string;
@@ -34,12 +34,11 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
   title = "smartflow", 
   subtitle = "Line manager" 
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, selectedRole } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   const modules = [
@@ -51,30 +50,20 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
   { id: 'reports', name: 'Reports', icon: TrendingUp, description: 'Analytics & insights' },
 ];
 
-  // Fetch user role information
-  useEffect(() => {
-    const fetchUserRoleInfo = async () => {
-      if (user?.id) {
-        const roleInfo = await userRoleService.getUserRoleInfo(user.id);
-        setUserRoleInfo(roleInfo);
-      }
-    };
-
-    fetchUserRoleInfo();
-  }, [user]);
+  // Use selectedRole from auth context for role/department display
 
   // Set active module from URL on mount
   useEffect(() => {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/hr') {
+    } else if (pathname === '/administration/office/linemanager') {
       setActiveModule('overview');
     }
   }, [pathname, modules]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/hr${id === 'overview' ? '' : `/${id}`}`;
+    const newPath = `/administration/office/linemanager${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -107,6 +96,9 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isUserDropdownOpen]);
 
+  const displayRole = selectedRole?.roleName || 'Line Manager';
+  const displayDepartment = selectedRole?.departmentName || user?.department || 'Department';
+
   return (
     <>
       <header className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-200">
@@ -116,16 +108,13 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-                <p className="text-xs text-gray-500">{user?.department} {subtitle}</p>
+                <p className="text-xs text-gray-500">{displayDepartment} {subtitle}</p>
               </div>
             </div>
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               
               {/* User Dropdown */}
               <div className="relative">
@@ -175,7 +164,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
                           <div>
                             <p className="text-xs text-gray-500">Role</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.role_name || 'User'}
+                              {displayRole}
                             </p>
                           </div>
                         </div>
@@ -184,7 +173,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
                           <div>
                             <p className="text-xs text-gray-500">Department</p>
                             <p className="text-sm font-medium text-gray-900">
-                              {userRoleInfo?.department_name || user?.department || 'Department'}
+                              {displayDepartment}
                             </p>
                           </div>
                         </div>
@@ -212,10 +201,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
 
             {/* Mobile Navigation Toggle */}
             <div className="lg:hidden flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
@@ -258,10 +244,10 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
                       <div className="flex items-center gap-1 mb-1">
                         <Shield className="h-3 w-3 text-sky-600" />
                         <p className="text-sm font-medium text-gray-900">
-                          {userRoleInfo?.role_name || 'User'}
+                          {displayRole}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500">{user?.department || 'Department'}</p>
+                      <p className="text-xs text-gray-500">{displayDepartment}</p>
                       <p className="text-xs text-gray-400">{user?.email}</p>
                     </div>
                     <button className="text-gray-400 hover:text-gray-600">

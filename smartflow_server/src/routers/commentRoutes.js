@@ -3,7 +3,8 @@ import {
   handleCreateComment, 
   getTicketComments, 
   getRequisitionComments, 
-  handleDeleteComment 
+  handleDeleteComment,
+  getSystemAccessRequestComments
 } from '../controllers/commentController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 
@@ -13,6 +14,7 @@ const router = express.Router();
 router.post("/create", handleCreateComment);
 router.get("/ticket/:ticketId", getTicketComments);
 router.get("/requisition/:requisitionId", getRequisitionComments);
+router.get("/system-access-request/:requestId", getSystemAccessRequestComments);
 router.delete("/:commentId", handleDeleteComment);
 
 export default router; 

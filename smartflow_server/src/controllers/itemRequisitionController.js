@@ -11,6 +11,8 @@ import {
   getPickupDetails,
   getStatusHistory
 } from '../services/itemRequisitionService.js';
+import { sendNotificationToUsers } from './notificationController.js';
+import db from '../config/db.js';
 
 export async function handleCreateItemRequisition(req, res) {
   try {
@@ -107,6 +109,22 @@ export async function handleUpdateItemRequisitionStatus(req, res) {
     }
     
     const result = await updateItemRequisitionStatus(requisitionId, status, reviewed_by);
+
+    // Notify requisition owner
+    try {
+      const [[row]] = await db.query(`SELECT requested_by, item_name FROM item_requisitions WHERE id = ?`, [requisitionId]);
+      if (row?.requested_by) {
+        await sendNotificationToUsers([row.requested_by], {
+          type: 'requisition',
+          title: 'Requisition Updated',
+          message: `Your requisition (${row.item_name}) status changed to ${status}.`,
+          related_id: Number(requisitionId),
+          related_type: 'requisition'
+        });
+      }
+    } catch (nerr) {
+      console.warn('requisition status notification failed:', nerr?.message || nerr);
+    }
     
     res.status(200).json({
       success: true,
@@ -160,6 +178,23 @@ export async function handleAssignItemRequisition(req, res) {
     }
     
     const result = await assignItemRequisition(requisitionId, assignedTo, assignedBy);
+
+    // Notify owner about assignment
+    try {
+      const [[row]] = await db.query(`SELECT requested_by, item_name FROM item_requisitions WHERE id = ?`, [requisitionId]);
+      const [[assignee]] = await db.query(`SELECT full_name FROM users WHERE id = ?`, [assignedTo]);
+      if (row?.requested_by) {
+        await sendNotificationToUsers([row.requested_by], {
+          type: 'requisition',
+          title: 'Requisition Assigned',
+          message: `Your requisition (${row.item_name}) was assigned to ${assignee?.full_name || 'a staff member'}.`,
+          related_id: Number(requisitionId),
+          related_type: 'requisition'
+        });
+      }
+    } catch (nerr) {
+      console.warn('requisition assignment notification failed:', nerr?.message || nerr);
+    }
     
     res.status(200).json({
       success: true,

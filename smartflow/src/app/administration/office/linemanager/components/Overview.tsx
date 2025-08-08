@@ -16,13 +16,14 @@ import {
   User,
   FileText
 } from 'lucide-react';
-import accessRequestService, { AccessRequest } from '@/app/services/accessRequestService';
+import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import userRoleService, { UserRoleInfo } from '@/app/services/userRoleService';
 import { useAuth } from '@/app/contexts/auth-context';
 
 const Overview: React.FC = () => {
   const { user } = useAuth();
-  const [pendingRequests, setPendingRequests] = useState<AccessRequest[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<SARequest[]>([]);
+  const [recentApproved, setRecentApproved] = useState<SARequest[]>([]);
   const [lineManagerDepartments, setLineManagerDepartments] = useState<UserRoleInfo[]>([]);
   const [stats, setStats] = useState({
     totalPending: 0,
@@ -40,54 +41,36 @@ const Overview: React.FC = () => {
   const fetchLineManagerData = async () => {
     try {
       setLoading(true);
-      
-      console.log('Fetching Line Manager data for user:', user?.id);
-      
-      // First, get the user's line manager role assignments
-      if (!user?.id) {
-        console.log('No user ID available');
-        return;
-      }
+      if (!user?.id) return;
       const userRoles = await userRoleService.getUserRoleAssignments(user.id);
       const lineManagerRoles = userRoles.filter(role => role.role_name === 'Line Manager');
-      
-      console.log('User line manager roles:', lineManagerRoles);
       setLineManagerDepartments(lineManagerRoles);
-      
       if (lineManagerRoles.length === 0) {
-        console.log('User has no line manager roles');
         setPendingRequests([]);
-        setStats({
-          totalPending: 0,
-          totalApproved: 0,
-          totalRejected: 0
-        });
+        setStats({ totalPending: 0, totalApproved: 0, totalRejected: 0 });
         return;
       }
-      
-      // Fetch pending requests that this line manager needs to approve
-      const response = await accessRequestService.getPendingRequests({
+
+      // Fetch system access requests pending LM review in this LM's department(s)
+      const response = await systemAccessRequestService.getPending({
         approver_id: user.id,
         approver_role: 'Line Manager'
       });
-      
-      console.log('API Response:', response);
-      
       if (response.success) {
-        const pending = response.requests;
-        setPendingRequests(pending.slice(0, 5)); // Show last 5
-        
-        // Calculate stats from actual data
-        const pendingCount = pending.length;
-        const approved = pending.filter(r => r.status === 'granted').length;
-        const rejected = pending.filter(r => r.status === 'rejected').length;
-        
-        setStats({
-          totalPending: pendingCount,
-          totalApproved: approved,
-          totalRejected: rejected
-        });
+        const pending = response.requests || [];
+        setPendingRequests(pending);
       }
+
+      // Load recently approved by LM to show in activity
+      const approvedRes = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'Line Manager' });
+      if (approvedRes.success) {
+        setRecentApproved(approvedRes.requests || []);
+      }
+
+      // Compute stats
+      const totalPending = (response.success ? (response.requests || []).length : 0);
+      const totalApproved = (approvedRes.success ? (approvedRes.requests || []).length : 0);
+      setStats({ totalPending, totalApproved, totalRejected: 0 });
     } catch (error) {
       console.error('Error fetching Line Manager data:', error);
     } finally {
@@ -96,11 +79,11 @@ const Overview: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-      case 'pending_manager_approval':
-      case 'pending_line_manager':
+    switch (status) {
+      case 'request_pending':
         return 'text-blue-600 bg-blue-50';
+      case 'hod_pending':
+        return 'text-gray-600 bg-gray-50';
       case 'granted':
         return 'text-green-600 bg-green-50';
       case 'rejected':
@@ -114,7 +97,6 @@ const Overview: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 48) return 'Yesterday';
@@ -123,14 +105,14 @@ const Overview: React.FC = () => {
 
   const formatStatus = (status: string) => {
     switch (status) {
-      case 'pending_line_manager': return 'Pending Line Manager';
-      case 'pending_hod': return 'Pending HOD';
-      case 'pending_it_manager': return 'Pending IT Manager';
-      case 'pending_manager_approval': return 'Pending Manager';
-      case 'pending_system_owner': return 'Pending System Owner';
+      case 'request_pending': return 'Line Manager Pending';
+      case 'hod_pending': return 'HOD Pending';
+      case 'it_hod_pending': return 'IT HOD Pending';
+      case 'it_manager_pending': return 'IT Manager Pending';
+      case 'it_support_review': return 'IT Support Review';
       case 'granted': return 'Granted';
       case 'rejected': return 'Rejected';
-      default: return status.replace('_', ' ');
+      default: return status.replace(/_/g, ' ');
     }
   };
 
@@ -176,7 +158,7 @@ const Overview: React.FC = () => {
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Line Manager Dashboard</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Monitor and approve access requests for your departments: {lineManagerDepartments.map(d => d.department_name).join(', ')}
+            Monitor and approve system access requests for your departments: {lineManagerDepartments.map(d => d.department_name).join(', ')}
           </p>
         </div>
       </div>
@@ -232,7 +214,7 @@ const Overview: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Recent Activity - Team Requests */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-100">
@@ -240,70 +222,42 @@ const Overview: React.FC = () => {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {pendingRequests.length > 0 ? (
-                pendingRequests.slice(0, 5).map((request, index) => (
-                  <div key={index} className="flex items-center text-sm">
-                    <div className={`w-2 h-2 rounded-full mr-3 ${
-                      request.status === 'granted' ? 'bg-green-400' :
-                      request.status === 'rejected' ? 'bg-red-400' :
-                      'bg-blue-400'
-                    }`}></div>
-                    <span className="text-gray-600">
-                      {request.status === 'granted' ? 'Access granted for' :
-                       request.status === 'rejected' ? 'Access denied for' :
-                       'Access request from'} {request.user_name} - {request.role_name}
-                    </span>
-                    <span className="text-gray-400 ml-auto">{formatDate(request.submitted_at)}</span>
+              {(() => {
+                const items = [
+                  ...pendingRequests.map(r => ({
+                    id: `p-${r.id}`,
+                    label: `Access request from ${r.user_name || 'Employee'} • ${r.system_name}`,
+                    status: r.status,
+                    time: r.submitted_at
+                  })),
+                  ...recentApproved.map(r => ({
+                    id: `a-${r.id}`,
+                    label: `You approved ${r.user_name || 'Employee'} • ${r.system_name}`,
+                    status: 'granted',
+                    time: r.line_manager_at || r.submitted_at
+                  }))
+                ]
+                .sort((a,b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+                .slice(0, 5);
+                return items.length > 0 ? (
+                  items.map((item, index) => (
+                    <div key={index} className="flex items-center text-sm">
+                      <div className={`w-2 h-2 rounded-full mr-3 ${
+                        item.status === 'granted' ? 'bg-green-400' :
+                        item.status === 'rejected' ? 'bg-red-400' :
+                        'bg-blue-400'
+                      }`}></div>
+                      <span className="text-gray-600">{item.label}</span>
+                      <span className="text-gray-400 ml-auto">{formatDate(item.time)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Activity className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No recent activity</p>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <Activity className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No recent activity</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <Clock className="h-5 w-5 text-blue-600 mr-3" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">Review Requests</p>
-                  <p className="text-xs text-gray-500">Check pending approvals</p>
-                </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <User className="h-5 w-5 text-green-600 mr-3" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">Team Members</p>
-                  <p className="text-xs text-gray-500">View team details</p>
-                </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <TrendingUp className="h-5 w-5 text-purple-600 mr-3" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">View Reports</p>
-                  <p className="text-xs text-gray-500">Analytics & insights</p>
-                </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <Shield className="h-5 w-5 text-orange-600 mr-3" />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">Access Control</p>
-                  <p className="text-xs text-gray-500">Manage permissions</p>
-                </div>
-              </button>
+                );
+              })()}
             </div>
           </div>
         </div>

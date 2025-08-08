@@ -272,7 +272,7 @@ class SystemController {
       
       // Audit log
       await insertAuditLog('update', 'system', id, req.user?.id, { name, description });
-
+      
       res.json({
         success: true,
         message: 'System updated successfully',
@@ -322,7 +322,7 @@ class SystemController {
       
       // Audit log
       await insertAuditLog('delete', 'system', id, req.user?.id, {});
-
+      
       res.json({
         success: true,
         message: 'System deleted successfully'

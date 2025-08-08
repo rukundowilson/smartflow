@@ -9,11 +9,9 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'smartflow',
   waitForConnections: true,
-  connectionLimit: 5, // Reduced from 10 to avoid connection limits
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 3), // Keep under provider max_user_connections to avoid 1226
   queueLimit: 0,
-  acquireTimeout: 60000, // 60 seconds
-  timeout: 60000, // 60 seconds
-  reconnect: true,
+  connectTimeout: 60000, // 60 seconds
   charset: 'utf8mb4'
 });
 

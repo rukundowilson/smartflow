@@ -4,7 +4,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import NavBar from "../components/navbar";
 import SideBar from "../components/sidebar";
 import Requisition from '@/app/components/allMyRe';
-import AccessRequestsPortal from '@/app/components/myAccessRequests';
+import SystemAccessRequests from '@/app/components/SystemAccessRequests';
 import { Key, Package, Menu } from 'lucide-react';
 
 function MyRequestsContent() {
@@ -63,7 +63,7 @@ function MyRequestsContent() {
                                         }`}
                                     >
                                         <Key className="h-4 w-4" />
-                                        <span className="hidden sm:inline">Access Requests</span>
+                                        <span className="hidden sm:inline">System Access</span>
                                         <span className="sm:hidden">Access</span>
                                     </button>
                                     <button
@@ -86,7 +86,7 @@ function MyRequestsContent() {
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
                             {activeTab === 'access' ? (
                                 <div className="p-4 sm:p-6">
-                                    <AccessRequestsPortal />
+                                    <SystemAccessRequests />
                                 </div>
                             ) : (
                                 <div className="p-4 sm:p-6">

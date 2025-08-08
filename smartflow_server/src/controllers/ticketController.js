@@ -35,6 +35,9 @@ export const getUserTickets = async (req, res) => {
     res.status(200).json({ success: true, tickets: tickets.tickets });
   } catch (error) {
     console.error("Error in getUserTickets:", error);
+    if (error && (error.code === 'ER_USER_LIMIT_REACHED' || error.errno === 1226)) {
+      return res.status(503).json({ success: false, message: 'Database connection limit reached. Please retry shortly.' });
+    }
     res.status(500).json({ success: false, message: "Failed to fetch tickets" });
   }
 };

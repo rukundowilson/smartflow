@@ -2,7 +2,7 @@ import API from "../utils/axios";
 
 export interface Comment {
   id: number;
-  comment_type: 'ticket' | 'requisition';
+  comment_type: 'ticket' | 'requisition' | 'system_access_request';
   commented_id: number;
   commented_by: number;
   content: string;
@@ -12,7 +12,7 @@ export interface Comment {
 }
 
 export interface NewComment {
-  comment_type: 'ticket' | 'requisition';
+  comment_type: 'ticket' | 'requisition' | 'system_access_request';
   commented_id: number;
   commented_by: number;
   content: string;
@@ -57,6 +57,16 @@ export async function getRequisitionComments(requisitionId: number): Promise<{ s
       success: true,
       comments: []
     };
+  }
+}
+
+export async function getSystemAccessRequestComments(requestId: number): Promise<{ success: boolean; comments: Comment[] }> {
+  try {
+    const response = await API.get(`/api/comments/system-access-request/${requestId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch system access request comments:", error);
+    return { success: true, comments: [] };
   }
 }
 
