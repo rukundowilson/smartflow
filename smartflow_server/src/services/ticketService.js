@@ -61,7 +61,7 @@ export async function fetchTicketsByUserId(userId) {
     return { tickets };
   } catch (error) {
     console.error("Error fetching tickets:", error);
-    throw new Error("Failed to fetch tickets");
+    throw error; // Preserve original MySQL error (e.g., ER_USER_LIMIT_REACHED)
   }
 }
 

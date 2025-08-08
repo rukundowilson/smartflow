@@ -4,7 +4,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import NavBar from "../components/navbar";
 import SideBar from "../components/sidebar";
 import Requisition from '@/app/components/allMyRe';
-import AccessRequestsPortal from '@/app/components/myAccessRequests';
+import SystemAccessRequests from '@/app/components/SystemAccessRequests';
 import { Key, Package, Menu } from 'lucide-react';
 
 function MyRequestsContent() {
@@ -35,32 +35,6 @@ function MyRequestsContent() {
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
             <NavBar/>
-            
-            {/* Mobile Menu Button */}
-            <div className="lg:hidden fixed top-4 left-4 z-50">
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="bg-white p-2 rounded-lg shadow-lg border border-gray-200"
-                >
-                    <Menu className="h-6 w-6 text-gray-600" />
-                </button>
-            </div>
-
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
-
-            {/* Mobile Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:hidden ${
-                isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}>
-                <SideBar />
-            </div>
-
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
                 <div className="flex">
                     {/* Desktop Sidebar */}
@@ -89,7 +63,7 @@ function MyRequestsContent() {
                                         }`}
                                     >
                                         <Key className="h-4 w-4" />
-                                        <span className="hidden sm:inline">Access Requests</span>
+                                        <span className="hidden sm:inline">System Access</span>
                                         <span className="sm:hidden">Access</span>
                                     </button>
                                     <button
@@ -112,7 +86,7 @@ function MyRequestsContent() {
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
                             {activeTab === 'access' ? (
                                 <div className="p-4 sm:p-6">
-                                    <AccessRequestsPortal />
+                                    <SystemAccessRequests />
                                 </div>
                             ) : (
                                 <div className="p-4 sm:p-6">

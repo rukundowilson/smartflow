@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Users, Shield, User, Settings, ArrowRight, LogOut } from 'lucide-react';
+import { useAuth } from '@/app/contexts/auth-context';
 
 interface UserRole {
   department_name: string;
@@ -26,6 +27,7 @@ export default function RoleSelectionPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { setSelectedRole: setAuthSelectedRole } = useAuth();
 
   useEffect(() => {
     // Get user data from localStorage
@@ -59,6 +61,10 @@ export default function RoleSelectionPage() {
 
     // Save updated user data
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    // Save selected role in auth context
+    localStorage.setItem('selectedRole', JSON.stringify(selectedRole));
+    setAuthSelectedRole(selectedRole);
 
     // Redirect based on selected role
     redirectByRole(selectedRole);
@@ -120,6 +126,7 @@ export default function RoleSelectionPage() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('selectedRole');
     router.push('/');
   };
 

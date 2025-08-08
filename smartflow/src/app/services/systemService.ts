@@ -26,6 +26,16 @@ export interface UpdateSystemData {
   description: string;
 }
 
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  actor_user_id: number | null;
+  details: any;
+  created_at: string;
+}
+
 class SystemService {
   private baseUrl = '/api/systems';
 
@@ -58,6 +68,17 @@ class SystemService {
       return response.data;
     } catch (error) {
       console.error('Error fetching system roles:', error);
+      throw error;
+    }
+  }
+
+  // Get audit logs for a system
+  async getSystemLogs(systemId: number): Promise<{ success: boolean; logs: AuditLogEntry[] }>{
+    try {
+      const response = await API.get(`${this.baseUrl}/${systemId}/logs`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching system logs:', error);
       throw error;
     }
   }

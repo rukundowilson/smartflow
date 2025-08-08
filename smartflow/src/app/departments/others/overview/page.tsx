@@ -18,7 +18,7 @@ import { useAuth } from '@/app/contexts/auth-context';
 import Modal from '@/app/components/ticketModal';
 import { fetchTicketsByUserId } from '@/app/services/ticketService';
 import { getUserItemRequisitions, ItemRequisition } from '@/app/services/itemRequisitionService';
-import accessRequestService, { AccessRequest } from '@/app/services/accessRequestService';
+import systemAccessRequestService, { SystemAccessRequest } from '@/app/services/systemAccessRequestService';
 import SpinLoading from '@/app/administration/superadmin/components/loading';
 
 
@@ -37,28 +37,44 @@ export default function OverView(){
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [modalType, setModalType] = useState('');
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
-    const {user} = useAuth();
+    const {user, selectedRole} = useAuth();
     const [isLoading, setIsLoading] = useState<boolean>();
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
-    const [myAccessRequests, setMyAccessRequests] = useState<AccessRequest[]>([]);
+    const [mySystemAccessRequests, setMySystemAccessRequests] = useState<SystemAccessRequest[]>([]);
     const [requestsLoading, setRequestsLoading] = useState<boolean>(false);
     const [accessRequestsLoading, setAccessRequestsLoading] = useState<boolean>(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
     const router = useRouter();
 
   const getStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'open':
-      case 'pending': return 'text-orange-600 bg-orange-50';
-      case 'in progress': return 'text-blue-600 bg-blue-50';
-      case 'resolved':
-      case 'approved':
-      case 'delivered': return 'text-green-600 bg-green-50';
-      case 'rejected': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
+    const s = status.toLowerCase();
+    if (s === 'open' || s === 'pending') return 'text-orange-600 bg-orange-50';
+    if (s === 'in progress') return 'text-blue-600 bg-blue-50';
+    if (s === 'resolved' || s === 'approved' || s === 'delivered') return 'text-green-600 bg-green-50';
+    if (s === 'rejected') return 'text-red-600 bg-red-50';
+    return 'text-gray-600 bg-gray-50';
+  };
+
+  const getSystemRequestChip = (status: string): string => {
+    switch (status) {
+      case 'request_pending':
+        return 'text-green-700 bg-green-50';
+      case 'hod_pending':
+      case 'it_hod_pending':
+      case 'it_manager_pending':
+      case 'it_support_review':
+      case 'line_manager_pending':
+        return 'text-blue-700 bg-blue-50';
+      case 'granted':
+        return 'text-green-700 bg-green-50';
+      case 'rejected':
+        return 'text-red-700 bg-red-50';
+      default:
+        return 'text-gray-700 bg-gray-50';
     }
   };
+  const formatSystemStatus = (status: string): string => status.replace(/_/g, ' ').toUpperCase();
    interface StatCardProps {
       title: string;
       value: string | number;
@@ -100,15 +116,15 @@ export default function OverView(){
         setAccessRequestsLoading(true);
         
         // Fetch tickets, requests, and access requests concurrently
-        const [ticketsResponse, requestsResponse, accessRequestsResponse] = await Promise.all([
+        const [ticketsResponse, requestsResponse, systemAccessResp] = await Promise.all([
           fetchTicketsByUserId(user.id),
           getUserItemRequisitions(user.id),
-          accessRequestService.getUserRequests(user.id)
+          systemAccessRequestService.getUserRequests(user.id)
         ]);
         
         setMyTickets(ticketsResponse.tickets);
         setMyRequests(requestsResponse.requisitions);
-        setMyAccessRequests(accessRequestsResponse);
+        setMySystemAccessRequests(systemAccessResp.requests || []);
         
         // Show success message briefly
         setShowSuccessMessage(true);
@@ -135,12 +151,12 @@ export default function OverView(){
         }
     };
 
-    const fetchUserAccessRequests = async () => {
+    const fetchUserSystemAccessRequests = async () => {
         if (!user?.id) return;
         try {
             setAccessRequestsLoading(true);
-            const response = await accessRequestService.getUserRequests(user.id);
-            setMyAccessRequests(response);
+            const response = await systemAccessRequestService.getUserRequests(user.id);
+            setMySystemAccessRequests(response.requests || []);
         } catch (err) {
             console.error('Error fetching access requests:', err);
         } finally {
@@ -166,7 +182,7 @@ export default function OverView(){
         };
         getTickets();
         fetchUserRequests();
-        fetchUserAccessRequests();
+        fetchUserSystemAccessRequests();
     },[user?.id])
     const go = function(){
         router.push("/departments/others/my-tickets");
@@ -176,12 +192,17 @@ export default function OverView(){
     // Compute stats dynamically from tickets
     const tickets = Array.isArray(myTickets) ? myTickets : [];
     const requests = Array.isArray(myRequests) ? myRequests : [];
-    const accessRequests = Array.isArray(myAccessRequests) ? myAccessRequests : [];
+    const systemAccessRequests = Array.isArray(mySystemAccessRequests) ? mySystemAccessRequests : [];
     const activeTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress');
     const highPriorityTickets = tickets.filter(t => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'high');
     const deliveredItems = requests.filter(r => r.status === 'delivered');
-    const pendingAccessRequests = accessRequests.filter(r => r.status.includes('pending'));
-    const grantedAccessRequests = accessRequests.filter(r => r.status === 'granted');
+    const pendingAccessRequests = systemAccessRequests.filter(r => r.status.includes('pending'));
+    const grantedAccessRequests = systemAccessRequests.filter(r => r.status === 'granted');
+
+    // Get current role information
+    const currentRole = selectedRole || user;
+    const roleName = selectedRole?.role_name || user?.role || 'User';
+    const departmentName = selectedRole?.department_name || user?.department || 'Department';
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -212,6 +233,9 @@ export default function OverView(){
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.full_name}!</h2>
+                                        <p className="text-sm sm:text-base text-gray-600 mb-2">
+                                          Currently active as: <span className="font-semibold text-sky-700">{roleName}</span> in <span className="font-semibold text-sky-700">{departmentName}</span>
+                                        </p>
                                         <p className="text-sm sm:text-base text-gray-600">Here's what's happening with your IT requests, tickets, and access requests.</p>
                                     </div>
                                     <button 
@@ -258,61 +282,17 @@ export default function OverView(){
 
                             </div>
 
-                            {/* Quick Actions */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-6">
-                                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div onClick={() => openModal('new')} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer">
-                                        <div className="flex items-center">
-                                            <div className="bg-red-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
-                                                <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
-                                            </div>
-                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Report IT Issue</h4>
-                                                <p className="text-xs sm:text-sm text-gray-500">Get help with technical problems</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div 
-                                        onClick={() => router.push('/departments/others/my-requests')}
-                                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer"
-                                    >
-                                        <div className="flex items-center">
-                                            <div className="bg-blue-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
-                                                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                                            </div>
-                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request IT Equipment</h4>
-                                                <p className="text-xs sm:text-sm text-gray-500">Order laptops, accessories, software</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div 
-                                        onClick={() => router.push('/departments/others/access-request')}
-                                        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition-all cursor-pointer"
-                                    >
-                                        <div className="flex items-center">
-                                            <div className="bg-purple-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
-                                                <Key className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
-                                            </div>
-                                            <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request Role Access</h4>
-                                                <p className="text-xs sm:text-sm text-gray-500">Request department roles and permissions</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
 
-                            {/* Recent Activity - Stack vertically on mobile */}
-                            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                            {/* Recent Activity - Full width with comfortable spacing */}
+                            <div className="grid grid-cols-1 gap-6">
                                 <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                    <div className="px-5 sm:px-6 py-4 border-b border-gray-100">
                                         <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Tickets</h3>
                                     </div>
                                     <div className="divide-y divide-gray-100">
                                         {tickets.slice(0, 3).map(ticket => (
-                                            <div key={ticket.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                                            <div key={ticket.id} className="px-5 sm:px-6 py-4 hover:bg-gray-50">
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-sm font-medium text-gray-900 truncate">{ticket.issue_type}</p>
@@ -332,19 +312,19 @@ export default function OverView(){
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                    <div className="px-5 sm:px-6 py-3 border-t border-gray-100">
                                         <button onClick={go}
                                         className="text-sky-600 hover:text-sky-700 text-sm font-medium">View all tickets →</button>
                                     </div>
                                 </div>
 
                                 <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                    <div className="px-5 sm:px-6 py-4 border-b border-gray-100">
                                         <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Requests</h3>
                                     </div>
                                     <div className="divide-y divide-gray-100">
                                         {requests.slice(0, 3).map(request => (
-                                            <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                                            <div key={request.id} className="px-5 sm:px-6 py-4 hover:bg-gray-50">
                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-sm font-medium text-gray-900 truncate">{request.item_name}</p>
@@ -357,7 +337,7 @@ export default function OverView(){
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                    <div className="px-5 sm:px-6 py-3 border-t border-gray-100">
                                         <button 
                                             onClick={() => router.push('/departments/others/my-requests')}
                                             className="text-sky-600 hover:text-sky-700 text-sm font-medium"
@@ -368,25 +348,25 @@ export default function OverView(){
                                 </div>
 
                                 <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                                    <div className="px-5 sm:px-6 py-4 border-b border-gray-100">
                                         <h3 className="text-base sm:text-lg font-medium text-gray-900">Recent Access Requests</h3>
                                     </div>
                                     <div className="divide-y divide-gray-100">
-                                        {accessRequests.slice(0, 3).map(request => (
-                                            <div key={request.id} className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
-                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.role_name}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">{request.department_name} • {new Date(request.submitted_at).toLocaleDateString()}</p>
-                                                    </div>
-                                                    <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getStatusColor(request.status)}`}>
-                                                        {request.status.replace('_', ' ')}
+                                        {systemAccessRequests.slice(0, 3).map(request => (
+                                             <div key={request.id} className="px-5 sm:px-6 py-4 hover:bg-gray-50">
+                                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+                                                     <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{request.system_name}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">Submitted • {new Date(request.submitted_at).toLocaleDateString()}</p>
+                                                     </div>
+                                                    <span className={`px-2 py-1 text-xs rounded-full self-start sm:ml-2 flex-shrink-0 ${getSystemRequestChip(request.status)}`}>
+                                                        {formatSystemStatus(request.status)}
                                                     </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                 </div>
+                                             </div>
+                                         ))}
                                     </div>
-                                    <div className="px-4 sm:px-6 py-3 border-t border-gray-100">
+                                    <div className="px-5 sm:px-6 py-3 border-t border-gray-100">
                                         <button 
                                             onClick={() => router.push('/departments/others/access-request')}
                                             className="text-sky-600 hover:text-sky-700 text-sm font-medium"
@@ -420,24 +400,6 @@ export default function OverView(){
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-
-                                {/* Loading Quick Actions */}
-                                <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-6 animate-pulse">
-                                    <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
-                                    <div className="space-y-4">
-                                        {[...Array(2)].map((_, i) => (
-                                            <div key={i} className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                                                <div className="flex items-center">
-                                                    <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
-                                                    <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                                                        <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
-                                                        <div className="h-3 bg-gray-200 rounded w-48"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
 
                                 {/* Loading Recent Activity */}
