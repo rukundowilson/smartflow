@@ -14,7 +14,11 @@ router.get('/assignments/user/:userId', (req, res) => RoleController.getUserRole
 router.post('/assignments', (req, res) => RoleController.assignRoleToUser(req, res));
 router.put('/assignments/:userId/:departmentId/:roleId/status', (req, res) => RoleController.updateRoleAssignmentStatus(req, res));
 router.delete('/assignments/:userId/:departmentId/:roleId', (req, res) => RoleController.removeRoleAssignment(req, res));
+// expose all assignments to match frontend usage
+router.get('/assignments/all', (req, res) => RoleController.getAllRoleAssignments(req, res));
 router.get('/department/:departmentId', (req, res) => RoleController.getRolesByDepartment(req, res));
 router.post('/system/assign', (req, res) => RoleController.assignSystemRoleToUser(req, res));
+// role search alias
+router.get('/search', (req, res) => RoleController.searchRoles(req, res));
 
 export default router; 

@@ -10,8 +10,12 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 // List all users
 router.get('/', systemUsers);
+// Alias used by frontend services
+router.get('/users', systemUsers);
 // Review registration application (approve/reject)
 router.put('/applications/review', reviewRegistrationApplication);
+// Alias to support POST used by some clients
+router.post('/application/review', reviewRegistrationApplication);
 
 // IT users (alias used by frontend)
 router.get('/it', handleGetITUsers);

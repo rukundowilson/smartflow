@@ -218,6 +218,26 @@ class SystemController {
     }
   }
 
+  // New: Get system audit logs
+  async getSystemLogs(req, res) {
+    try {
+      const { systemId } = req.params;
+      const [logs] = await db.query(
+        `SELECT id, action, entity_type, entity_id, actor_user_id, details, created_at
+         FROM audit_logs
+         WHERE entity_type = 'system' AND entity_id = ?
+         ORDER BY created_at DESC
+         LIMIT 200`,
+        [systemId]
+      );
+
+      res.json({ success: true, logs });
+    } catch (error) {
+      console.error('Error fetching system logs:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch system logs' });
+    }
+  }
+
   // Update system
   async updateSystem(req, res) {
     try {

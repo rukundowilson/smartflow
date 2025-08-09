@@ -28,7 +28,7 @@ const AccessRequestDashboard = () => {
 
 
   // Sample data based on your API structure
-  const [accessRequests, setAccessRequests] = useState<any>();
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
 
   const getStatusColor = (status : any) => {
     switch (status?.toLowerCase()) {
@@ -131,7 +131,7 @@ const AccessRequestDashboard = () => {
               setIsFetching(true);
               const sysUsers = await getSystemUsers();
               console.log("Helper:",sysUsers);
-              setAccessRequests(sysUsers); 
+              setAccessRequests(sysUsers.transformed || []); 
           } catch (error) {
               console.error("Failed to fetch system users", error);
           }
