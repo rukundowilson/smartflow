@@ -21,10 +21,12 @@ import { useAuth } from "@/app/contexts/auth-context";
 import NotificationBell from '@/app/components/NotificationBell';
 
 const modules = [
-  { id: 'overview', name: 'Overview', icon: Monitor },
-  { id: 'my-tickets', name: 'IT Tickets', icon: Ticket },
-  { id: 'my-requests', name: 'My Requests', icon: Key },
+  { id: '/', name: 'overview', icon: Key, description: 'home dashboard' },
+  { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
+  { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
+  { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
 ];
+
 
 export default function NavBarItHod() {
   const pathname = usePathname();
@@ -47,7 +49,7 @@ export default function NavBarItHod() {
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/others/${id}`;
+    const newPath = id === '/' ? `/administration/it-hod` : `/administration/it-hod/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -94,7 +96,12 @@ export default function NavBarItHod() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+                <p className="text-[11px] leading-tight text-gray-500" suppressHydrationWarning>
+                  {departmentName} • {roleName}
+                </p>
+              </div>
             </div>
             
             {/* Desktop Navigation */}

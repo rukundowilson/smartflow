@@ -21,6 +21,13 @@ export default function ITHODOverviewPage() {
   const [processed, setProcessed] = useState<SARequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getFirstName = (fullName?: string | null) => {
+    if (!fullName || typeof fullName !== 'string') return 'User';
+    const t = fullName.trim();
+    if (!t) return 'User';
+    return t.split(' ')[0] || 'User';
+  };
+
   useEffect(() => {
     const load = async () => {
       if (!user?.id) { setIsLoading(false); return; }
@@ -85,7 +92,7 @@ export default function ITHODOverviewPage() {
             <div className="rounded-2xl p-6 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome, {user?.full_name || 'IT HOD'}</h1>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome, {getFirstName(user?.full_name) }</h1>
                   <p className="text-gray-600">Here is your system access overview</p>
                 </div>
                 <div className="hidden lg:flex items-center space-x-4">
@@ -143,6 +150,8 @@ export default function ITHODOverviewPage() {
                 </div>
               </div>
             </div>
+
+            {/* Notifications removed; handled by navbar NotificationBell */}
 
             {/* Recent Activity */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

@@ -7,9 +7,10 @@ import notificationService, { Notification } from '@/app/services/notificationSe
 
 interface NotificationBellProps {
   className?: string;
+  filterTypes?: Array<Notification['type']>;
 }
 
-export default function NotificationBell({ className }: NotificationBellProps) {
+export default function NotificationBell({ className, filterTypes }: NotificationBellProps) {
   const { user } = useAuth();
   const userId = user?.id;
   const [open, setOpen] = useState(false);
@@ -18,19 +19,38 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
+  const matchesFilter = (n: Notification) => {
+    if (!filterTypes || filterTypes.length === 0) return true;
+    return filterTypes.includes(n.type);
+  };
+
+  const computeFilteredUnread = (items: Notification[]) => {
+    return items.filter(n => n.status === 'unread' && matchesFilter(n)).length;
+  };
+
   useEffect(() => {
     if (!userId) return;
 
-    // Initialize SSE
     notificationService.initializeRealTimeNotifications(userId);
 
-    // Initial load
-    notificationService.getUnreadCount(userId).then(setUnreadCount);
-    notificationService.getNotifications(userId).then(setNotifications);
+    // Initial load: fetch full list, compute filtered unread locally
+    (async () => {
+      const all = await notificationService.getNotifications(userId);
+      setNotifications(all);
+      setUnreadCount(computeFilteredUnread(all));
+    })();
 
     const onNew = (n: Notification) => {
-      setNotifications(prev => [n as Notification, ...prev].slice(0, 50));
-      setUnreadCount(prev => prev + 1);
+      setNotifications(prev => {
+        const next = [n as Notification, ...prev].slice(0, 50);
+        return next;
+      });
+      // Recompute to respect filters
+      setUnreadCount(prev => {
+        // We'll recompute from the next state in a microtask to avoid stale prev
+        setTimeout(() => setUnreadCount(computeFilteredUnread([n as Notification, ...notifications])), 0);
+        return prev;
+      });
     };
 
     notificationService.on('new-notification', onNew);
@@ -38,6 +58,12 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       notificationService.off('new-notification', onNew);
     };
   }, [userId]);
+
+  useEffect(() => {
+    // When notifications change or filterTypes changes, recompute badge
+    setUnreadCount(computeFilteredUnread(notifications));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifications, JSON.stringify(filterTypes)]);
 
   const toggle = () => setOpen(o => !o);
 
@@ -64,11 +90,14 @@ export default function NotificationBell({ className }: NotificationBellProps) {
     if (!id) return;
     await notificationService.markAsRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'read' } as Notification : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const dotShown = unreadCount > 0;
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
+
+  const visibleNotifications = filterTypes && filterTypes.length > 0
+    ? notifications.filter(matchesFilter)
+    : notifications;
 
   return (
     <div className={`relative ${className || ''}`}>
@@ -94,10 +123,10 @@ export default function NotificationBell({ className }: NotificationBellProps) {
               <div className="text-xs text-gray-500">{unreadCount} unread</div>
             </div>
             <div className="max-h-[70vh] sm:max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {visibleNotifications.length === 0 ? (
                 <div className="px-4 py-6 text-sm text-gray-500">No notifications</div>
               ) : (
-                notifications.slice(0, 20).map((n, idx) => (
+                visibleNotifications.slice(0, 20).map((n, idx) => (
                   <div key={idx} className={`px-4 py-4 sm:py-3 text-sm hover:bg-gray-50 flex items-start gap-3 ${n.status === 'unread' ? 'bg-sky-50' : ''}`}>
                     <div className="mt-0.5">
                       <span className={`inline-block h-2 w-2 rounded-full ${n.status === 'unread' ? 'bg-sky-500' : 'bg-gray-300'}`}></span>

@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 
 const modules = [
+  { id: '/', name: 'overview', icon: Key, description: 'home dashboard' },
   { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
   { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
   { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
@@ -45,7 +46,7 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/it-hod/${id}`;
+    const newPath = id === '/' ? `/administration/it-hod` : `/administration/it-hod/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
