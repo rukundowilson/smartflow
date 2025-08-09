@@ -240,36 +240,75 @@ export default function LineManagerApprovedPage() {
                 <p className="text-sm text-blue-700">You approved this system access request as Line Manager.</p>
               </div>
 
+              {/* Primary Info Sections */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
-                  <p className="text-lg font-semibold text-gray-900">{selectedRequest.user_name || 'Employee'}</p>
-                  <p className="text-sm text-gray-600">{selectedRequest.user_email || ''}</p>
+                {/* Employee Information */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Employee Information</h3>
+                      <p className="text-xs text-gray-600">Requester details</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                      <p className="font-medium text-gray-900">{selectedRequest.user_name || 'Employee'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
+                      <p className="text-gray-900">{selectedRequest.user_email || 'N/A'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
-                  <p className="text-lg font-semibold text-gray-900">{selectedRequest.system_name}</p>
+
+                {/* Request Information */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Request Information</h3>
+                      <p className="text-xs text-gray-600">System access details</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">System Name</label>
+                      <p className="font-medium text-gray-900">{selectedRequest.system_name}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Approved On</label>
+                      <p className="text-gray-900">{selectedRequest.line_manager_at ? new Date(selectedRequest.line_manager_at as unknown as string).toLocaleString() : 'N/A'}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Access Period</label>
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-900">
+                        <p><span className="font-medium">Start:</span> {selectedRequest.start_date ? new Date(selectedRequest.start_date).toLocaleDateString() : 'N/A'}</p>
+                        <p><span className="font-medium">End:</span> {selectedRequest.end_date ? new Date(selectedRequest.end_date).toLocaleDateString() : 'N/A'}</p>
+                        <p className="text-gray-600">{selectedRequest.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedRequest.status)}`}>
+                        {selectedRequest.status.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Justification</h3>
+                <p className="text-sm text-gray-900 bg-white p-3 rounded-lg border border-gray-200">{selectedRequest.justification || 'No justification provided'}</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Access Period</h3>
-                  <div className="space-y-1 text-sm text-gray-900">
-                    <p><span className="font-medium">Start:</span> {selectedRequest.start_date ? new Date(selectedRequest.start_date).toLocaleDateString() : 'N/A'}</p>
-                    <p><span className="font-medium">End:</span> {selectedRequest.end_date ? new Date(selectedRequest.end_date).toLocaleDateString() : 'N/A'}</p>
-                    <p className="text-gray-600">{selectedRequest.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedRequest.status)}`}>
-                    {selectedRequest.status.replace(/_/g, ' ').toUpperCase()}
-                  </span>
-                  <div className="mt-2 text-sm text-gray-700">
-                    <p><span className="font-medium">Approved on:</span> {selectedRequest.line_manager_at ? new Date(selectedRequest.line_manager_at as unknown as string).toLocaleString() : 'N/A'}</p>
-                  </div>
-                </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Approval</h3>
                   <div className="text-sm text-gray-900">
@@ -284,32 +323,26 @@ export default function LineManagerApprovedPage() {
                     })()}
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Justification</h3>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedRequest.justification || 'No justification provided'}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
-                {isLoadingComments ? (
-                  <div className="text-sm text-gray-500">Loading comments...</div>
-                ) : comments.length === 0 ? (
-                  <div className="text-sm text-gray-500">No comments</div>
-                ) : (
-                  <div className="space-y-3">
-                    {comments.map((c) => (
-                      <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
-                          <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+                  {isLoadingComments ? (
+                    <div className="text-sm text-gray-500">Loading comments...</div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-sm text-gray-500">No comments</div>
+                  ) : (
+                    <div className="space-y-3 max-h-48 overflow-auto pr-1">
+                      {comments.map((c) => (
+                        <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
+                            <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
                         </div>
-                        <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

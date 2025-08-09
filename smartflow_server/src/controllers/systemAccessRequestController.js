@@ -118,8 +118,33 @@ export async function getPendingSystemAccessRequests(req, res) {
          ORDER BY r.submitted_at DESC`
       );
       return res.json({ success: true, requests: rows });
+    } else if (approver_role === 'IT Manager') {
+      const [rows] = await db.query(
+        `SELECT r.*, s.name AS system_name, s.description AS system_description,
+                u.full_name AS user_name, u.email AS user_email,
+                d.name AS department_name, rr.name AS role_name,
+                its.full_name AS it_support_name
+         FROM system_access_requests r
+         JOIN systems s ON r.system_id = s.id
+         JOIN users u ON r.user_id = u.id
+         LEFT JOIN (
+           SELECT udr1.*
+           FROM user_department_roles udr1
+           WHERE udr1.status = 'active'
+           AND udr1.assigned_at = (
+             SELECT MAX(assigned_at) FROM user_department_roles m
+             WHERE m.user_id = udr1.user_id AND m.status = 'active'
+           )
+         ) audr ON audr.user_id = u.id
+         LEFT JOIN departments d ON d.id = audr.department_id
+         LEFT JOIN roles rr ON rr.id = audr.role_id
+         LEFT JOIN users its ON its.id = r.it_support_id
+         WHERE r.status = 'it_manager_pending'
+         ORDER BY r.submitted_at DESC`
+      );
+      return res.json({ success: true, requests: rows });
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager, HOD, or IT HOD' });
+      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager, HOD, IT HOD or IT Manager' });
     }
 
     // Department-based visibility: requester and approver must share a department where the approver holds the right role
@@ -300,6 +325,8 @@ export async function rejectSystemAccessRequest(req, res) {
       stageColumnSets = 'hod_id = ?, hod_at = NOW()';
     } else if (approver_role === 'IT HOD') {
       stageColumnSets = 'it_hod_id = ?, it_hod_at = NOW()';
+    } else if (approver_role === 'IT Manager') {
+      stageColumnSets = 'it_manager_id = ?, it_manager_at = NOW()';
     } else {
       throw new Error('Invalid approver_role');
     }
@@ -340,6 +367,61 @@ export async function rejectSystemAccessRequest(req, res) {
   }
 }
 
+// IT Manager assignment: move to IT support review and optionally assign support
+export async function assignSystemAccessRequest(req, res) {
+  const connection = await db.getConnection();
+  try {
+    const { id } = req.params;
+    const { approver_id, assigned_user_id, comment } = req.body || {};
+
+    if (!approver_id) {
+      connection.release();
+      return res.status(400).json({ success: false, message: 'approver_id is required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [[reqRow]] = await connection.query('SELECT status FROM system_access_requests WHERE id = ?', [id]);
+    if (!reqRow) {
+      throw new Error('Request not found');
+    }
+    if (reqRow.status !== 'it_manager_pending') {
+      throw new Error('Only requests pending IT Manager can be assigned');
+    }
+
+    // Update status and stamp IT Manager
+    await connection.query(
+      `UPDATE system_access_requests
+       SET status = 'it_support_review', it_manager_id = ?, it_manager_at = NOW(), it_support_id = ?
+       WHERE id = ?`,
+      [approver_id, assigned_user_id || null, id]
+    );
+
+    // Persist assignment comment if provided
+    if (comment && comment.trim()) {
+      try {
+        await connection.query(
+          `INSERT INTO comments (comment_type, commented_id, commented_by, content)
+           VALUES ('system_access_request', ?, ?, ?)`,
+          [id, approver_id, `Assignment: ${comment.trim()}`]
+        );
+      } catch (insertErr) {
+        console.warn('Warning: failed to insert assignment comment (non-blocking):', insertErr?.message || insertErr);
+      }
+    }
+
+    await connection.commit();
+    connection.release();
+
+    res.json({ success: true, message: 'Request assigned to IT support', next_status: 'it_support_review' });
+  } catch (e) {
+    try { await connection.rollback(); } catch {}
+    connection.release();
+    console.error('Error assigning system access request:', e);
+    res.status(500).json({ success: false, message: e.message || 'Failed to assign request' });
+  }
+}
+
 // List requests already acted on by an approver (LM/HOD)
 export async function getApprovedByApprover(req, res) {
   try {
@@ -359,22 +441,39 @@ export async function getApprovedByApprover(req, res) {
     } else if (approver_role === 'IT HOD') {
       whereClause = 'r.it_hod_id = ? AND r.it_hod_at IS NOT NULL';
       orderExpr = 'COALESCE(r.it_hod_at, r.submitted_at)';
+    } else if (approver_role === 'IT Manager') {
+      whereClause = 'r.it_manager_id = ? AND r.it_manager_at IS NOT NULL';
+      orderExpr = 'COALESCE(r.it_manager_at, r.submitted_at)';
     } else {
-      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager or HOD' });
+      return res.status(400).json({ success: false, message: 'Invalid approver_role. Use Line Manager, HOD, IT HOD, or IT Manager' });
     }
 
-    const query = `
-      SELECT r.*, s.name AS system_name, s.description AS system_description,
-             u.full_name AS user_name, u.email AS user_email,
-             lm.full_name AS line_manager_name, hod.full_name AS hod_name
-      FROM system_access_requests r
-      JOIN systems s ON r.system_id = s.id
-      JOIN users u ON r.user_id = u.id
-      LEFT JOIN users lm ON lm.id = r.line_manager_id
-      LEFT JOIN users hod ON hod.id = r.hod_id
-      WHERE ${whereClause}
-      ORDER BY ${orderExpr} DESC
-    `;
+          const query = `
+        SELECT r.*, s.name AS system_name, s.description AS system_description,
+               u.full_name AS user_name, u.email AS user_email,
+               d.name AS department_name, rr.name AS role_name,
+               lm.full_name AS line_manager_name, hod.full_name AS hod_name,
+               its.full_name AS it_support_name
+        FROM system_access_requests r
+        JOIN systems s ON r.system_id = s.id
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN (
+          SELECT udr1.*
+          FROM user_department_roles udr1
+          WHERE udr1.status = 'active'
+          AND udr1.assigned_at = (
+            SELECT MAX(assigned_at) FROM user_department_roles m
+            WHERE m.user_id = udr1.user_id AND m.status = 'active'
+          )
+        ) audr ON audr.user_id = u.id
+        LEFT JOIN departments d ON d.id = audr.department_id
+        LEFT JOIN roles rr ON rr.id = audr.role_id
+        LEFT JOIN users lm ON lm.id = r.line_manager_id
+        LEFT JOIN users hod ON hod.id = r.hod_id
+        LEFT JOIN users its ON its.id = r.it_support_id
+        WHERE ${whereClause}
+        ORDER BY ${orderExpr} DESC
+      `;
 
     const [rows] = await db.query(query, [approver_id]);
     res.json({ success: true, requests: rows });

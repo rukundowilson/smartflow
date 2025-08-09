@@ -1,133 +1,318 @@
 "use client"
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, Shield, Building2, User, X, AlertCircle, Users, Settings } from 'lucide-react';
-import accessRequestService, { AccessRequest } from '../../../../services/accessRequestService';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle, XCircle, Clock, User, AlertCircle, Search, RefreshCw, Calendar, Building } from 'lucide-react';
 import ITManagerLayout from '../components/ITManagerLayout';
 import { useAuth } from '@/app/contexts/auth-context';
+import systemAccessRequestService, { SystemAccessRequest } from '@/app/services/systemAccessRequestService';
+import { getITUsers, ITUser } from '@/app/services/itTicketService';
+import API from '@/app/utils/axios';
 
-
+type TabType = 'pending' | 'assigned' | 'all';
+type RequestStatus = 'it_manager_pending' | 'it_support_review' | 'granted' | 'rejected';
 
 interface AssignmentModalProps {
-  request: AccessRequest | null;
+  request: SystemAccessRequest | null;
   isOpen: boolean;
   onClose: () => void;
-  onAssign: (requestId: number, assignedTo: number, comment: string) => void;
+  onAssigned: () => void;
+  itUsers: ITUser[];
+  approverId: number | null | undefined;
 }
 
-const AssignmentModal: React.FC<AssignmentModalProps> = ({ request, isOpen, onClose, onAssign }) => {
-  const [assignedTo, setAssignedTo] = useState('');
+const AssignmentModal: React.FC<AssignmentModalProps> = ({ 
+  request, 
+  isOpen, 
+  onClose, 
+  onAssigned, 
+  itUsers, 
+  approverId 
+}) => {
+  const [assignedTo, setAssignedTo] = useState<string>('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && request) {
+      setAssignedTo('');
+      setComment('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen, request?.id]);
 
   if (!request || !isOpen) return null;
 
   const handleAssign = async () => {
-    if (!assignedTo.trim()) {
-      alert('Please select an IT guy to assign this request to.');
+    if (!approverId) {
+      alert('Unable to assign: User information not available');
+      return;
+    }
+
+    // Validate assignment if a specific user is selected
+    if (assignedTo && !itUsers.find(u => u.id.toString() === assignedTo)) {
+      alert('Selected user is not available. Please choose a valid IT team member.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onAssign(request.id, parseInt(assignedTo), comment);
-      setAssignedTo('');
-      setComment('');
+      const payload = {
+        approver_id: approverId,
+        assigned_user_id: assignedTo ? parseInt(assignedTo) : null,
+        comment: comment.trim() || undefined
+      };
+
+      await API.put(`/api/system-access-requests/${request.id}/assign`, payload);
+      onAssigned();
       onClose();
     } catch (error) {
-      console.error('Error assigning request:', error);
+      console.error('Failed to assign:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to assign request: ${errorMessage}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const formatDate = (dateString: string): string => {
+    try {
+      return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const isPending = request.status === 'it_manager_pending';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Assign Request to IT Team</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" 
+      onClick={handleOverlayClick}
+    >
+      <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-gray-200 rounded-t-xl">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {isPending ? 'Assign Request' : 'Request Details'}
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <XCircle className="h-6 w-6" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Request Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Employee</h3>
-              <p className="text-sm text-gray-900">{request.user_name}</p>
-              <p className="text-xs text-gray-500">{request.user_email}</p>
+          {/* Employee Information */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Employee Information</h3>
+                <p className="text-sm text-gray-600">Request submitted by</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">System</h3>
-              <p className="text-sm text-gray-900">{request.department_name}</p>
-              <p className="text-xs text-gray-500">{request.department_description}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Role</h3>
-              <p className="text-sm text-gray-900">{request.role_name}</p>
-              <p className="text-xs text-gray-500">{request.role_description}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Status</h3>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-xs px-2 py-1 rounded-full border bg-green-50 text-green-700 border-green-200">
-                  Ready for Assignment
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Full Name
+                </label>
+                <p className="text-sm font-medium text-gray-900">{request.user_name || 'Unknown'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Email Address
+                </label>
+                <p className="text-sm font-medium text-gray-900 break-all">{request.user_email || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Department
+                </label>
+                <p className="text-sm font-medium text-gray-900">{request.department_name || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  Role
+                </label>
+                <p className="text-sm font-medium text-gray-900">{request.role_name || 'Not specified'}</p>
               </div>
             </div>
           </div>
 
-          {/* Justification */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Justification</h3>
-            <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
-              {request.justification}
-            </p>
+          {/* Request Details */}
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <Building className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Access Request Details</h3>
+                <p className="text-sm text-gray-600">System access information</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    System Name
+                  </label>
+                  <p className="text-sm font-medium text-gray-900">{request.system_name || 'Unknown System'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Submitted Date
+                  </label>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(request.submitted_at)}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                    Access Duration
+                  </label>
+                  <p className="text-sm font-medium text-gray-900">
+                    {request.is_permanent ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Permanent Access
+                      </span>
+                    ) : (
+                      request.end_date ? `Until ${formatDate(request.end_date)}` : 'Not specified'
+                    )}
+                  </p>
+                </div>
+                <div>
+                                     <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                     Current Status
+                   </label>
+                   <div className="flex items-center gap-2">
+                     <span className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-full ${
+                       isPending ? 'text-blue-700 bg-blue-100' : 'text-indigo-700 bg-indigo-100'
+                     }`}>
+                       <Clock className="h-4 w-4" />
+                       {isPending ? 'Pending IT Manager Review' : 'Assigned to IT Support'}
+                     </span>
+                     {!isPending && (
+                       <span className="text-sm text-gray-700">
+                         Assigned to: <span className="font-medium">{request.it_support_name || 'Unassigned'}</span>
+                       </span>
+                     )}
+                   </div>
+                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  Business Justification
+                </label>
+                <div className="bg-white p-3 rounded-md border border-gray-200">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {request.justification || 'No justification provided'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Assignment Form */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign to IT Team Member <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select IT team member...</option>
-                {/* TODO: Fetch IT team members dynamically */}
-                <option value="1">IT Support (itsupport@company.com)</option>
-                <option value="2">Developer (developer@company.com)</option>
-                <option value="3">IT Admin (itadmin@company.com)</option>
-              </select>
+          {/* Assignment Section (only for pending requests) */}
+          {isPending && (
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 bg-green-600 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Assignment & Approval</h3>
+                  <p className="text-sm text-gray-600">Assign to IT support team member</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign to IT Team Member (Optional)
+                  </label>
+                  <select
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    <option value="">🔄 Unassigned (Any available team member can handle)</option>
+                    {itUsers.length === 0 ? (
+                      <option disabled>No IT team members available</option>
+                    ) : (
+                      itUsers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          👤 {user.full_name || `User ${user.id}`}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave unassigned to allow any IT team member to handle this request
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assignment Notes (Optional)
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={3}
+                    placeholder="Add any special instructions or notes for the IT team..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                    maxLength={500}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {comment.length}/500 characters
+                  </p>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assignment Notes
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Add any specific instructions or notes for the IT team member..."
-              />
-            </div>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={handleAssign}
-                disabled={isSubmitting}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        {/* Footer Actions */}
+        <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-200 rounded-b-xl">
+          <div className="flex gap-3 justify-end">
+            <button 
+              onClick={onClose} 
+              className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+            >
+              {isPending ? 'Cancel' : 'Close'}
+            </button>
+            {isPending && (
+              <button 
+                onClick={handleAssign} 
+                disabled={isSubmitting} 
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
               >
-                {isSubmitting ? 'Assigning...' : 'Assign Request'}
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Approve & Assign
+                  </>
+                )}
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -137,126 +322,180 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({ request, isOpen, onCl
 
 export default function ITManagerAssignments() {
   const { user } = useAuth();
-  const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<AccessRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('ready');
+  const [pending, setPending] = useState<SystemAccessRequest[]>([]);
+  const [assigned, setAssigned] = useState<SystemAccessRequest[]>([]);
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selected, setSelected] = useState<SystemAccessRequest | null>(null);
+  const [itUsers, setItUsers] = useState<ITUser[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadRequests();
-  }, []);
+    if (user?.id) {
+      refresh();
+      loadITUsers();
+    }
+  }, [user?.id]);
 
-  const loadRequests = async () => {
+  const loadITUsers = async () => {
     try {
-      setIsLoading(true);
-      // Get only requests ready for assignment
-      const response = await accessRequestService.getPendingRequests({
-        approver_id: user?.id, // Use current user's ID
-        approver_role: 'IT Manager'
-      });
+      const response = await getITUsers();
+      const users = response?.users || [];
+      setItUsers(users);
       
-      if (response.success) {
-        const readyRequests = response.requests.filter(request => request.status === 'ready_for_assignment');
-        console.log('Loaded ready requests:', readyRequests);
-        setRequests(readyRequests);
-        setFilteredRequests(readyRequests);
+      if (users.length === 0) {
+        console.warn('No IT users found');
       }
     } catch (error) {
-      console.error('Error loading requests:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to load IT users:', error);
+      setItUsers([]);
     }
   };
 
-  // Filter requests
-  useEffect(() => {
-    let filtered = requests;
-
-    // Filter by tab
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(request => {
-        if (activeTab === 'ready') return request.status === 'ready_for_assignment';
-        if (activeTab === 'completed') return request.status === 'granted';
-        return true;
-      });
-    }
-
-    // Filter by search
-    if (searchTerm) {
-      filtered = filtered.filter(request =>
-        request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.department_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.role_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        request.user_email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredRequests(filtered);
-  }, [requests, activeTab, searchTerm]);
-
-  const handleAssign = async (requestId: number, assignedTo: number, comment: string) => {
+  const refresh = async () => {
+    if (!user?.id) return;
+    
     try {
-      // TODO: Implement assignment API call
-      console.log('Assigning request', requestId, 'to', assignedTo, 'with comment:', comment);
+      setLoading(true);
+      setError(null);
       
-      // For now, just update the status locally
-      setRequests(prev => prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'granted' as const }
-          : req
-      ));
+      const [pendingResponse, assignedResponse] = await Promise.all([
+        systemAccessRequestService.getPending({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        }),
+        systemAccessRequestService.getApprovedBy({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        }),
+      ]);
       
-      alert('Request assigned successfully!');
+      const pendingRequests = (pendingResponse?.requests || []).filter(r => r.status === 'it_manager_pending');
+      const assignedRequests = (assignedResponse?.requests || []).filter(r => r.status === 'it_support_review');
+      
+      setPending(pendingRequests);
+      setAssigned(assignedRequests);
     } catch (error) {
-      console.error('Error assigning request:', error);
-      alert('Failed to assign request. Please try again.');
+      console.error('Failed to load assignments:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Failed to load requests: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'ready_for_assignment':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'granted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  };
+  const filteredRequests = useMemo(() => {
+    const getRequests = () => {
+      switch (activeTab) {
+        case 'pending':
+          return pending;
+        case 'assigned':
+          return assigned;
+        case 'all':
+        default:
+          return [...pending, ...assigned];
+      }
+    };
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'ready_for_assignment':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'granted':
-        return 'bg-green-50 text-green-700 border-green-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
+    const requests = getRequests();
+    
+    if (!search.trim()) return requests;
+    
+    const searchTerm = search.toLowerCase().trim();
+    return requests.filter(request => {
+      const searchableFields = [
+        request.user_name || '',
+        request.system_name || '',
+        request.user_email || '',
+        request.department_name || '',
+        request.role_name || '',
+        request.justification || ''
+      ];
+      
+      return searchableFields.some(field => 
+        field.toLowerCase().includes(searchTerm)
+      );
+    });
+  }, [pending, assigned, activeTab, search]);
 
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'ready_for_assignment':
-        return 'Ready for Assignment';
-      case 'granted':
-        return 'Completed';
-      default:
-        return 'Unknown';
-    }
-  };
+  const getStatusBadge = (status: RequestStatus) => {
+    const configs = {
+      'it_manager_pending': {
+        label: 'Pending Review',
+        className: 'text-blue-700 bg-blue-100',
+        icon: Clock
+      },
+      'it_support_review': {
+        label: 'Assigned to IT',
+        className: 'text-indigo-700 bg-indigo-100',
+        icon: User
+      },
+      'granted': {
+        label: 'Granted',
+        className: 'text-green-700 bg-green-100',
+        icon: CheckCircle
+      },
+      'rejected': {
+        label: 'Rejected',
+        className: 'text-red-700 bg-red-100',
+        icon: XCircle
+      }
+    };
 
-  if (isLoading) {
+    const config = configs[status] || {
+      label: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      className: 'text-gray-700 bg-gray-100',
+      icon: AlertCircle
+    };
+
+    const IconComponent = config.icon;
+
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading assignments...</p>
+      <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${config.className}`}>
+        <IconComponent className="h-3 w-3" />
+        {config.label}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString: string): string => {
+    try {
+      return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const tabConfigs = [
+    { key: 'pending' as const, label: 'Pending', count: pending.length },
+    { key: 'assigned' as const, label: 'Assigned', count: assigned.length },
+    { key: 'all' as const, label: 'All', count: pending.length + assigned.length }
+  ];
+
+  if (error && !loading) {
+    return (
+      <ITManagerLayout>
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading Assignments</h3>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button
+              onClick={refresh}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </button>
+          </div>
         </div>
-      </div>
+      </ITManagerLayout>
     );
   }
 
@@ -264,163 +503,143 @@ export default function ITManagerAssignments() {
     <ITManagerLayout>
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">IT Manager Assignments</h1>
-          <p className="mt-2 text-gray-600">Assign approved requests to IT team members</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+              Request Management
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Review and assign system access requests to IT team members
+            </p>
+          </div>
+          <button 
+            onClick={refresh} 
+            className="flex-shrink-0 p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" 
+            title="Refresh assignments"
+            aria-label="Refresh assignments"
+          >
+            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Ready for Assignment</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'ready_for_assignment').length}
-                </p>
-              </div>
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Tab Navigation */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              {tabConfigs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Completed</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'granted').length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Completed</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests.filter(r => r.status === 'granted').length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex space-x-4 mb-4 sm:mb-0">
-                <button
-                  onClick={() => setActiveTab('all')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    activeTab === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setActiveTab('ready')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    activeTab === 'ready' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Ready for Assignment
-                </button>
-                <button
-                  onClick={() => setActiveTab('completed')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    activeTab === 'completed' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Completed
-                </button>
-                <button
-                  onClick={() => setActiveTab('completed')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    activeTab === 'completed' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Completed
-                </button>
-              </div>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search requests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, system, or department..."
+                className="w-full lg:w-80 pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
             </div>
           </div>
         </div>
 
         {/* Requests List */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
-              Assignment Requests ({filteredRequests.length})
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {activeTab === 'pending' && 'Pending Requests'}
+              {activeTab === 'assigned' && 'Assigned Requests'} 
+              {activeTab === 'all' && 'All Requests'}
+              <span className="ml-2 text-sm font-normal text-gray-500">
+                ({filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'})
+              </span>
             </h3>
           </div>
 
-          <div className="divide-y divide-gray-200">
-            {filteredRequests.length === 0 ? (
+          <div className="divide-y divide-gray-100">
+            {loading ? (
               <div className="px-6 py-12 text-center">
-                <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No requests found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {activeTab === 'ready' ? 'No requests ready for assignment.' : 'No requests match your filters.'}
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading requests...</p>
+              </div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 font-medium mb-1">
+                  {search.trim() ? 'No matching requests found' : 'No requests found'}
                 </p>
+                <p className="text-gray-400 text-sm">
+                  {search.trim() ? 'Try adjusting your search terms' : 'New requests will appear here when submitted'}
+                </p>
+                {search.trim() && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Clear search
+                  </button>
+                )}
               </div>
             ) : (
               filteredRequests.map((request) => (
-                <div key={request.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-3">
-                        {getStatusIcon(request.status)}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {request.user_name} - {request.department_name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {request.role_name} • {request.user_email}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Ready since: {new Date(request.approved_at || request.submitted_at).toLocaleDateString()}
+                <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">
+                            {request.user_name || 'Unknown User'}
+                          </h4>
+                          <span className="text-gray-300">•</span>
+                          <p className="text-sm text-gray-600 truncate">
+                            {request.system_name || 'Unknown System'}
                           </p>
                         </div>
+                        <p className="text-xs text-gray-500">
+                          Submitted {formatDate(request.submitted_at)}
+                        </p>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                      <span className={`text-xs px-2 py-1 rounded-full border ${getStatusColor(request.status)}`}>
-                        {getStatusText(request.status)}
-                      </span>
-
-                      {request.status === 'ready_for_assignment' && (
-                        <button
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setShowAssignmentModal(true);
-                          }}
-                          className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          Assign
-                        </button>
-                      )}
-                    </div>
+                                         <div className="flex items-center gap-3 flex-shrink-0">
+                       {getStatusBadge(request.status as RequestStatus)}
+                       {request.status === 'it_support_review' && (
+                         <span className="text-sm text-gray-600">
+                           Assigned to: <span className="font-medium">{request.it_support_name || 'Unassigned'}</span>
+                         </span>
+                       )}
+                       <button
+                         onClick={() => {
+                           setSelected(request);
+                           setModalOpen(true);
+                         }}
+                         className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                           request.status === 'it_manager_pending'
+                             ? 'bg-blue-600 text-white hover:bg-blue-700'
+                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                         }`}
+                       >
+                         {request.status === 'it_manager_pending' ? 'Assign' : 'View'}
+                       </button>
+                     </div>
                   </div>
                 </div>
               ))
@@ -429,16 +648,17 @@ export default function ITManagerAssignments() {
         </div>
       </div>
 
-      {/* Assignment Modal */}
       <AssignmentModal
-        request={selectedRequest}
-        isOpen={showAssignmentModal}
+        request={selected}
+        isOpen={modalOpen}
         onClose={() => {
-          setShowAssignmentModal(false);
-          setSelectedRequest(null);
+          setModalOpen(false);
+          setSelected(null);
         }}
-        onAssign={handleAssign}
+        onAssigned={refresh}
+        itUsers={itUsers}
+        approverId={user?.id}
       />
     </ITManagerLayout>
   );
-} 
+}
