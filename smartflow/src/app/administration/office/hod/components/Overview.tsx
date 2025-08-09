@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
+import userRoleService, { UserRoleInfo } from '@/app/services/userRoleService';
+import Link from 'next/link';
 
 interface RecentActivity {
   id: number;
@@ -37,12 +39,27 @@ export default function Overview() {
   const [processed, setProcessed] = useState<SARequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [hodDepartments, setHodDepartments] = useState<UserRoleInfo[]>([]);
+
+  const getFirstName = (fullName?: string | null): string => {
+    if (!fullName || typeof fullName !== 'string') return 'User';
+    const trimmed = fullName.trim();
+    if (!trimmed) return 'User';
+    return trimmed.split(' ')[0] || 'User';
+  };
+  const firstName = getFirstName(user?.full_name);
 
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
       try {
         setIsLoading(true);
+        // Load HOD role assignments for department chips
+        try {
+          const roles = await userRoleService.getUserRoleAssignments(user.id);
+          setHodDepartments((roles || []).filter((r: UserRoleInfo) => r.role_name === 'HOD'));
+        } catch {}
+
         const [pendingRes, processedRes] = await Promise.all([
           systemAccessRequestService.getPending({ approver_id: user.id, approver_role: 'HOD' }),
           systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'HOD' })
@@ -79,13 +96,13 @@ export default function Overview() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'approval':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-1 w-1 text-green-500" />;
       case 'rejection':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-1 w-1 text-red-500" />;
       case 'new_request':
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <Clock className="h-1 w-1 text-blue-500" />;
       default:
-        return <Activity className="h-5 w-5 text-gray-500" />;
+        return <Activity className="h-1 w-1 text-gray-500" />;
     }
   };
 
@@ -116,21 +133,28 @@ export default function Overview() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="bg-white rounded-2xl p-8 border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 text-gray-900">
-              Welcome back, {user?.full_name || 'HOD'}!
+      <div className="rounded-2xl p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold mb-1 text-gray-900 truncate">
+              Welcome, {firstName}
             </h1>
-            <p className="text-gray-600 text-lg">
-              As {user?.role || 'Head of Department'}, here's your system access overview
-            </p>
-          </div>
-          <div className="hidden lg:flex items-center space-x-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{pendingCount}</div>
-              <div className="text-sm text-gray-600">Awaiting Your Review</div>
+            <p className="text-gray-600 text-sm">HOD Overview</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {hodDepartments.map((d) => (
+                <span key={`${d.department_id}-${d.role_id}`} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  {d.department_name}
+                </span>
+              ))}
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/administration/office/hod/requests" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+              Review Pending
+            </Link>
+            <Link href="/administration/office/hod/approved" className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200">
+              View Approved
+            </Link>
           </div>
         </div>
       </div>

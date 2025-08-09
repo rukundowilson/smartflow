@@ -327,6 +327,8 @@ export default function ITManagerDashboard() {
                               {request.system_name || 'Unknown System'}
                             </p>
                           </div>
+                          <p className="text-xs text-gray-500 truncate">{request.user_email || ''}</p>
+                          <p className="text-[11px] text-gray-400 truncate">{request.department_name || '—'} • {request.role_name || '—'}</p>
                           <p className="text-xs text-gray-500">
                             Submitted {formatDate(request.submitted_at)}
                           </p>

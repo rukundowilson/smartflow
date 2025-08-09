@@ -14,7 +14,7 @@ import { useAuth } from "@/app/contexts/auth-context";
 const modules = [
   { id: '', name: 'Overview', icon: Monitor, description: 'HOD dashboard' },
   { id: 'requests', name: 'Manage Requests', icon: Key, description: 'Approve requests' },
-  { id: 'approved', name: 'Approved', icon: CheckCircle, description: 'You approved' },
+  { id: 'reviewed', name: 'reviewed', icon: CheckCircle, description: 'You reviewed' },
 ];
 
 export default function HodSidebar() {

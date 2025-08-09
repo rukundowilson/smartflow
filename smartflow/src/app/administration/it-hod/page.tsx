@@ -82,7 +82,7 @@ export default function ITHODOverviewPage() {
 
           <div className="space-y-8 flex-1">
             {/* Welcome */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
+            <div className="rounded-2xl p-6 border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Welcome, {user?.full_name || 'IT HOD'}</h1>
@@ -106,7 +106,7 @@ export default function ITHODOverviewPage() {
                     <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
                   </div>
                   <div className="p-3 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl">
-                    <Clock className="h-6 w-6 text-white" />
+                    <Clock className="h-4 w-4 text-white" />
                   </div>
                 </div>
               </div>
@@ -118,7 +118,7 @@ export default function ITHODOverviewPage() {
                     <p className="text-3xl font-bold text-gray-900">{approvedCount}</p>
                   </div>
                   <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-                    <CheckCircle className="h-6 w-6 text-white" />
+                    <CheckCircle className="h-4 w-4 text-white" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center text-sm text-gray-600">
@@ -134,50 +134,13 @@ export default function ITHODOverviewPage() {
                     <p className="text-3xl font-bold text-gray-900">{rejectedCount}</p>
                   </div>
                   <div className="p-3 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
-                    <XCircle className="h-6 w-6 text-white" />
+                    <XCircle className="h-4 w-4 text-white" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center text-sm text-gray-600">
                   <ArrowDownRight className="h-4 w-4 mr-1 text-red-500" />
                   <span>Requests you declined</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-sky-50 to-blue-50 p-6 rounded-2xl border border-sky-200">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-3 bg-sky-500 rounded-xl">
-                    <Eye className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Review Pending</h3>
-                    <p className="text-sm text-gray-600">Check requests awaiting your approval</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Pending approvals</span>
-                  <span className="font-medium text-gray-900">{pendingCount}</span>
-                </div>
-                <Link href="/administration/it-hod/pending-requests" className="mt-4 inline-flex items-center text-sky-700 hover:text-sky-900 font-medium">Go to Pending</Link>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-3 bg-green-500 rounded-xl">
-                    <FileText className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Approval History</h3>
-                    <p className="text-sm text-gray-600">View all processed requests</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Total processed</span>
-                  <span className="font-medium text-gray-900">{approvedCount + rejectedCount}</span>
-                </div>
-                <Link href="/administration/it-hod/aprooved-requests" className="mt-4 inline-flex items-center text-green-700 hover:text-green-900 font-medium">Go to History</Link>
               </div>
             </div>
 

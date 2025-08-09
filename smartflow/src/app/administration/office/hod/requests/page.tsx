@@ -10,7 +10,8 @@ import {
   Shield,
   Building2,
   Calendar,
-  Loader2
+  Loader2,
+  User
 } from 'lucide-react';
 import systemAccessRequestService, {
   SystemAccessRequest as SARequest,
@@ -122,70 +123,96 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Current Position */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <Shield className="h-5 w-5 text-blue-600 mr-2" />
-              <h3 className="text-sm font-medium text-blue-800">Current Position: HOD Review</h3>
-            </div>
-            <p className="text-sm text-blue-700 mt-1">You are reviewing this system access request</p>
-          </div>
-
-          {/* Request Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.user_name || 'Employee'}</p>
-              <p className="text-sm text-gray-600">{request.user_email || ''}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.system_name}</p>
-            </div>
-          </div>
-
-          {/* Request Timeline */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-3">Request Timeline</h3>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                <span className="text-gray-600">Request submitted</span>
-                <span className="text-gray-400 ml-auto">{formatDate(request.submitted_at)}</span>
+          {/* Employee Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                <span className="text-gray-600 font-medium">Currently at: HOD Review</span>
-                <span className="text-blue-600 ml-auto">You are here</span>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Employee Information</h3>
+                <p className="text-xs text-gray-600">Requester details</p>
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                <span className="text-gray-400">Next: IT HOD Review</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                <p className="font-medium text-gray-900">{request.user_name || 'Employee'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
+                <p className="text-gray-900">{request.user_email || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Department</label>
+                <p className="text-gray-900">{request.department_name || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Role</label>
+                <p className="text-gray-900">{request.role_name || 'Not specified'}</p>
               </div>
             </div>
           </div>
 
-          {/* Status & Period */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Access Period</h3>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">Start:</span> {formatDate(request.start_date)}
-                </p>
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">End:</span> {formatDate(request.end_date)}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {request.is_permanent ? 'Permanent access' : 'Temporary access'}
-                </p>
+          {/* Request Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <Shield className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Request Information</h3>
+                <p className="text-xs text-gray-600">System access details</p>
               </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                {request.status.replace(/_/g, ' ').toUpperCase()}
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">System Name</label>
+                <p className="font-medium text-gray-900">{request.system_name}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted On</label>
+                <p className="text-gray-900">{formatDate(request.submitted_at)}</p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Access Period</label>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-900">
+                  <p><span className="font-medium">Start:</span> {formatDate(request.start_date)}</p>
+                  <p><span className="font-medium">End:</span> {formatDate(request.end_date)}</p>
+                  <p className="text-gray-600">{request.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Business Justification</label>
+                <div className="bg-white p-3 rounded-md border border-gray-200">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{request.justification || 'No justification provided'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Status Information</h3>
+                <p className="text-xs text-gray-600">Current stage and next steps</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Current Status</label>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
+                  {request.status.replace(/_/g, ' ').toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Position</label>
+                <p className="text-gray-900">Currently at: HOD Review • Next: IT HOD Review</p>
+              </div>
             </div>
           </div>
 
@@ -198,7 +225,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
               ) : comments.length === 0 ? (
                 <div className="text-sm text-gray-500">No comments</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-48 overflow-auto pr-1">
                   {comments.map((c) => (
                     <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between">
@@ -422,7 +449,7 @@ export default function HODRequestsPage() {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -431,30 +458,6 @@ export default function HODRequestsPage() {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
                 <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Department</p>
-                <p className="text-lg font-semibold text-gray-900">{user?.department || 'Loading...'}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Your Role</p>
-                <p className="text-lg font-semibold text-gray-900">Head of Department</p>
               </div>
             </div>
           </div>

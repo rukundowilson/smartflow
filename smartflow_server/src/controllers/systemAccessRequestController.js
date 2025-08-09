@@ -150,10 +150,22 @@ export async function getPendingSystemAccessRequests(req, res) {
     // Department-based visibility: requester and approver must share a department where the approver holds the right role
     const query = `
       SELECT r.*, s.name AS system_name, s.description AS system_description,
-             u.full_name AS user_name, u.email AS user_email
+             u.full_name AS user_name, u.email AS user_email,
+             d.name AS department_name, rr.name AS role_name
       FROM system_access_requests r
       JOIN systems s ON r.system_id = s.id
       JOIN users u ON r.user_id = u.id
+      LEFT JOIN (
+        SELECT udr1.*
+        FROM user_department_roles udr1
+        WHERE udr1.status = 'active'
+        AND udr1.assigned_at = (
+          SELECT MAX(assigned_at) FROM user_department_roles m
+          WHERE m.user_id = udr1.user_id AND m.status = 'active'
+        )
+      ) audr ON audr.user_id = u.id
+      LEFT JOIN departments d ON d.id = audr.department_id
+      LEFT JOIN roles rr ON rr.id = audr.role_id
       WHERE ${statusFilter}
         AND EXISTS (
           SELECT 1
