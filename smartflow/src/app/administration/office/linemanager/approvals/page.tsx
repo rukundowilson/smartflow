@@ -501,7 +501,7 @@ const LineManagerApprovalsPage: React.FC = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -510,30 +510,6 @@ const LineManagerApprovalsPage: React.FC = () => {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
                 <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Department</p>
-                <p className="text-lg font-semibold text-gray-900">{user?.department || 'Loading...'}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Your Role</p>
-                <p className="text-lg font-semibold text-gray-900">Line Manager</p>
               </div>
             </div>
           </div>
