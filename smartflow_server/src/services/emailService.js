@@ -32,20 +32,4 @@ export async function sendAccessGrantedEmail({ to, systemName, requestId }) {
   const text = `Your access request #${requestId} for ${systemName} has been granted.`;
   const html = `<p>Your access request <strong>#${requestId}</strong> for <strong>${systemName}</strong> has been granted.</p>`;
   return sendEmail({ to, subject, text, html });
-}
-
-// New helpers
-export async function sendTicketStatusEmail({ to, ticketId, issueType, status }) {
-  const pretty = String(status).replace(/_/g, ' ');
-  const subject = `Ticket #${ticketId} status updated: ${pretty}`;
-  const text = `Your ticket (${issueType}) status changed to ${pretty}.`;
-  const html = `<p>Your ticket <strong>#${ticketId}</strong> (<em>${issueType}</em>) status changed to <strong>${pretty}</strong>.</p>`;
-  return sendEmail({ to, subject, text, html });
-}
-
-export async function sendTicketCommentEmail({ to, ticketId, issueType, commenterName }) {
-  const subject = `New comment on Ticket #${ticketId}`;
-  const text = `${commenterName || 'A team member'} commented on your ticket (${issueType}).`;
-  const html = `<p><strong>${commenterName || 'A team member'}</strong> commented on your ticket <strong>#${ticketId}</strong> (<em>${issueType}</em>).</p>`;
-  return sendEmail({ to, subject, text, html });
 } 
