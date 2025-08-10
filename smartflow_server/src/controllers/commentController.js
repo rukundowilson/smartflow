@@ -1,6 +1,7 @@
 import { createComment, getCommentsByTicketId, getCommentsByRequisitionId, deleteComment } from "../services/commentService.js";
 import db from "../config/db.js";
 import { sendNotificationToUsers } from './notificationController.js';
+import { sendTicketCommentEmail } from '../services/emailService.js';
 
 export async function handleCreateComment(req, res) {
   const { comment_type, commented_id, commented_by, content } = req.body;
@@ -21,9 +22,12 @@ export async function handleCreateComment(req, res) {
     try {
       if (comment_type === 'ticket') {
         const [[row]] = await db.query(
-          `SELECT t.created_by, t.assigned_to, t.issue_type FROM tickets t WHERE t.id = ?`,
+          `SELECT t.created_by, t.assigned_to, t.issue_type, u.email AS user_email
+           FROM tickets t JOIN users u ON u.id = t.created_by
+           WHERE t.id = ?`,
           [commented_id]
         );
+        const [[who]] = await db.query(`SELECT full_name FROM users WHERE id = ?`, [commented_by]);
         const recipients = new Set();
         if (row?.created_by && row.created_by !== commented_by) recipients.add(row.created_by);
         // Optional: notify current assignee if different from commenter and different from owner
@@ -39,100 +43,72 @@ export async function handleCreateComment(req, res) {
             related_type: 'ticket'
           });
         }
-      } else if (comment_type === 'requisition') {
-        const [[row]] = await db.query(
-          `SELECT ir.requested_by, ir.assigned_to, ir.item_name FROM item_requisitions ir WHERE ir.id = ?`,
-          [commented_id]
-        );
-        const recipients = new Set();
-        if (row?.requested_by && row.requested_by !== commented_by) recipients.add(row.requested_by);
-        if (row?.assigned_to && row.assigned_to !== commented_by && row.assigned_to !== row.requested_by) {
-          recipients.add(row.assigned_to);
+        // Email the ticket owner
+        if (row?.user_email && row.created_by !== commented_by) {
+          try {
+            await sendTicketCommentEmail({ to: row.user_email, ticketId: commented_id, issueType: row.issue_type, commenterName: who?.full_name });
+          } catch (mailErr) {
+            console.warn('ticket comment email failed (non-blocking):', mailErr?.message || mailErr);
+          }
         }
+      } else if (comment_type === 'requisition') {
+        const [[row]] = await db.query
+          (`SELECT r.requester_id, u.email AS requester_email
+            FROM item_requisitions r JOIN users u ON u.id = r.requester_id
+            WHERE r.id = ?`, [commented_id]);
+        const recipients = new Set();
+        if (row?.requester_id && row.requester_id !== commented_by) recipients.add(row.requester_id);
         if (recipients.size > 0) {
           await sendNotificationToUsers(Array.from(recipients), {
             type: 'requisition',
             title: 'New Comment on Requisition',
-            message: `A new comment was added on your requisition (${row?.item_name || 'Requisition'}).`,
+            message: 'A new comment was added to your item requisition.',
             related_id: Number(commented_id),
-            related_type: 'requisition'
+            related_type: 'item_requisition'
           });
         }
+        // Email could be added here similarly if desired
       }
-    } catch (notifyErr) {
-      console.warn('comment notification failed:', notifyErr?.message || notifyErr);
+    } catch (nerr) {
+      console.warn('comment notification failed:', nerr?.message || nerr);
     }
 
-    res.status(201).json(comment);
+    return res.status(201).json({ success: true, comment });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error while creating comment" });
+    console.error("Error creating comment:", error);
+    return res.status(500).json({ message: error.message || "Failed to create comment" });
   }
 }
 
-export const getTicketComments = async (req, res) => {
-  const ticketId = req.params.ticketId;
-
+export async function handleGetCommentsByTicketId(req, res) {
   try {
+    const { ticketId } = req.params;
     const comments = await getCommentsByTicketId(ticketId);
-    res.status(200).json({ success: true, comments: comments.comments });
+    return res.status(200).json({ success: true, comments });
   } catch (error) {
-    console.error("Error in getTicketComments:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch comments" });
+    console.error('Error fetching comments:', error);
+    return res.status(500).json({ message: error.message || 'Failed to fetch comments' });
   }
-};
+}
 
-export const getRequisitionComments = async (req, res) => {
-  const requisitionId = req.params.requisitionId;
-
+export async function handleGetCommentsByRequisitionId(req, res) {
   try {
+    const { requisitionId } = req.params;
     const comments = await getCommentsByRequisitionId(requisitionId);
-    res.status(200).json({ success: true, comments: comments.comments });
+    return res.status(200).json({ success: true, comments });
   } catch (error) {
-    console.error("Error in getRequisitionComments:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch comments" });
+    console.error('Error fetching comments:', error);
+    return res.status(500).json({ message: error.message || 'Failed to fetch comments' });
   }
-};
+}
 
-export const getSystemAccessRequestComments = async (req, res) => {
-  const requestId = req.params.requestId;
+export async function handleDeleteComment(req, res) {
   try {
-    const [comments] = await db.query(
-      `SELECT 
-         c.id,
-         c.comment_type,
-         c.commented_id,
-         c.commented_by,
-         c.content,
-         c.created_at,
-         u.full_name as commented_by_name,
-         u.email as commented_by_email
-       FROM comments c
-       LEFT JOIN users u ON c.commented_by = u.id
-       WHERE c.comment_type = 'system_access_request' AND c.commented_id = ?
-       ORDER BY c.created_at ASC`,
-      [requestId]
-    );
-    res.status(200).json({ success: true, comments });
+    const { commentId } = req.params;
+    await deleteComment(commentId);
+    return res.status(200).json({ success: true, message: 'Comment deleted' });
   } catch (error) {
-    console.error("Error in getSystemAccessRequestComments:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch comments" });
+    console.error('Error deleting comment:', error);
+    return res.status(500).json({ message: error.message || 'Failed to delete comment' });
   }
-};
-
-export const handleDeleteComment = async (req, res) => {
-  const commentId = req.params.commentId;
-  const userId = req.body.userId; // Assuming user ID is passed in request body
-
-  if (!userId) {
-    return res.status(400).json({ message: "User ID is required" });
-  }
-
-  try {
-    const result = await deleteComment(commentId, userId);
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Error in handleDeleteComment:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to delete comment" });
-  }
-}; 
+} 
