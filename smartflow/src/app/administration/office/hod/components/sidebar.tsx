@@ -25,7 +25,11 @@ export default function HodSidebar() {
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const { logout, user } = useAuth();
+  const { logout, user, selectedRole } = useAuth();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+  const roleName = hydrated ? (selectedRole?.role_name || user?.role || 'User') : 'User';
+  const departmentName = hydrated ? (selectedRole?.department_name || user?.department || 'Department') : 'Department';
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -57,8 +61,8 @@ export default function HodSidebar() {
             </div>
             {!isCollapsed && (
               <div className="ml-4">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">{user?.department} Office</h2>
-                <p className="text-sm text-slate-500 font-medium">{user?.role}</p>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight" suppressHydrationWarning>{departmentName} Office</h2>
+                <p className="text-sm text-slate-500 font-medium" suppressHydrationWarning>{roleName}</p>
               </div>
             )}
           </div>

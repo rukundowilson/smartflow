@@ -105,6 +105,11 @@ class SystemAccessRequestService {
     return res.data;
   }
 
+  async getCompleted(): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
+    const res = await API.get(`${this.baseUrl}/completed`);
+    return res.data;
+  }
+
   async itSupportGrant(id: number, data: { user_id: number; comment?: string }): Promise<any> {
     const res = await API.put(`${this.baseUrl}/${id}/it-support/grant`, data);
     return res.data;

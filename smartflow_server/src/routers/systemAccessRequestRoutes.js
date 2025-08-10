@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSystemAccessRequest, getUserSystemAccessRequests, getPendingSystemAccessRequests, approveSystemAccessRequest, rejectSystemAccessRequest, getApprovedByApprover, getApprovedInDepartment, assignSystemAccessRequest, getITSupportQueue, itSupportGrantSystemAccessRequest, itSupportRejectSystemAccessRequest } from '../controllers/systemAccessRequestController.js';
+import { createSystemAccessRequest, getUserSystemAccessRequests, getPendingSystemAccessRequests, approveSystemAccessRequest, rejectSystemAccessRequest, getApprovedByApprover, getApprovedInDepartment, assignSystemAccessRequest, getITSupportQueue, itSupportGrantSystemAccessRequest, itSupportRejectSystemAccessRequest, getCompletedSystemAccessRequests } from '../controllers/systemAccessRequestController.js';
 
 const router = express.Router();
 
@@ -19,6 +19,7 @@ router.put('/:id/approve', approveSystemAccessRequest);
 router.put('/:id/reject', rejectSystemAccessRequest);
 router.put('/:id/assign', assignSystemAccessRequest);
 router.get('/it-support-queue', getITSupportQueue);
+router.get('/completed', getCompletedSystemAccessRequests);
 
 // IT Support actions
 router.put('/:id/it-support/grant', itSupportGrantSystemAccessRequest);

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/app/contexts/auth-context";
 import { getAllTickets, ITTicket } from "@/app/services/itTicketService";
 import systemAccessRequestService, { SystemAccessRequest } from "@/app/services/systemAccessRequestService";
-import { Key, Ticket, Clock, X, CheckCircle, User, ChevronRight, Calendar, Timer, BarChart3, SlidersHorizontal } from "lucide-react";
+import { Key, Ticket, Clock, X, CheckCircle, User, ChevronRight, Calendar, Timer, BarChart3 } from "lucide-react";
 
 type ExplorerProps = {
   title?: string;
@@ -39,29 +39,26 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
   const [sar, setSar] = useState<SystemAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<{ type: 'ticket' | 'sar'; item: any } | null>(null);
-  const [dataset, setDataset] = useState<'tickets'|'sar'>(showAccessRequests && !showTickets ? 'sar' : 'tickets');
-  const [mode, setMode] = useState<'total'|'stage'>('total');
-  const stageOptions = [
-    { key: 'submitted_to_lm', label: 'Submitted → Line Manager' },
-    { key: 'lm_to_hod', label: 'Line Manager → HOD' },
-    { key: 'hod_to_it_hod', label: 'HOD → IT HOD' },
-    { key: 'it_hod_to_it_mgr', label: 'IT HOD → IT Manager' },
-    { key: 'it_mgr_to_it_support', label: 'IT Manager → IT Support' },
-  ] as const;
-  const [selectedStage, setSelectedStage] = useState<typeof stageOptions[number]['key']>('submitted_to_lm');
+  const [metricsOpen, setMetricsOpen] = useState<null | 'tickets' | 'sar'>(null);
 
   useEffect(() => {
     let isCancelled = false;
     const load = async () => {
       setLoading(true);
       try {
-        const [tRes, sRes] = await Promise.all([
+        const [tRes, sResQueue, sResCompleted] = await Promise.all([
           showTickets ? getAllTickets() : Promise.resolve({ success: true, tickets: [] }),
-          showAccessRequests ? systemAccessRequestService.getITSupportQueue({ user_id: Number(user?.id) || 0 }) : Promise.resolve({ success: true, requests: [] })
+          showAccessRequests ? systemAccessRequestService.getITSupportQueue({ user_id: Number(user?.id) || 0 }) : Promise.resolve({ success: true, requests: [] }),
+          showAccessRequests ? systemAccessRequestService.getCompleted() : Promise.resolve({ success: true, requests: [] }),
         ]);
         if (!isCancelled) {
           setTickets((tRes as any)?.tickets || []);
-          setSar((sRes as any)?.requests || []);
+          const q = (sResQueue as any)?.requests || [];
+          const c = (sResCompleted as any)?.requests || [];
+          // Merge unique by id
+          const map = new Map<number, any>();
+          [...q, ...c].forEach((r: any) => { if (r && r.id != null) map.set(r.id, r); });
+          setSar(Array.from(map.values()));
         }
       } finally {
         if (!isCancelled) setLoading(false);
@@ -97,36 +94,14 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
     .filter((n): n is number => n!==null && isFinite(n as number)) as number[]
   , [completedTickets]);
 
-  // SAR stage durations and total
+  // SAR total durations (by request)
   const sarTotalDurations = useMemo(()=> completedSAR
     .map(r => diffHours(r.submitted_at, (r as any).it_support_at || null))
     .filter((n): n is number => n!==null && isFinite(n as number)) as number[]
   , [completedSAR]);
 
-  const sarStageDurations = useMemo(()=>{
-    const map: Record<string, number[]> = {
-      submitted_to_lm: [], lm_to_hod: [], hod_to_it_hod: [], it_hod_to_it_mgr: [], it_mgr_to_it_support: []
-    };
-    completedSAR.forEach(r => {
-      const t0=r.submitted_at, t1=r.line_manager_at||null, t2=r.hod_at||null, t3=(r as any).it_hod_at||null, t4=(r as any).it_manager_at||null, t5=(r as any).it_support_at||null;
-      const s1=diffHours(t0,t1); if(s1!==null) map.submitted_to_lm.push(s1);
-      const s2=diffHours(t1||undefined,t2||undefined); if(s2!==null) map.lm_to_hod.push(s2);
-      const s3=diffHours(t2||undefined,t3||undefined); if(s3!==null) map.hod_to_it_hod.push(s3);
-      const s4=diffHours(t3||undefined,t4||undefined); if(s4!==null) map.it_hod_to_it_mgr.push(s4);
-      const s5=diffHours(t4||undefined,t5||undefined); if(s5!==null) map.it_mgr_to_it_support.push(s5);
-    });
-    return map;
-  }, [completedSAR]);
-
-  const metricsSource: number[] = useMemo(()=>{
-    if (dataset==='tickets') return ticketDurations;
-    if (mode==='total') return sarTotalDurations;
-    return sarStageDurations[selectedStage] || [];
-  }, [dataset, mode, selectedStage, ticketDurations, sarTotalDurations, sarStageDurations]);
-
-  const metrics = useMemo(()=>({
-    avg: avg(metricsSource), med: med(metricsSource), p90: pctl(metricsSource,90), distro: distro(metricsSource)
-  }), [metricsSource]);
+  const ticketMetrics = useMemo(()=>({ avg: avg(ticketDurations), med: med(ticketDurations), p90: pctl(ticketDurations,90), distro: distro(ticketDurations) }), [ticketDurations]);
+  const sarMetrics = useMemo(()=>({ avg: avg(sarTotalDurations), med: med(sarTotalDurations), p90: pctl(sarTotalDurations,90), distro: distro(sarTotalDurations) }), [sarTotalDurations]);
 
   const StatCard = ({ icon: Icon, title, value, subtitle, color = 'text-slate-700' }: { icon: any; title: string; value: string; subtitle?: string; color?: string; }) => (
     <div className="bg-white rounded-xl p-4 shadow border border-slate-200">
@@ -159,6 +134,35 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
               </div>
             );
           })}
+        </div>
+      </div>
+    );
+  };
+
+  const MetricsModal = ({ type }: { type: 'tickets' | 'sar' }) => {
+    const onClose = () => setMetricsOpen(null);
+    const m = type === 'tickets' ? ticketMetrics : sarMetrics;
+    const title = type === 'tickets' ? 'Tickets Metrics' : 'Access Requests Metrics';
+    const Icon = type === 'tickets' ? Ticket : Key;
+    return (
+      <div className="fixed inset-0 z-40">
+        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+        <div className="absolute inset-x-0 bottom-0 sm:inset-0 sm:m-auto sm:max-w-3xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2"><Icon className={`h-5 w-5 ${type==='tickets'?'text-blue-600':'text-green-600'}`}/><h3 className="text-lg font-semibold text-slate-900">{title}</h3></div>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100"><X className="h-5 w-5 text-slate-500"/></button>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatCard icon={Clock} title="Average TAT" value={fmtHours(m.avg)} color="text-indigo-600" />
+              <StatCard icon={Timer} title="Median TAT" value={fmtHours(m.med)} color="text-blue-600" />
+              <StatCard icon={CheckCircle} title="90th Percentile" value={fmtHours(m.p90)} color="text-emerald-600" />
+            </div>
+            <DistBar data={m.distro} />
+          </div>
+          <div className="sticky bottom-0 bg-white border-t border-slate-200 p-4 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium">Close</button>
+          </div>
         </div>
       </div>
     );
@@ -307,41 +311,18 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
         <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
         {loading && <span className="text-xs text-slate-500">Loading…</span>}
       </div>
-
-      {/* Controls */}
-      <div className="bg-white rounded-xl p-3 shadow border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-slate-500"/>
-          <span className="text-sm text-slate-700">Dataset:</span>
-          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">
-            <button onClick={()=>setDataset('tickets')} className={`px-3 py-1.5 text-sm ${dataset==='tickets'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>Tickets</button>
-            <button onClick={()=>setDataset('sar')} className={`px-3 py-1.5 text-sm ${dataset==='sar'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>Access Requests</button>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-700">Mode:</span>
-          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">
-            <button onClick={()=>setMode('total')} className={`px-3 py-1.5 text-sm ${mode==='total'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>By Request (Total)</button>
-            <button onClick={()=>setMode('stage')} disabled={dataset==='tickets'} className={`px-3 py-1.5 text-sm ${mode==='stage'&&dataset!=='tickets'?'bg-slate-900 text-white':'bg-white text-slate-700 disabled:opacity-50'}`}>Per Stage</button>
-          </div>
-          {dataset==='sar' && mode==='stage' && (
-            <select value={selectedStage} onChange={e=>setSelectedStage(e.target.value as any)} className="ml-2 px-3 py-1.5 text-sm border border-slate-200 rounded-lg">
-              {stageOptions.map(opt=>(<option key={opt.key} value={opt.key}>{opt.label}</option>))}
-            </select>
-          )}
-        </div>
+      {/* Simple triggers */}
+      <div className="flex flex-wrap gap-3">
+        {showTickets && (
+          <button onClick={()=>setMetricsOpen('tickets')} className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Open Tickets Metrics</button>
+        )}
+        {showAccessRequests && (
+          <button onClick={()=>setMetricsOpen('sar')} className="px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium">Open Access Requests Metrics</button>
+        )}
       </div>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Clock} title="Average TAT" value={fmtHours(metrics.avg)} color="text-indigo-600" />
-        <StatCard icon={Timer} title="Median TAT" value={fmtHours(metrics.med)} color="text-blue-600" />
-        <StatCard icon={CheckCircle} title="90th Percentile" value={fmtHours(metrics.p90)} color="text-emerald-600" />
-      </div>
-      <DistBar data={metrics.distro} />
 
       {/* Lists */}
-      {(showTickets && dataset==='tickets') && (
+      {showTickets && (
         <div className="bg-white rounded-xl p-4 shadow-lg border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-600"/><h3 className="text-sm font-semibold text-slate-900">Completed Tickets</h3></div>
@@ -355,7 +336,7 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
         </div>
       )}
 
-      {(showAccessRequests && dataset==='sar') && (
+      {showAccessRequests && (
         <div className="bg-white rounded-xl p-4 shadow-lg border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2"><Key className="h-5 w-5 text-green-600"/><h3 className="text-sm font-semibold text-slate-900">Completed System Access Requests</h3></div>
@@ -370,6 +351,7 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
       )}
 
       <Modal />
+      {metricsOpen && <MetricsModal type={metricsOpen} />}
     </div>
   );
 } 
