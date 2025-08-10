@@ -44,19 +44,22 @@ export class NotificationService {
         this.eventSource.close();
       }
 
-      // Create new SSE connection
-      this.eventSource = new EventSource(`https://smartflow-g5sk.onrender.com/notifications/stream/${userId}`);
+      // Temporarily disable SSE to focus on email notifications
+      console.log('SSE notifications temporarily disabled - using email notifications only');
       
-      this.eventSource.onmessage = (event) => {
-        const notification = JSON.parse(event.data);
-        this.handleNotification(notification);
-      };
+      // Create new SSE connection (commented out for now)
+      // this.eventSource = new EventSource(`https://smartflow-g5sk.onrender.com/notifications/stream/${userId}`);
+      
+      // this.eventSource.onmessage = (event) => {
+      //   const notification = JSON.parse(event.data);
+      //   this.handleNotification(notification);
+      // };
 
-      this.eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        // Implement reconnection logic
-        setTimeout(() => this.initializeRealTimeNotifications(userId), 5000);
-      };
+      // this.eventSource.onerror = (error) => {
+      //   console.error('SSE connection error:', error);
+      //   // Implement reconnection logic
+      //   setTimeout(() => this.initializeRealTimeNotifications(userId), 5000);
+      // };
 
     } catch (error) {
       console.error('Failed to initialize real-time notifications:', error);
