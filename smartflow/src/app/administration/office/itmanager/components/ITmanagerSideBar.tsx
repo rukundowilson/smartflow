@@ -9,14 +9,32 @@ import {
   Building2,
   CheckCircle,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Ticket,
+  Users,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
-const modules = [
+const modules: Array<{
+  id: string;
+  name: string;
+  icon: any;
+  description?: string;
+  children?: Array<{ id: string; name: string; icon: any }>;
+}> = [
   { id: '', name: 'Approvals', icon: Monitor, description: 'IT Manager approvals' },
   { id: 'assignments', name: 'Assignments', icon: CheckCircle, description: 'IT support assignments' },
-  { id: 'tat-metrics', name: 'TAT Metrics', icon: Monitor, description: 'Turnaround analytics' },
+  {
+    id: 'tat-metrics',
+    name: 'TAT Metrics',
+    icon: Monitor,
+    description: 'Turnaround analytics',
+    children: [
+      { id: 'tat-metrics/tickets', name: 'Tickets', icon: Ticket },
+      { id: 'tat-metrics/access-requests', name: 'Access Requests', icon: Key },
+      { id: 'tat-metrics/users', name: 'Users', icon: Users },
+    ],
+  },
 ];
 
 export default function ITManagerSidebar() {
@@ -24,6 +42,8 @@ export default function ITManagerSidebar() {
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const basePath = '/administration/office/itmanager';
 
   const { logout, user } = useAuth();
 
@@ -33,17 +53,33 @@ export default function ITManagerSidebar() {
     const path = pathname.split('/').pop()?.split('?')[0];
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
-    } else if (pathname === '/administration/office/itmanager' || pathname.endsWith('/itmanager/')) {
+    } else if (pathname === basePath || pathname.endsWith('/itmanager/')) {
       setActiveModule('overview');
     }
   }, [pathname]);
 
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)) {
+      setOpenDropdowns(prev => ({ ...prev, ['tat-metrics']: true }));
+    }
+  }, [pathname]);
+
   const handleModuleClick = (id: string) => {
-    const newPath = `/administration/office/itmanager${id === '' ? '' : `/${id}`}`;
+    const newPath = `${basePath}${id === '' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id || 'overview');
       router.push(newPath);
     }
+  };
+
+  const toggleDropdown = (id: string, children?: Array<{ id: string }>) => {
+    if (!children || children.length === 0) return;
+    if (isCollapsed) {
+      handleModuleClick(children[0].id);
+      return;
+    }
+    setOpenDropdowns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -74,28 +110,64 @@ export default function ITManagerSidebar() {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Management</h3>
         )}
         <div className="space-y-1">
-          {modules.map((module) => (
-            <button
-              key={module.id}
-              onClick={() => handleModuleClick(module.id)}
-              className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                activeModule === module.id
-                  ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
-              }`}
-              title={isCollapsed ? module.name : ''}
-            >
-              <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-              }`} />
-              {!isCollapsed && (
-                <div className="flex-1 text-left min-w-0">
-                  <div className="font-semibold truncate">{module.name}</div>
-                  <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
-                </div>
-              )}
-            </button>
-          ))}
+          {modules.map((module) => {
+            const hasChildren = module.children && module.children.length > 0;
+            const targetPath = `${basePath}/${module.id}`;
+            const isParentActive = hasChildren
+              ? pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)
+              : pathname === (module.id === '' ? basePath : targetPath);
+            return (
+              <div key={module.id}>
+                <button
+                  onClick={() => hasChildren ? toggleDropdown(module.id, module.children) : handleModuleClick(module.id)}
+                  className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                    isParentActive
+                      ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
+                  }`}
+                  title={isCollapsed ? module.name : ''}
+                >
+                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                    isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+                  }`} />
+                  {!isCollapsed && (
+                    <div className="flex-1 text-left min-w-0 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold truncate">{module.name}</div>
+                        {module.description && (
+                          <div className={`text-xs truncate ${isParentActive ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
+                        )}
+                      </div>
+                      {hasChildren && (
+                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform duration-200 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  )}
+                </button>
+
+                {hasChildren && openDropdowns[module.id] && !isCollapsed && (
+                  <div className="mt-1 ml-10 space-y-1">
+                    {module.children!.map(child => {
+                      const childPath = `${basePath}/${child.id}`;
+                      const isChildActive = pathname === childPath || pathname.startsWith(`${childPath}/`);
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => handleModuleClick(child.id)}
+                          className={`group w-full flex items-center px-3 py-2 text-sm rounded-xl transition-colors ${
+                            isChildActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <child.icon className={`h-4 w-4 mr-2 ${isChildActive ? 'text-blue-700' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                          <span className="truncate">{child.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

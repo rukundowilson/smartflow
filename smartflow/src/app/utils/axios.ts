@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081' || "https://smartflow-g5sk.onrender.com";
 
 const API = axios.create({
   baseURL,

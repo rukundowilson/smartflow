@@ -12,12 +12,19 @@ import {
   Settings,
   ChevronRight,
   Activity,
+  Users,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import { getAllTickets } from "@/app/services/itTicketService";
 import systemAccessRequestService from "@/app/services/systemAccessRequestService";
 
-const modules = [
+const modules: Array<{
+  id: string;
+  name: string;
+  icon: any;
+  description?: string;
+  children?: Array<{ id: string; name: string; icon: any }>;
+}> = [
   { 
     id: 'overview', 
     name: 'Overview', 
@@ -48,12 +55,6 @@ const modules = [
     icon: Package, 
     description: 'Asset Management',
   },
-  { 
-    id: 'tat-metrics', 
-    name: 'TAT Metrics', 
-    icon: Activity, 
-    description: 'Turnaround analytics',
-  },
 ];
 
 export default function Sidebar() {
@@ -62,11 +63,15 @@ export default function Sidebar() {
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const basePath = '/departments/it-department';
+
   const { logout, user } = useAuth();
 
   // Dynamic badge counts
   const [ticketBadgeCount, setTicketBadgeCount] = useState<number>(0);
   const [accessBadgeCount, setAccessBadgeCount] = useState<number>(0);
+
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -74,6 +79,8 @@ export default function Sidebar() {
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     }
+    // no metrics dropdown anymore
+    setOpenDropdowns({});
   }, [pathname]);
 
   // Load dynamic badge counts
@@ -111,7 +118,7 @@ export default function Sidebar() {
   }, [user?.id]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/it-department/${id}`;
+    const newPath = `${basePath}/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -127,7 +134,7 @@ export default function Sidebar() {
   return (
     <nav className={`${isCollapsed ? 'w-20' : 'w-80'} bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto transition-all duration-300 ease-in-out`}>
       {/* Header Section */}
-      <div className="mb-8 pb-6 border-b border-slate-200">
+      <div className="mb-8 pb-6 border-slate-200 border-b">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -172,39 +179,44 @@ export default function Sidebar() {
         )}
         <div className="space-y-1">
           {modules.map((module) => {
+            const targetPath = `${basePath}/${module.id}`;
+            const isParentActive = pathname === targetPath;
             const count = module.id === 'tickets' ? ticketBadgeCount : module.id === 'access-requests' ? accessBadgeCount : 0;
             return (
               <button
                 key={module.id}
                 onClick={() => handleModuleClick(module.id)}
                 className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                  activeModule === module.id
+                  isParentActive
                     ? "bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25"
                     : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md"
                 }`}
                 title={isCollapsed ? module.name : ''}
               >
                 <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                  activeModule === module.id 
+                  isParentActive 
                     ? "text-white drop-shadow-sm" 
                     : "text-slate-500 group-hover:text-slate-700"
                 }`} />
-                
                 {!isCollapsed && (
                   <>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="font-semibold truncate">{module.name}</div>
-                      <div className={`text-xs truncate transition-colors duration-200 ${
-                        activeModule === module.id ? "text-blue-100" : "text-slate-400 group-hover:text-slate-500"
-                      }`}>
-                        {module.description}
+                    <div className="flex-1 text-left min-w-0 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold truncate">{module.name}</div>
+                        {module.description && (
+                          <div className={`text-xs truncate transition-colors duration-200 ${
+                            isParentActive ? "text-blue-100" : "text-slate-400 group-hover:text-slate-500"
+                          }`}>
+                            {module.description}
+                          </div>
+                        )}
                       </div>
+                      {count > 0 && (
+                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full border ${getBadgeClass(module.id)}`}>
+                          {count}
+                        </span>
+                      )}
                     </div>
-                    {count > 0 && (
-                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full border ${getBadgeClass(module.id)}`}>
-                        {count}
-                      </span>
-                    )}
                   </>
                 )}
               </button>

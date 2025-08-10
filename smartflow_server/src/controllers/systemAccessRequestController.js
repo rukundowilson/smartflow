@@ -624,7 +624,11 @@ export async function getCompletedSystemAccessRequests(req, res) {
       `SELECT r.*, s.name AS system_name, s.description AS system_description,
               u.full_name AS user_name, u.email AS user_email,
               d.name AS department_name, rr.name AS role_name,
-              its.full_name AS it_support_name
+              its.full_name AS it_support_name,
+              lm.full_name AS line_manager_name,
+              hod.full_name AS hod_name,
+              ith.full_name AS it_hod_name,
+              itm.full_name AS it_manager_name
        FROM system_access_requests r
        JOIN systems s ON r.system_id = s.id
        JOIN users u ON r.user_id = u.id
@@ -640,6 +644,10 @@ export async function getCompletedSystemAccessRequests(req, res) {
        LEFT JOIN departments d ON d.id = audr.department_id
        LEFT JOIN roles rr ON rr.id = audr.role_id
        LEFT JOIN users its ON its.id = r.it_support_id
+       LEFT JOIN users lm ON lm.id = r.line_manager_id
+       LEFT JOIN users hod ON hod.id = r.hod_id
+       LEFT JOIN users ith ON ith.id = r.it_hod_id
+       LEFT JOIN users itm ON itm.id = r.it_manager_id
        WHERE r.status IN ('granted','rejected')
        ORDER BY COALESCE(r.it_support_at, r.submitted_at) DESC`
     );

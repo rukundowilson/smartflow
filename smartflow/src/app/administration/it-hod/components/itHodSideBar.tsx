@@ -17,12 +17,28 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 
-const modules = [
+const modules: Array<{
+  id: string;
+  name: string;
+  icon: any;
+  description?: string;
+  children?: Array<{ id: string; name: string; icon: any }>;
+}> = [
   { id: '/', name: 'overview', icon: Key, description: 'home dashboard' },
   { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
   { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
   { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
-  { id: 'tat-metrics', name: 'TAT Metrics', icon: Key, description: 'turnaround analytics' },
+  {
+    id: 'tat-metrics',
+    name: 'TAT Metrics',
+    icon: Key,
+    description: 'turnaround analytics',
+    children: [
+      { id: 'tat-metrics/tickets', name: 'Tickets', icon: Ticket },
+      { id: 'tat-metrics/access-requests', name: 'Access Requests', icon: Key },
+      { id: 'tat-metrics/users', name: 'Users', icon: Users },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -36,21 +52,28 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const basePath = '/administration/it-hod';
+
   const { logout, user, selectedRole } = useAuth();
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
 
-  // Set active module from URL on mount
+  // dropdown open states
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+
+  // Set active module from URL on mount and ensure dropdowns open when on child routes
   useEffect(() => {
-    // Extract the last part of the path, removing query parameters
     const path = pathname.split('/').pop()?.split('?')[0];
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     }
+    if (pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)) {
+      setOpenDropdowns(prev => ({ ...prev, ['tat-metrics']: true }));
+    }
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = id === '/' ? `/administration/it-hod` : `/administration/it-hod/${id}`;
+    const newPath = id === '/' ? `${basePath}` : `${basePath}/${id}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -59,6 +82,16 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
         onClose();
       }
     }
+  };
+
+  const toggleDropdown = (id: string, children?: Array<{ id: string }>) => {
+    if (!children || children.length === 0) return;
+    if (isCollapsed) {
+      // When collapsed, navigate to the first child for quick access
+      handleModuleClick(children[0].id);
+      return;
+    }
+    setOpenDropdowns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleLogout = () => {
@@ -136,28 +169,64 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Navigation</h3>
         )}
         <div className="space-y-1">
-          {modules.map((module) => (
-            <button
-              key={module.id}
-              onClick={() => handleModuleClick(module.id)}
-              className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                activeModule === module.id
-                  ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
-              }`}
-              title={isCollapsed ? module.name : ''}
-            >
-              <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-              }`} />
-              {!isCollapsed && (
-                <div className="flex-1 text-left min-w-0">
-                  <div className="font-semibold truncate">{module.name}</div>
-                  <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
-                </div>
-              )}
-            </button>
-          ))}
+          {modules.map((module) => {
+            const hasChildren = module.children && module.children.length > 0;
+            const targetPath = `${basePath}/${module.id}`;
+            const isParentActive = hasChildren
+              ? pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)
+              : pathname === targetPath || (module.id === '/' && pathname === basePath);
+            return (
+              <div key={module.id}>
+                <button
+                  onClick={() => hasChildren ? toggleDropdown(module.id, module.children) : handleModuleClick(module.id)}
+                  className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                    isParentActive
+                      ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
+                  }`}
+                  title={isCollapsed ? module.name : ''}
+                >
+                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                    isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+                  }`} />
+                  {!isCollapsed && (
+                    <div className="flex-1 text-left min-w-0 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold truncate">{module.name}</div>
+                        {module.description && (
+                          <div className={`text-xs truncate ${isParentActive ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
+                        )}
+                      </div>
+                      {hasChildren && (
+                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform duration-200 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
+                      )}
+                    </div>
+                  )}
+                </button>
+
+                {hasChildren && openDropdowns[module.id] && !isCollapsed && (
+                  <div className="mt-1 ml-10 space-y-1">
+                    {module.children!.map(child => {
+                      const childPath = `${basePath}/${child.id}`;
+                      const isChildActive = pathname === childPath || pathname.startsWith(`${childPath}/`);
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => handleModuleClick(child.id)}
+                          className={`group w-full flex items-center px-3 py-2 text-sm rounded-xl transition-colors ${
+                            isChildActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <child.icon className={`h-4 w-4 mr-2 ${isChildActive ? 'text-blue-700' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                          <span className="truncate">{child.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
       {/* User Info & Sign Out */}
