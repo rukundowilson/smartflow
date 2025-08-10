@@ -6,6 +6,7 @@ import {
 } from "../services/ticketService.js";
 import { sendNotificationToUsers } from './notificationController.js';
 import db from '../config/db.js';
+import { sendTicketStatusEmail } from '../services/emailService.js';
 
 export async function handleGetAllTickets(req, res) {
   try {
@@ -87,7 +88,7 @@ export async function handleUpdateTicketStatus(req, res) {
 
     // Notify ticket owner on status change
     try {
-      const [[row]] = await db.query(`SELECT t.created_by, t.issue_type FROM tickets t WHERE t.id = ?`, [ticketId]);
+      const [[row]] = await db.query(`SELECT t.created_by, t.issue_type, u.email AS user_email FROM tickets t JOIN users u ON u.id = t.created_by WHERE t.id = ?`, [ticketId]);
       if (row?.created_by) {
         await sendNotificationToUsers([row.created_by], {
           type: 'ticket',
@@ -96,6 +97,14 @@ export async function handleUpdateTicketStatus(req, res) {
           related_id: Number(ticketId),
           related_type: 'ticket'
         });
+        // Send email if possible
+        if (row?.user_email) {
+          try {
+            await sendTicketStatusEmail({ to: row.user_email, ticketId, issueType: row.issue_type, status });
+          } catch (mailErr) {
+            console.warn('ticket status email failed (non-blocking):', mailErr?.message || mailErr);
+          }
+        }
       }
     } catch (nerr) {
       console.warn('ticket status notification failed:', nerr?.message || nerr);
