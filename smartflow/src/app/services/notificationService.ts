@@ -45,7 +45,7 @@ export class NotificationService {
       }
 
       // Create new SSE connection
-      this.eventSource = new EventSource(`/api/notifications/stream/${userId}`);
+      this.eventSource = new EventSource(`https://smartflow-g5sk.onrender.com/notifications/stream/${userId}`);
       
       this.eventSource.onmessage = (event) => {
         const notification = JSON.parse(event.data);
