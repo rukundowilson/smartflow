@@ -13,6 +13,7 @@ import {
   Shield,
   Settings,
   ChevronRight,
+  Activity,
 } from 'lucide-react';
 
 const modules = [
@@ -25,6 +26,7 @@ const modules = [
   { id: 'departments', name: 'Departments', icon: Building2 },
   { id: 'roles', name: 'Role Management', icon: Shield },
   { id: 'systems', name: 'Systems', icon: Settings },
+  { id: 'tat-metrics', name: 'TAT Metrics', icon: Activity },
 ];
 
 interface SideBarProps {

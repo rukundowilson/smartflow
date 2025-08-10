@@ -22,6 +22,7 @@ const modules = [
   { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
   { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
   { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
+  { id: 'tat-metrics', name: 'TAT Metrics', icon: Key, description: 'turnaround analytics' },
 ];
 
 interface SidebarProps {

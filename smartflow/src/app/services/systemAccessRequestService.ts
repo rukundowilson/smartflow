@@ -43,6 +43,12 @@ export interface SystemAccessRequest {
   hod_name?: string;
   it_support_id?: number | null;
   it_support_name?: string | null;
+  // Optional stage timestamps for analytics
+  it_hod_id?: number;
+  it_hod_at?: string;
+  it_manager_id?: number;
+  it_manager_at?: string;
+  it_support_at?: string;
 }
 
 export interface ApprovalData {

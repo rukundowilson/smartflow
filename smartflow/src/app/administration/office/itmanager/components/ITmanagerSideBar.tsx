@@ -16,6 +16,7 @@ import { useAuth } from "@/app/contexts/auth-context";
 const modules = [
   { id: '', name: 'Approvals', icon: Monitor, description: 'IT Manager approvals' },
   { id: 'assignments', name: 'Assignments', icon: CheckCircle, description: 'IT support assignments' },
+  { id: 'tat-metrics', name: 'TAT Metrics', icon: Monitor, description: 'Turnaround analytics' },
 ];
 
 export default function ITManagerSidebar() {

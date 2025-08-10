@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
   ChevronRight,
+  Activity,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import { getAllTickets } from "@/app/services/itTicketService";
@@ -46,6 +47,12 @@ const modules = [
     name: 'Item Requisition', 
     icon: Package, 
     description: 'Asset Management',
+  },
+  { 
+    id: 'tat-metrics', 
+    name: 'TAT Metrics', 
+    icon: Activity, 
+    description: 'Turnaround analytics',
   },
 ];
 

@@ -1,5 +1,6 @@
 import db from '../config/db.js';
 import { sendNotificationToUsers } from './notificationController.js';
+import { sendAccessGrantedEmail } from '../services/emailService.js';
 
 export async function createSystemAccessRequest(req, res) {
   try {
@@ -662,9 +663,10 @@ export async function itSupportGrantSystemAccessRequest(req, res) {
 
     try {
       const [[info]] = await db.query(
-        `SELECT r.user_id, s.name AS system_name
+        `SELECT r.user_id, s.name AS system_name, u.email AS user_email
          FROM system_access_requests r
          JOIN systems s ON s.id = r.system_id
+         JOIN users u ON u.id = r.user_id
          WHERE r.id = ?`,
         [id]
       );
@@ -676,6 +678,14 @@ export async function itSupportGrantSystemAccessRequest(req, res) {
         related_id: Number(id),
         related_type: 'system_access_request'
       });
+      // Send email if user's email exists and SMTP is configured
+      if (info?.user_email) {
+        try {
+          await sendAccessGrantedEmail({ to: info.user_email, systemName: info.system_name, requestId: id });
+        } catch (mailErr) {
+          console.warn('email send failed (non-blocking):', mailErr?.message || mailErr);
+        }
+      }
       // Optionally notify IT Manager that the request was completed
       try {
         const [[mgr]] = await db.query(`SELECT it_manager_id FROM system_access_requests WHERE id = ?`, [id]);
