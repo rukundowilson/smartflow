@@ -425,6 +425,49 @@ export async function assignSystemAccessRequest(req, res) {
     await connection.commit();
     connection.release();
 
+    // Notify IT support assignee or group
+    try {
+      const [[info]] = await db.query(
+        `SELECT r.user_id, s.name AS system_name, u.full_name AS requester_name
+         FROM system_access_requests r
+         JOIN systems s ON s.id = r.system_id
+         JOIN users u ON u.id = r.user_id
+         WHERE r.id = ?`,
+        [id]
+      );
+      if (assigned_user_id) {
+        await sendNotificationToUsers([assigned_user_id], {
+          type: 'access_request',
+          title: 'Access Request Assigned',
+          message: `You have been assigned to review access for ${info?.requester_name || 'a user'} on ${info?.system_name || 'a system'}.`,
+          sender_id: approver_id,
+          related_id: Number(id),
+          related_type: 'system_access_request'
+        });
+      } else {
+        // notify IT Support role users when unassigned in queue
+        const [rows] = await db.query(
+          `SELECT DISTINCT udr.user_id AS id
+           FROM user_department_roles udr
+           JOIN roles r ON r.id = udr.role_id
+           WHERE udr.status = 'active' AND r.name = 'IT Support'`
+        );
+        const recipients = Array.isArray(rows) ? rows.map(r => r.id).filter(Boolean) : [];
+        if (recipients.length > 0) {
+          await sendNotificationToUsers(recipients, {
+            type: 'access_request',
+            title: 'Access Request Needs Assignment',
+            message: `A request for ${info?.system_name || 'a system'} by ${info?.requester_name || 'a user'} needs IT assignment.`,
+            sender_id: approver_id,
+            related_id: Number(id),
+            related_type: 'system_access_request'
+          });
+        }
+      }
+    } catch (nerr) {
+      console.warn('assignment notification failed:', nerr?.message || nerr);
+    }
+
     res.json({ success: true, message: 'Request assigned to IT support', next_status: 'it_support_review' });
   } catch (e) {
     try { await connection.rollback(); } catch {}
@@ -532,5 +575,208 @@ export async function getApprovedInDepartment(req, res) {
   } catch (e) {
     console.error('Error fetching department-approved system access requests:', e);
     res.status(500).json({ success: false, message: 'Failed to fetch requests' });
+  }
+}
+
+export async function getITSupportQueue(req, res) {
+  try {
+    const { user_id } = req.query;
+    const userIdNum = Number(user_id) || 0;
+
+    const query = `
+      SELECT r.*, s.name AS system_name, s.description AS system_description,
+             u.full_name AS user_name, u.email AS user_email,
+             d.name AS department_name, rr.name AS role_name,
+             its.full_name AS it_support_name
+      FROM system_access_requests r
+      JOIN systems s ON r.system_id = s.id
+      JOIN users u ON r.user_id = u.id
+      LEFT JOIN (
+        SELECT udr1.*
+        FROM user_department_roles udr1
+        WHERE udr1.status = 'active'
+        AND udr1.assigned_at = (
+          SELECT MAX(assigned_at) FROM user_department_roles m
+          WHERE m.user_id = udr1.user_id AND m.status = 'active'
+        )
+      ) audr ON audr.user_id = u.id
+      LEFT JOIN departments d ON d.id = audr.department_id
+      LEFT JOIN roles rr ON rr.id = audr.role_id
+      LEFT JOIN users its ON its.id = r.it_support_id
+      WHERE r.status IN ('it_support_review','granted','rejected')
+        AND (r.it_support_id IS NULL OR r.it_support_id = ?)
+      ORDER BY r.submitted_at DESC
+    `;
+
+    const [rows] = await db.query(query, [userIdNum]);
+    res.json({ success: true, requests: rows });
+  } catch (e) {
+    console.error('Error fetching IT support queue:', e);
+    res.status(500).json({ success: false, message: 'Failed to fetch IT support queue' });
+  }
+}
+
+// IT Support: mark a request as granted
+export async function itSupportGrantSystemAccessRequest(req, res) {
+  const connection = await db.getConnection();
+  try {
+    const { id } = req.params;
+    const { user_id, comment } = req.body || {};
+
+    if (!user_id) {
+      connection.release();
+      return res.status(400).json({ success: false, message: 'user_id is required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [[row]] = await connection.query('SELECT status FROM system_access_requests WHERE id = ?', [id]);
+    if (!row) {
+      throw new Error('Request not found');
+    }
+    if (row.status !== 'it_support_review') {
+      throw new Error('Only requests in it_support_review can be granted');
+    }
+
+    await connection.query(
+      `UPDATE system_access_requests
+       SET status = 'granted', it_support_id = COALESCE(it_support_id, ?), it_support_at = NOW()
+       WHERE id = ?`,
+      [user_id, id]
+    );
+
+    if (comment && comment.trim()) {
+      try {
+        await connection.query(
+          `INSERT INTO comments (comment_type, commented_id, commented_by, content)
+           VALUES ('system_access_request', ?, ?, ?)`,
+          [id, user_id, comment.trim()]
+        );
+      } catch (insertErr) {
+        console.warn('Warning: failed to insert IT support grant comment (non-blocking):', insertErr?.message || insertErr);
+      }
+    }
+
+    await connection.commit();
+    connection.release();
+
+    try {
+      const [[info]] = await db.query(
+        `SELECT r.user_id, s.name AS system_name
+         FROM system_access_requests r
+         JOIN systems s ON s.id = r.system_id
+         WHERE r.id = ?`,
+        [id]
+      );
+      await sendNotificationToUsers([info?.user_id], {
+        type: 'access_request',
+        title: 'Access Granted',
+        message: `Your access request for ${info?.system_name || 'a system'} has been granted by IT Support`,
+        sender_id: user_id,
+        related_id: Number(id),
+        related_type: 'system_access_request'
+      });
+      // Optionally notify IT Manager that the request was completed
+      try {
+        const [[mgr]] = await db.query(`SELECT it_manager_id FROM system_access_requests WHERE id = ?`, [id]);
+        if (mgr?.it_manager_id) {
+          await sendNotificationToUsers([mgr.it_manager_id], {
+            type: 'access_request',
+            title: 'Request Completed',
+            message: `IT Support granted access for request #${id}.`,
+            sender_id: user_id,
+            related_id: Number(id),
+            related_type: 'system_access_request'
+          });
+        }
+      } catch {}
+    } catch (nerr) {
+      console.warn('Notification emit failed (non-blocking):', nerr?.message || nerr);
+    }
+
+    res.json({ success: true, message: 'Request marked as granted' });
+  } catch (e) {
+    try { await connection.rollback(); } catch {}
+    connection.release();
+    console.error('Error granting system access request:', e);
+    res.status(500).json({ success: false, message: e.message || 'Failed to grant request' });
+  }
+}
+
+// IT Support: mark a request as rejected
+export async function itSupportRejectSystemAccessRequest(req, res) {
+  const connection = await db.getConnection();
+  try {
+    const { id } = req.params;
+    const { user_id, rejection_reason, comment } = req.body || {};
+
+    if (!user_id) {
+      connection.release();
+      return res.status(400).json({ success: false, message: 'user_id is required' });
+    }
+
+    await connection.beginTransaction();
+
+    const [[row]] = await connection.query('SELECT status FROM system_access_requests WHERE id = ?', [id]);
+    if (!row) {
+      throw new Error('Request not found');
+    }
+    if (row.status !== 'it_support_review') {
+      throw new Error('Only requests in it_support_review can be rejected');
+    }
+
+    await connection.query(
+      `UPDATE system_access_requests
+       SET status = 'rejected', it_support_id = COALESCE(it_support_id, ?), it_support_at = NOW()
+       WHERE id = ?`,
+      [user_id, id]
+    );
+
+    const parts = [];
+    if (rejection_reason && rejection_reason.trim()) parts.push(`Rejection reason: ${rejection_reason.trim()}`);
+    if (comment && comment.trim()) parts.push(`Note: ${comment.trim()}`);
+    const content = parts.join(' \n ');
+    if (content) {
+      try {
+        await connection.query(
+          `INSERT INTO comments (comment_type, commented_id, commented_by, content)
+           VALUES ('system_access_request', ?, ?, ?)`,
+          [id, user_id, content]
+        );
+      } catch (insertErr) {
+        console.warn('Warning: failed to insert IT support rejection comment (non-blocking):', insertErr?.message || insertErr);
+      }
+    }
+
+    await connection.commit();
+    connection.release();
+
+    // Notify requester and optionally IT Manager
+    try {
+      const [[info]] = await db.query(
+        `SELECT r.user_id, s.name AS system_name
+         FROM system_access_requests r
+         JOIN systems s ON s.id = r.system_id
+         WHERE r.id = ?`,
+        [id]
+      );
+      await sendNotificationToUsers([info?.user_id], {
+        type: 'access_request',
+        title: 'Access Rejected',
+        message: `Your access request for ${info?.system_name || 'a system'} was rejected by IT Support`,
+        sender_id: user_id,
+        related_id: Number(id),
+        related_type: 'system_access_request'
+      });
+    } catch (nerr) {
+      console.warn('Notification emit failed (non-blocking):', nerr?.message || nerr);
+    }
+
+    res.json({ success: true, message: 'Request marked as rejected' });
+  } catch (e) {
+    try { await connection.rollback(); } catch {}
+    connection.release();
+    console.error('Error rejecting system access request:', e);
+    res.status(500).json({ success: false, message: e.message || 'Failed to reject request' });
   }
 } 

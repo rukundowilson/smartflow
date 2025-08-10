@@ -92,6 +92,22 @@ class SystemAccessRequestService {
     const res = await API.get(`${this.baseUrl}/approved-department?${q.toString()}`);
     return res.data;
   }
+
+  async getITSupportQueue(params: { user_id: number }): Promise<{ success: boolean; requests: SystemAccessRequest[] }> {
+    const q = new URLSearchParams({ user_id: String(params.user_id) });
+    const res = await API.get(`${this.baseUrl}/it-support-queue?${q.toString()}`);
+    return res.data;
+  }
+
+  async itSupportGrant(id: number, data: { user_id: number; comment?: string }): Promise<any> {
+    const res = await API.put(`${this.baseUrl}/${id}/it-support/grant`, data);
+    return res.data;
+  }
+
+  async itSupportReject(id: number, data: { user_id: number; rejection_reason?: string; comment?: string }): Promise<any> {
+    const res = await API.put(`${this.baseUrl}/${id}/it-support/reject`, data);
+    return res.data;
+  }
 }
 
 export default new SystemAccessRequestService(); 
