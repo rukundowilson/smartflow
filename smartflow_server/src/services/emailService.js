@@ -4,7 +4,7 @@ const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-const fromEmail = process.env.EMAIL_FROM || smtpUser || 'no-reply@smartflow.local';
+const fromEmail = process.env.EMAIL_FROM || 'rukundowilson5@gmail.com' || smtpUser || 'no-reply@smartflow.local';
 
 let transporter;
 

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/app/contexts/auth-context";
 import { getAllTickets, ITTicket } from "@/app/services/itTicketService";
 import systemAccessRequestService, { SystemAccessRequest } from "@/app/services/systemAccessRequestService";
-import { Key, Ticket, Clock, X, CheckCircle, User, ChevronRight, Calendar, Timer } from "lucide-react";
+import { Key, Ticket, Clock, X, CheckCircle, User, ChevronRight, Calendar, Timer, BarChart3, SlidersHorizontal } from "lucide-react";
 
 type ExplorerProps = {
   title?: string;
@@ -39,6 +39,16 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
   const [sar, setSar] = useState<SystemAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<{ type: 'ticket' | 'sar'; item: any } | null>(null);
+  const [dataset, setDataset] = useState<'tickets'|'sar'>(showAccessRequests && !showTickets ? 'sar' : 'tickets');
+  const [mode, setMode] = useState<'total'|'stage'>('total');
+  const stageOptions = [
+    { key: 'submitted_to_lm', label: 'Submitted → Line Manager' },
+    { key: 'lm_to_hod', label: 'Line Manager → HOD' },
+    { key: 'hod_to_it_hod', label: 'HOD → IT HOD' },
+    { key: 'it_hod_to_it_mgr', label: 'IT HOD → IT Manager' },
+    { key: 'it_mgr_to_it_support', label: 'IT Manager → IT Support' },
+  ] as const;
+  const [selectedStage, setSelectedStage] = useState<typeof stageOptions[number]['key']>('submitted_to_lm');
 
   useEffect(() => {
     let isCancelled = false;
@@ -63,6 +73,96 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
 
   const completedTickets = useMemo(() => tickets.filter(t => t.status === 'resolved' || t.status === 'closed'), [tickets]);
   const completedSAR = useMemo(() => sar.filter(r => (r.status === 'granted' || r.status === 'rejected') && (r as any).it_support_at), [sar]);
+
+  // Metrics helpers
+  const avg = (arr: number[]) => arr.length ? arr.reduce((s,n)=>s+n,0)/arr.length : 0;
+  const med = (arr: number[]) => {
+    if (!arr.length) return 0; const a=[...arr].sort((a,b)=>a-b); const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2;
+  };
+  const pctl = (arr: number[], p: number) => { if(!arr.length)return 0; const a=[...arr].sort((a,b)=>a-b); const idx=Math.min(a.length-1, Math.max(0, Math.floor((p/100)*a.length))); return a[idx]; };
+  const distro = (arr: number[]) => {
+    const buckets = [
+      { label: '<4h', test: (h: number)=>h<4 },
+      { label: '4-24h', test: (h: number)=>h>=4&&h<24 },
+      { label: '1-3d', test: (h: number)=>h>=24&&h<72 },
+      { label: '3-7d', test: (h: number)=>h>=72&&h<168 },
+      { label: '>7d', test: (h: number)=>h>=168 },
+    ];
+    return buckets.map(b=>({ label:b.label, count: arr.filter(b.test).length }));
+  };
+
+  // Tickets total durations
+  const ticketDurations = useMemo(()=> completedTickets
+    .map(t => t.reviewed_at ? diffHours(t.created_at, t.reviewed_at) : null)
+    .filter((n): n is number => n!==null && isFinite(n as number)) as number[]
+  , [completedTickets]);
+
+  // SAR stage durations and total
+  const sarTotalDurations = useMemo(()=> completedSAR
+    .map(r => diffHours(r.submitted_at, (r as any).it_support_at || null))
+    .filter((n): n is number => n!==null && isFinite(n as number)) as number[]
+  , [completedSAR]);
+
+  const sarStageDurations = useMemo(()=>{
+    const map: Record<string, number[]> = {
+      submitted_to_lm: [], lm_to_hod: [], hod_to_it_hod: [], it_hod_to_it_mgr: [], it_mgr_to_it_support: []
+    };
+    completedSAR.forEach(r => {
+      const t0=r.submitted_at, t1=r.line_manager_at||null, t2=r.hod_at||null, t3=(r as any).it_hod_at||null, t4=(r as any).it_manager_at||null, t5=(r as any).it_support_at||null;
+      const s1=diffHours(t0,t1); if(s1!==null) map.submitted_to_lm.push(s1);
+      const s2=diffHours(t1||undefined,t2||undefined); if(s2!==null) map.lm_to_hod.push(s2);
+      const s3=diffHours(t2||undefined,t3||undefined); if(s3!==null) map.hod_to_it_hod.push(s3);
+      const s4=diffHours(t3||undefined,t4||undefined); if(s4!==null) map.it_hod_to_it_mgr.push(s4);
+      const s5=diffHours(t4||undefined,t5||undefined); if(s5!==null) map.it_mgr_to_it_support.push(s5);
+    });
+    return map;
+  }, [completedSAR]);
+
+  const metricsSource: number[] = useMemo(()=>{
+    if (dataset==='tickets') return ticketDurations;
+    if (mode==='total') return sarTotalDurations;
+    return sarStageDurations[selectedStage] || [];
+  }, [dataset, mode, selectedStage, ticketDurations, sarTotalDurations, sarStageDurations]);
+
+  const metrics = useMemo(()=>({
+    avg: avg(metricsSource), med: med(metricsSource), p90: pctl(metricsSource,90), distro: distro(metricsSource)
+  }), [metricsSource]);
+
+  const StatCard = ({ icon: Icon, title, value, subtitle, color = 'text-slate-700' }: { icon: any; title: string; value: string; subtitle?: string; color?: string; }) => (
+    <div className="bg-white rounded-xl p-4 shadow border border-slate-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{title}</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
+          {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
+        </div>
+        <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center">
+          <Icon className={`h-4 w-4 ${color}`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const DistBar = ({ data }: { data: { label: string; count: number }[] }) => {
+    const total = data.reduce((s,d)=>s+d.count,0)||1;
+    return (
+      <div className="bg-white rounded-xl p-4 shadow border border-slate-200">
+        <div className="flex items-center mb-2"><BarChart3 className="h-4 w-4 text-slate-600 mr-2"/><h3 className="text-sm font-semibold text-slate-900">Time Distribution</h3></div>
+        <div className="flex items-end gap-3 h-28">
+          {data.map(d=>{
+            const h = Math.max(2, Math.round((d.count/total)*110));
+            return (
+              <div key={d.label} className="flex flex-col items-center">
+                <div className="w-9 bg-indigo-500/80 rounded-md" style={{height:`${h}px`}} />
+                <span className="mt-1 text-[10px] text-slate-600">{d.label}</span>
+                <span className="text-[10px] text-slate-500">{d.count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const TicketRow = ({ t }: { t: ITTicket }) => {
     const tat = t.reviewed_at ? diffHours(t.created_at, t.reviewed_at) : null;
@@ -208,7 +308,40 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
         {loading && <span className="text-xs text-slate-500">Loading…</span>}
       </div>
 
-      {showTickets && (
+      {/* Controls */}
+      <div className="bg-white rounded-xl p-3 shadow border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 text-slate-500"/>
+          <span className="text-sm text-slate-700">Dataset:</span>
+          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">
+            <button onClick={()=>setDataset('tickets')} className={`px-3 py-1.5 text-sm ${dataset==='tickets'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>Tickets</button>
+            <button onClick={()=>setDataset('sar')} className={`px-3 py-1.5 text-sm ${dataset==='sar'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>Access Requests</button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-700">Mode:</span>
+          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">
+            <button onClick={()=>setMode('total')} className={`px-3 py-1.5 text-sm ${mode==='total'?'bg-slate-900 text-white':'bg-white text-slate-700'}`}>By Request (Total)</button>
+            <button onClick={()=>setMode('stage')} disabled={dataset==='tickets'} className={`px-3 py-1.5 text-sm ${mode==='stage'&&dataset!=='tickets'?'bg-slate-900 text-white':'bg-white text-slate-700 disabled:opacity-50'}`}>Per Stage</button>
+          </div>
+          {dataset==='sar' && mode==='stage' && (
+            <select value={selectedStage} onChange={e=>setSelectedStage(e.target.value as any)} className="ml-2 px-3 py-1.5 text-sm border border-slate-200 rounded-lg">
+              {stageOptions.map(opt=>(<option key={opt.key} value={opt.key}>{opt.label}</option>))}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {/* Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard icon={Clock} title="Average TAT" value={fmtHours(metrics.avg)} color="text-indigo-600" />
+        <StatCard icon={Timer} title="Median TAT" value={fmtHours(metrics.med)} color="text-blue-600" />
+        <StatCard icon={CheckCircle} title="90th Percentile" value={fmtHours(metrics.p90)} color="text-emerald-600" />
+      </div>
+      <DistBar data={metrics.distro} />
+
+      {/* Lists */}
+      {(showTickets && dataset==='tickets') && (
         <div className="bg-white rounded-xl p-4 shadow-lg border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-600"/><h3 className="text-sm font-semibold text-slate-900">Completed Tickets</h3></div>
@@ -222,7 +355,7 @@ export default function TATExplorer({ title = "Completed Workflows", showTickets
         </div>
       )}
 
-      {showAccessRequests && (
+      {(showAccessRequests && dataset==='sar') && (
         <div className="bg-white rounded-xl p-4 shadow-lg border border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2"><Key className="h-5 w-5 text-green-600"/><h3 className="text-sm font-semibold text-slate-900">Completed System Access Requests</h3></div>
