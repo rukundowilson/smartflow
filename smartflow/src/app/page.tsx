@@ -80,17 +80,65 @@ const ITSystemLogin: React.FC = () => {
         const { token, user } = await login(formData);
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
+        try { window.dispatchEvent(new Event('auth-updated')); } catch {}
       
       setGeneralErr(''); // Clear any errors
       
       // Check if user has multiple roles - if so, go to role selection page
-      if (user.roles && user.roles.length > 1) {
+      const roleNamesNormalized: string[] = Array.isArray((user as any).roleNames)
+        ? ((user as any).roleNames as string[])
+        : [];
+      const rolesRaw: any[] = Array.isArray((user as any).roles) ? (user as any).roles : [];
+      const totalRolesCount = roleNamesNormalized.length || rolesRaw.length;
+      if (totalRolesCount > 1) {
         console.log('User has multiple roles, redirecting to role selection');
         window.location.href = '/role-selection';
       } else {
-        // Single role user - redirect based on department only
-        console.log('User has single role, redirecting based on department:', user.department);
-        redirectByDepartment(user.department, router);
+        // Single role user - redirect based on department and role
+        console.log('User has single role, redirecting with department and role awareness:', user.department);
+        // Persist selectedRole so downstream pages show role/department (not anonymous)
+        try {
+          const rolesArr: any[] = Array.isArray((user as any).roles) ? (user as any).roles : [];
+          if (rolesArr.length === 1) {
+            const sole = rolesArr[0];
+            const selectedRole = typeof sole === 'string' ? { role_name: sole, department_name: user.department } : sole;
+            const enrichedUser = { ...(user as any), selectedRole };
+            localStorage.setItem('selectedRole', JSON.stringify(selectedRole));
+            localStorage.setItem('user', JSON.stringify(enrichedUser));
+            try { window.dispatchEvent(new Event('auth-updated')); } catch {}
+          } else if (rolesArr.length === 0 && Array.isArray((user as any).roleNames) && (user as any).roleNames.length === 1) {
+            const onlyRole = (user as any).roleNames[0] as string;
+            const selectedRole = { role_name: onlyRole, department_name: user.department };
+            const enrichedUser = { ...(user as any), selectedRole };
+            localStorage.setItem('selectedRole', JSON.stringify(selectedRole));
+            localStorage.setItem('user', JSON.stringify(enrichedUser));
+            try { window.dispatchEvent(new Event('auth-updated')); } catch {}
+          }
+        } catch {}
+        const roleNames: string[] = (() => {
+          // Prefer normalized roleNames if provided by login service
+          if (Array.isArray((user as any).roleNames) && (user as any).roleNames.length > 0) {
+            return (user as any).roleNames as string[];
+          }
+          // Fallback to roles array if present
+          if (Array.isArray((user as any).roles) && (user as any).roles.length > 0) {
+            const first = (user as any).roles[0];
+            if (typeof first === 'string') {
+              return ((user as any).roles as string[]);
+            }
+            // Assume array of role objects with role_name
+            return ((user as any).roles as any[])
+              .map(r => r?.role_name)
+              .filter((n: any) => typeof n === 'string' && n.length > 0);
+          }
+          return [];
+        })();
+        if (roleNames.length > 0) {
+          redirectByDepartmentAndRoles(user.department, roleNames, router);
+        } else {
+          // Fallback to department-only
+          redirectByDepartment(user.department, router);
+        }
       }
       } catch (err : any) {
       console.log("Login error:", err);

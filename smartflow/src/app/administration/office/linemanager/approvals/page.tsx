@@ -174,17 +174,73 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             <p className="text-sm text-blue-700 mt-1">You are reviewing this system access request</p>
           </div>
 
-          {/* Request Details */}
+          {/* Primary Info Sections */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.user_name || 'Employee'}</p>
-              <p className="text-sm text-gray-600">{request.user_email || ''}</p>
+            {/* Employee Information */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Employee Information</h3>
+                  <p className="text-xs text-gray-600">Requester details</p>
+                </div>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                  <p className="font-medium text-gray-900">{request.user_name || 'Employee'}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
+                  <p className="text-gray-900">{request.user_email || 'N/A'}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.system_name}</p>
+
+            {/* Request Information */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Request Information</h3>
+                  <p className="text-xs text-gray-600">System access details</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">System Name</label>
+                  <p className="font-medium text-gray-900">{request.system_name}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted On</label>
+                  <p className="text-gray-900">{formatDate(request.submitted_at)}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Access Period</label>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-900">
+                    <p><span className="font-medium">Start:</span> {formatDate(request.start_date)}</p>
+                    <p><span className="font-medium">End:</span> {formatDate(request.end_date)}</p>
+                    <p className="text-gray-600">{request.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                    {request.status.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Justification */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Business Justification</h3>
+            <p className="text-sm text-gray-900 bg-white p-3 rounded-lg border border-gray-200">{request.justification || 'No justification provided'}</p>
           </div>
 
           {/* Request Timeline */}
@@ -216,40 +272,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
             </div>
           </div>
 
-          {/* Request Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Access Period</h3>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">Start:</span> {formatDate(request.start_date)}
-                </p>
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">End:</span> {formatDate(request.end_date)}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {request.is_permanent ? 'Permanent access' : 'Temporary access'}
-                </p>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                {request.status.replace(/_/g, ' ').toUpperCase()}
-              </span>
-            </div>
-          </div>
-
-          {/* Justification */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Justification for Access</h3>
-            <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{request.justification || 'No justification provided'}</p>
-          </div>
-
           {/* Comments (visible after decision) */}
           {isReadOnly && (
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Approval Comments</h3>
               {isLoadingComments ? (
                 <div className="text-sm text-gray-500">Loading comments...</div>
               ) : comments.length === 0 ? (
@@ -273,41 +299,33 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
           {/* Line Manager Decision */}
           <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
             <h3 className="text-sm font-medium text-sky-800 mb-3">Your Decision as Line Manager</h3>
-            
             <div className="space-y-4">
-          <div>
-                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Comment (Optional)
-            </label>
-            <textarea
-              id="comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
-              placeholder="Add your comment about this request..."
-              disabled={isReadOnly}
-            />
-          </div>
-
-          <div>
-                <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason (Required if rejecting)
-            </label>
-            <textarea
-              id="rejectionReason"
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-              placeholder="Provide a reason for rejection..."
-              disabled={isReadOnly}
-            />
-          </div>
+              <div>
+                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">Your Comment (Optional)</label>
+                <textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                  placeholder="Add your comment about this request..."
+                  disabled={isReadOnly}
+                />
+              </div>
+              <div>
+                <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">Rejection Reason (Required if rejecting)</label>
+                <textarea
+                  id="rejectionReason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  placeholder="Provide a reason for rejection..."
+                  disabled={isReadOnly}
+                />
+              </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Modal Actions */}
@@ -483,7 +501,7 @@ const LineManagerApprovalsPage: React.FC = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -492,30 +510,6 @@ const LineManagerApprovalsPage: React.FC = () => {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
                 <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Department</p>
-                <p className="text-lg font-semibold text-gray-900">{user?.department || 'Loading...'}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Your Role</p>
-                <p className="text-lg font-semibold text-gray-900">Line Manager</p>
               </div>
             </div>
           </div>

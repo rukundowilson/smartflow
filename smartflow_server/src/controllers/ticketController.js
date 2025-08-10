@@ -1,4 +1,6 @@
 import { createTicket, fetchTicketsByUserId, getAllTickets, getTicketById as getTicketByIdService } from "../services/ticketService.js";
+import db from "../config/db.js";
+import { sendNotificationToUsers } from './notificationController.js';
 
 export async function handleCreateTicket(req, res) {
   const {ticket, created_by, assigned_to } = req.body;
@@ -17,6 +19,43 @@ export async function handleCreateTicket(req, res) {
       priority,
       description,
     });
+
+    // Notify creator their ticket was submitted
+    try {
+      await sendNotificationToUsers([created_by], {
+        type: 'ticket',
+        title: `Ticket #${ticket?.id || ''} Submitted`,
+        message: `Your ticket (${issue_type}) has been created and queued for IT review.`,
+        sender_id: created_by,
+        related_id: ticket?.id || null,
+        related_type: 'ticket'
+      });
+    } catch (nerr) {
+      console.warn('ticket create notify creator failed:', nerr?.message || nerr);
+    }
+
+    // Notify IT staff of new ticket (IT Support and IT Manager roles)
+    try {
+      const [rows] = await db.query(
+        `SELECT DISTINCT udr.user_id AS id
+         FROM user_department_roles udr
+         JOIN roles r ON r.id = udr.role_id
+         WHERE udr.status = 'active' AND r.name IN ('IT Support','IT Manager')`
+      );
+      const recipients = Array.isArray(rows) ? rows.map(r => r.id).filter(Boolean) : [];
+      if (recipients.length > 0) {
+        await sendNotificationToUsers(recipients, {
+          type: 'ticket',
+          title: `New Ticket #${ticket?.id || ''}`,
+          message: `New ticket submitted: ${issue_type}.`,
+          sender_id: created_by,
+          related_id: ticket?.id || null,
+          related_type: 'ticket'
+        });
+      }
+    } catch (nerr) {
+      console.warn('ticket create notify IT failed:', nerr?.message || nerr);
+    }
 
     res.status(201).json({ message: "Ticket created", ticket });
   } catch (error) {
@@ -64,4 +103,6 @@ export const getTicketById = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch ticket" });
   }
 };
+
+export default {};
 

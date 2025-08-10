@@ -108,7 +108,7 @@ export default function RegistrationPage() {
       is_verified: true,
     };
 
-    const res = await API.post('/api/auth/signup', payload);
+    const res = await API.post('/api/users/register', payload);
 
     console.log('Registration success:', res.data);
     setSubmitStatus('success');

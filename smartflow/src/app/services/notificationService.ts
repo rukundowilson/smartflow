@@ -123,10 +123,12 @@ export class NotificationService {
 
   async getUnreadCount(userId: number): Promise<number> {
     try {
-      const response = await API.get(`/api/notifications/unread-count/${userId}`);
-      return response.data.count;
-    } catch (error) {
-      console.error('Failed to get unread count:', error);
+      const idNum = Number(userId);
+      if (!idNum || Number.isNaN(idNum)) return 0;
+      const response = await API.get(`/api/notifications/unread-count/${encodeURIComponent(idNum)}`);
+      return typeof response.data?.count === 'number' ? response.data.count : 0;
+    } catch (_error) {
+      // Swallow and return 0 to avoid noisy console/UX disruptions
       return 0;
     }
   }

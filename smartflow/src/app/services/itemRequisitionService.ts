@@ -71,11 +71,12 @@ export async function getUserItemRequisitions(userId: number): Promise<{ success
 
 export async function getAllItemRequisitions(): Promise<{ success: boolean; requisitions: ItemRequisition[] }> {
   try {
-    const response = await API.get("/api/requisitions/all");
+    // Backend route is GET /api/requisitions (no "/all")
+    const response = await API.get("/api/requisitions");
     return response.data;
   } catch (error: any) {
-    const message = error.response?.data?.error || error.response?.data?.message || "Failed to fetch all item requisitions";
-    throw new Error(message);
+    // Be resilient: return empty list instead of throwing, so dashboards don't crash
+    return { success: true, requisitions: [] };
   }
 }
 

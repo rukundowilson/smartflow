@@ -19,6 +19,7 @@ import {
 import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import userRoleService, { UserRoleInfo } from '@/app/services/userRoleService';
 import { useAuth } from '@/app/contexts/auth-context';
+import Link from 'next/link';
 
 const Overview: React.FC = () => {
   const { user } = useAuth();
@@ -31,6 +32,15 @@ const Overview: React.FC = () => {
     totalRejected: 0
   });
   const [loading, setLoading] = useState(true);
+
+  const getFirstName = (fullName?: string | null): string => {
+    if (!fullName || typeof fullName !== 'string') return 'User';
+    const trimmed = fullName.trim();
+    if (!trimmed) return 'User';
+    return trimmed.split(' ')[0] || 'User';
+  };
+
+  const firstName = getFirstName(user?.full_name);
 
   useEffect(() => {
     if (user?.id) {
@@ -155,11 +165,24 @@ const Overview: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Line Manager Dashboard</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Monitor and approve system access requests for your departments: {lineManagerDepartments.map(d => d.department_name).join(', ')}
-          </p>
+        <div className="min-w-0">
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 truncate">Welcome, {firstName}</h2>
+          <p className="text-sm text-gray-600 mt-1">Line Manager Overview</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {lineManagerDepartments.map((d) => (
+              <span key={`${d.department_id}-${d.role_id}`} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                {d.department_name}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/administration/office/linemanager/approvals" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+            Review Pending
+          </Link>
+          <Link href="/administration/office/linemanager/approved" className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200">
+            View Approved
+          </Link>
         </div>
       </div>
 
@@ -234,7 +257,7 @@ const Overview: React.FC = () => {
                     id: `a-${r.id}`,
                     label: `You approved ${r.user_name || 'Employee'} • ${r.system_name}`,
                     status: 'granted',
-                    time: r.line_manager_at || r.submitted_at
+                    time: (r.line_manager_at as unknown as string) || r.submitted_at
                   }))
                 ]
                 .sort((a,b) => new Date(b.time).getTime() - new Date(a.time).getTime())
@@ -266,4 +289,4 @@ const Overview: React.FC = () => {
   );
 };
 
-export default Overview; 
+export default Overview;

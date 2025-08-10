@@ -326,10 +326,9 @@ export default function MyTickets(){
                     ))}
                     </div>
 
-                    {/* Desktop Table View */}
+                    {/* Desktop Table View (no horizontal scroll; created_at moved to modal) */}
                     <div className="hidden lg:block bg-white shadow-sm rounded-lg border border-gray-100">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
+                        <table className="min-w-full table-fixed divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket ID</th>
@@ -337,7 +336,6 @@ export default function MyTickets(){
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -345,7 +343,7 @@ export default function MyTickets(){
                             {currentTickets?.map((ticket : any) => (
                             <tr key={ticket.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.id}</td>
-                                <td className="px-6 py-4 text-sm text-gray-900">{ticket.issue_type}</td>
+                                <td className="px-6 py-4 text-sm text-gray-900 truncate">{ticket.issue_type}</td>
                                 <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(ticket.priority)}`}>
                                     {ticket.priority}
@@ -357,7 +355,6 @@ export default function MyTickets(){
                                 </span>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">{ticket.assigned_to_name || 'Unassigned'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{ticket.created_at}</td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                 <button 
                                     onClick={() => openModal('view', ticket)}
@@ -378,7 +375,6 @@ export default function MyTickets(){
                             ))}
                         </tbody>
                         </table>
-                    </div>
                     </div>
 
                     {/* Pagination */}

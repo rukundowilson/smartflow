@@ -8,29 +8,29 @@ import {
   LogOut,
   Menu,
   X,
-  Users,
-  Ticket,
-  Key,
-  UserMinus,
-  Package,
   Monitor,
+  UserPlus,
+  Key,
+  Users,
   Shield,
   Building2,
   ChevronDown,
   User,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
+import NotificationBell from '@/app/components/NotificationBell';
 import userRoleService from "@/app/services/userRoleService";
 
-const modules = [
-    { id: 'overview', name: 'Overview', icon: Monitor },
-    { id: 'tickets', name: 'IT Tickets', icon: Ticket },
-    { id: 'access-requests', name: 'Access Requests', icon: Key },
-    { id: 'revocation', name: 'Access Revocation', icon: UserMinus },
-    { id: 'requisition', name: 'Item Requisition', icon: Package },
-  ];
+interface HRNavbarProps {
+  title?: string;
+  subtitle?: string;
+}
 
-export default function NavBar() {
+const ITManagerNavbar: React.FC<HRNavbarProps> = ({ 
+  title = "smartflow", 
+  subtitle = "Portal" 
+}) => {
+  const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
@@ -38,18 +38,33 @@ export default function NavBar() {
   const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const { user, token, isAuthenticated, logout } = useAuth();
+  const modules = [
+  { id: '', name: 'Approvals', icon: Monitor, description: 'IT Manager approvals' },
+  { id: 'assignments', name: 'Assignments', icon: Users, description: 'IT support assignments' },
+];
 
-  // Fetch user role information
+
+  // Get user role information from localStorage (selected role) or fallback to database
   useEffect(() => {
-    const fetchUserRoleInfo = async () => {
+    const getUserRoleInfo = async () => {
       if (user?.id) {
+        // First try to get the selected role from localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.selectedRole) {
+            setUserRoleInfo(userData.selectedRole);
+            return;
+          }
+        }
+        
+        // Fallback to database if no selected role
         const roleInfo = await userRoleService.getUserRoleInfo(user.id);
         setUserRoleInfo(roleInfo);
       }
     };
 
-    fetchUserRoleInfo();
+    getUserRoleInfo();
   }, [user]);
 
   // Set active module from URL on mount
@@ -57,11 +72,13 @@ export default function NavBar() {
     const path = pathname.split('/').pop();
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
+    } else if (pathname === '/administration/office/itmanager') {
+      setActiveModule('/');
     }
-  }, [pathname]);
+  }, [pathname, modules]);
 
   const handleModuleClick = (id: string) => {
-    const newPath = `/departments/it-department/${id}`;
+    const newPath = `/administration/office/itmanager${id === '' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
@@ -101,15 +118,15 @@ export default function NavBar() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+              <div>
+                                 <h1 className="text-xl font-bold text-gray-900">Hi, {user?.full_name?.split(' ')[0] || 'User'}</h1>
+                <p className="text-xs text-gray-500">{user?.department} • IT Manager</p>
+              </div>
             </div>
             
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               
               {/* User Dropdown */}
               <div className="relative">
@@ -196,10 +213,7 @@ export default function NavBar() {
 
             {/* Mobile Navigation Toggle */}
             <div className="lg:hidden flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-0 right-0 block h-2 w-2 bg-red-400 rounded-full"></span>
-              </button>
+              <NotificationBell />
               <div className="h-8 w-8 bg-sky-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
                   {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
@@ -260,4 +274,6 @@ export default function NavBar() {
       </header>
     </>
   );
-}
+};
+
+export default ITManagerNavbar; 

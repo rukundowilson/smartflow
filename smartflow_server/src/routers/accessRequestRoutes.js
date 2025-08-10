@@ -7,18 +7,17 @@ import {
   handleGetApprovalHistory,
   handleApproveAccessRequest,
   handleRejectAccessRequest,
-  handleGetAccessRequestById,
-  handleITAssignment
+  handleITAssignment,
+  handleGetAccessRequestById
 } from '../controllers/accessRequestController.js';
 
 const router = express.Router();
 
-// Access Request Routes
 router.post('/', handleCreateAccessRequest);
 router.get('/user/:userId', handleGetUserAccessRequests);
 router.get('/pending', handleGetPendingAccessRequests);
 router.get('/all', handleGetAllAccessRequests);
-router.get('/history', handleGetApprovalHistory);
+router.get('/approval-history', handleGetApprovalHistory);
 router.get('/:requestId', handleGetAccessRequestById);
 router.put('/:requestId/approve', handleApproveAccessRequest);
 router.put('/:requestId/reject', handleRejectAccessRequest);

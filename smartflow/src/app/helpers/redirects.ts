@@ -14,7 +14,8 @@ export function redirectByDepartment(department: string, router: any) {
     "it",
     "it deparment", // Handle typo
     "information technology",
-    "superadmin"
+    "superadmin",
+    "it hod"
   ];
 
   // Check if the department is one of the special ones (case-insensitive)
@@ -31,7 +32,8 @@ export function redirectByDepartment(department: string, router: any) {
       "it": "/departments/it-department/overview",
       "it deparment": "/departments/it-department/overview", // Handle typo
       "information technology": "/departments/it-department/overview",
-      "superadmin": "/administration/superadmin/overview"
+      "superadmin": "/administration/superadmin/overview",
+      "it hod": "/administration/it-hod"
     };
     
     const route = routes[departmentLower] || "/departments/others/overview";
@@ -67,22 +69,38 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
   console.log('  - department:', department);
   console.log('  - roleNames:', roleNames);
   
+  const rolesLower = (roleNames || []).map(r => (r || '').toLowerCase());
+  const go = (path: string) => {
+    try {
+      if (router && typeof router.push === 'function') {
+        router.push(path);
+        return;
+      }
+    } catch {}
+    window.location.href = path;
+  };
+
   // Check for specific roles first
-  if (roleNames.includes('Line Manager')) {
+  if (rolesLower.includes('line manager')) {
     console.log('🔍 User is Line Manager, redirecting to Line Manager approvals');
-    window.location.href = "/administration/office/linemanager/approvals";
+    go("/administration/office/linemanager/approvals");
     return;
   }
   
-  if (roleNames.includes('HOD')) {
+  if (rolesLower.includes('hod')) {
     console.log('🔍 User is HOD, redirecting to HOD approvals');
-    window.location.href = "/administration/office/hod/approvals";
+    go("/administration/office/hod/approvals");
     return;
   }
   
-  if (roleNames.includes('IT Manager')) {
+  if (rolesLower.includes('it manager')) {
     console.log('🔍 User is IT Manager, redirecting to IT Manager dashboard');
-    window.location.href = "/administration/office/itmanager";
+    go("/administration/office/itmanager");
+    return;
+  }
+  if (rolesLower.includes('it hod') || rolesLower.includes('ithod')) {
+    console.log('🔍 User is IT HOD, redirecting to IT HOD dashboard');
+    go("/administration/it-hod");
     return;
   }
   
@@ -94,7 +112,8 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
     "it",
     "it deparment", // Handle typo
     "information technology",
-    "superadmin"
+    "superadmin",
+    "it hod"
   ];
 
   // Check if the department is one of the special ones (case-insensitive)
@@ -111,15 +130,16 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
       "it": "/departments/it-department/overview",
       "it deparment": "/departments/it-department/overview", // Handle typo
       "information technology": "/departments/it-department/overview",
-      "superadmin": "/administration/superadmin/overview"
+      "superadmin": "/administration/superadmin/overview",
+      "it hod": "/administration/it-hod"
     };
     
     const route = routes[departmentLower] || "/departments/others/overview";
     console.log('🔍 redirecting to:', route);
-    window.location.href = route;
+    go(route);
   } else {
     // All other departments redirect to the general "others" dashboard
     console.log('🔍 redirecting to general dashboard: /departments/others/overview');
-    window.location.href = "/departments/others/overview";
+    go("/departments/others/overview");
   }
 }

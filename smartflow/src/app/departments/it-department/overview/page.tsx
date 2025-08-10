@@ -40,6 +40,8 @@ import {
   markItemAsDelivered,
   ItemRequisition 
 } from '../../../services/itemRequisitionService';
+import systemAccessRequestService, { SystemAccessRequest } from '../../../services/systemAccessRequestService';
+import { useAuth } from '@/app/contexts/auth-context';
 
 // Simple Pie Chart Component
 const PieChart = ({ data, title, colors }: { 
@@ -216,11 +218,13 @@ const PersonalItemCard = ({ item, type }: {
 
 export default function OverView(){
       const router = useRouter();
+      const { user } = useAuth();
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState<string | null>(null);
       const [tickets, setTickets] = useState<ITTicket[]>([]);
       const [requisitions, setRequisitions] = useState<ItemRequisition[]>([]);
       const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+      const [sarQueue, setSarQueue] = useState<SystemAccessRequest[]>([]);
 
       // Get current user from localStorage
       const getCurrentUser = () => {
@@ -244,6 +248,15 @@ export default function OverView(){
           
           setTickets(ticketsResponse.tickets);
           setRequisitions(requisitionsResponse.requisitions);
+
+          // Also load SAR queue snapshot for this IT user
+          const u = getCurrentUser();
+          if (u?.id) {
+            try {
+              const sarRes = await systemAccessRequestService.getITSupportQueue({ user_id: u.id });
+              if (sarRes.success) setSarQueue(sarRes.requests || []);
+            } catch {}
+          }
         } catch (err: any) {
           setError(err.message);
           console.error('Error fetching dashboard data:', err);
@@ -336,6 +349,13 @@ export default function OverView(){
         { label: 'Rejected', value: rejectedRequisitions.length, color: '#ef4444' }
       ];
 
+      // Access Requests (SAR) status metrics
+      const accessRequestsStatusData = [
+        { label: 'Pending IT Review', value: sarQueue.filter(r => r.status === 'it_support_review').length, color: '#f97316' },
+        { label: 'Granted', value: sarQueue.filter(r => r.status === 'granted').length, color: '#10b981' },
+        { label: 'Rejected', value: sarQueue.filter(r => r.status === 'rejected').length, color: '#ef4444' }
+      ];
+
       // Personal items (assigned to current user)
       const myAssignedTickets = tickets.filter(t => t.assigned_to === currentUser?.id);
       const myAssignedRequisitions = requisitions.filter(r => r.assigned_to === currentUser?.id);
@@ -350,6 +370,17 @@ export default function OverView(){
         r.assigned_to === currentUser?.id && 
         r.status === 'delivered'
       );
+
+      // SAR queue stats
+      const sarAssignedToMe = sarQueue.filter(r => r.status === 'it_support_review' && r.it_support_id === currentUser?.id).length;
+      const sarUnassigned = sarQueue.filter(r => r.status === 'it_support_review' && !r.it_support_id).length;
+      const sarCompleted = sarQueue.filter(r => r.status === 'granted').length;
+
+      // New: Two most recent access requests for IT support
+      const recentAccessRequests = sarQueue
+        .filter(r => r.status === 'it_support_review')
+        .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+        .slice(0, 2);
 
       if (loading) {
         return (
@@ -431,14 +462,14 @@ export default function OverView(){
                   colors={['#ef4444', '#f97316', '#eab308', '#10b981']}
                 />
                 <PieChart 
-                  data={requisitionStatusData}
-                  title="Requisition Status Distribution"
-                  colors={['#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444']}
+                  data={accessRequestsStatusData}
+                  title="Access Requests Status Distribution"
+                  colors={['#f97316', '#10b981', '#ef4444']}
                 />
       </div>
 
               {/* Personal Items Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                 {/* My Assigned Tickets */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100">
                   <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
@@ -457,89 +488,71 @@ export default function OverView(){
                         <p className="text-gray-500">No tickets assigned to you</p>
           </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        {myAssignedTickets.slice(0, 3).map(ticket => (
-                          <PersonalItemCard key={`ticket-${ticket.id}`} item={ticket} type="ticket" />
-                        ))}
-                    </div>
+                      <>
+                        <div className="grid grid-cols-1 gap-4">
+                          {myAssignedTickets.slice(0, 2).map(ticket => (
+                            <PersonalItemCard key={`ticket-${ticket.id}`} item={ticket} type="ticket" />
+                          ))}
+                        </div>
+                        <div className="mt-4 text-center">
+                          <button
+                            onClick={() => router.push('/departments/it-department/tickets')}
+                            className="px-4 py-2 text-sky-600 hover:text-sky-700 text-sm font-medium"
+                          >
+                            View Tickets
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
 
-                {/* My Assigned Requisitions */}
+                {/* Recent Access Requests (last 2 approved by IT Manager and awaiting IT support) */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100">
                   <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-900">My Assigned Requisitions</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Recent Access Requests</h3>
                     <button 
-                      onClick={() => router.push('/departments/it-department/requisition')}
+                      onClick={() => router.push('/departments/it-department/access-requests')}
                       className="text-sky-600 hover:text-sky-700 text-sm font-medium"
                     >
                       View All
-                  </button>
-                </div>
+                    </button>
+                  </div>
                   <div className="p-6">
-                    {myAssignedRequisitions.length === 0 ? (
+                    {recentAccessRequests.length === 0 ? (
                       <div className="text-center py-8">
-                        <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No requisitions assigned to you</p>
-              </div>
+                        <Key className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No recent access requests</p>
+                      </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        {myAssignedRequisitions.slice(0, 3).map(requisition => (
-                          <PersonalItemCard key={`requisition-${requisition.id}`} item={requisition} type="requisition" />
-            ))}
+                      <div className="space-y-4">
+                        {recentAccessRequests.map((req) => (
+                          <div key={req.id} className="flex items-start justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start space-x-3">
+                              <Key className="h-5 w-5 text-green-600 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900">{req.system_name}</p>
+                                <p className="text-xs text-gray-600">{req.user_name || 'User'} • {new Date(req.submitted_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${req.status === 'it_support_review' ? 'text-purple-600 bg-purple-50' : req.status === 'granted' ? 'text-green-600 bg-green-50' : req.status === 'rejected' ? 'text-red-600 bg-red-50' : 'text-gray-600 bg-gray-50'}`}>
+                              {req.status.replaceAll('_', ' ')}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-2 text-center">
+                          <button
+                            onClick={() => router.push('/departments/it-department/access-requests')}
+                            className="px-4 py-2 text-sky-600 hover:text-sky-700 text-sm font-medium inline-flex items-center"
+                          >
+                            <Eye className="h-4 w-4 mr-1" /> Open Access Requests
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
-          </div>
-        </div>
-
-              {/* My Actions Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* My Resolved Tickets */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900">My Resolved Tickets</h3>
-                    <p className="text-sm text-gray-600 mt-1">Tickets I've completed</p>
-          </div>
-          <div className="p-6">
-                    {myResolvedTickets.length === 0 ? (
-                      <div className="text-center py-8">
-                        <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No resolved tickets yet</p>
-            </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        {myResolvedTickets.slice(0, 3).map(ticket => (
-                          <PersonalItemCard key={`resolved-${ticket.id}`} item={ticket} type="ticket" />
-                        ))}
-          </div>
-                    )}
-        </div>
-      </div>
-
-                {/* My Delivered Requisitions */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-        <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-900">My Delivered Items</h3>
-                    <p className="text-sm text-gray-600 mt-1">Requisitions I've delivered</p>
-        </div>
-        <div className="p-6">
-                    {myDeliveredRequisitions.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No delivered items yet</p>
                 </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        {myDeliveredRequisitions.slice(0, 3).map(requisition => (
-                          <PersonalItemCard key={`delivered-${requisition.id}`} item={requisition} type="requisition" />
-                        ))}
-              </div>
-                    )}
             </div>
-                </div>
-              </div>
 
               {/* Quick Actions */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-100">
@@ -568,6 +581,11 @@ export default function OverView(){
                     >
                       <Key className="h-6 w-6 text-green-600 mx-auto mb-2" />
                       <p className="text-sm font-medium text-gray-900">Access Requests</p>
+                      {sarAssignedToMe + sarUnassigned > 0 && (
+                        <span className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                          {sarAssignedToMe} mine • {sarUnassigned} unassigned
+                        </span>
+                      )}
                     </button>
                     <button 
                       onClick={() => router.push('/departments/it-department/overview')}
@@ -576,10 +594,26 @@ export default function OverView(){
                       <Activity className="h-6 w-6 text-orange-600 mx-auto mb-2" />
                       <p className="text-sm font-medium text-gray-900">Dashboard</p>
                     </button>
-          </div>
-        </div>
-      </div>
-    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Access Snapshot */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                  <p className="text-sm font-medium text-gray-500">Access Requests Assigned to Me</p>
+                  <p className="text-3xl font-bold text-gray-900">{sarAssignedToMe}</p>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                  <p className="text-sm font-medium text-gray-500">Unassigned in Queue</p>
+                  <p className="text-3xl font-bold text-gray-900">{sarUnassigned}</p>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                  <p className="text-sm font-medium text-gray-500">Completed (Granted)</p>
+                  <p className="text-3xl font-bold text-gray-900">{sarCompleted}</p>
+                </div>
+              </div>
+            </div>
           </main>
         </div>
       </div>

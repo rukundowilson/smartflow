@@ -101,7 +101,12 @@ export default function NavBar() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-sky-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+              <div className="leading-tight">
+                <h1 className="text-xl font-bold text-gray-900">smartflow</h1>
+                <p className="text-[11px] text-gray-500">
+                  {userRoleInfo?.department_name || user?.department || 'Department'}
+                </p>
+              </div>
             </div>
             
             {/* Desktop Navigation */}

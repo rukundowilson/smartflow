@@ -44,7 +44,7 @@ export async function handleUpdateTicketAssignment(req, res) {
       if (row?.created_by) {
         await sendNotificationToUsers([row.created_by], {
           type: 'ticket',
-          title: 'Ticket Assigned',
+          title: `Ticket #${ticketId} Assigned`,
           message: `Your ticket (${row.issue_type}) was assigned to ${assignee?.full_name || 'an agent'}.`,
           related_id: Number(ticketId),
           related_type: 'ticket'
@@ -91,7 +91,7 @@ export async function handleUpdateTicketStatus(req, res) {
       if (row?.created_by) {
         await sendNotificationToUsers([row.created_by], {
           type: 'ticket',
-          title: 'Ticket Updated',
+          title: `Ticket #${ticketId} Updated`,
           message: `Your ticket (${row.issue_type}) status changed to ${status.replace('_',' ')}.`,
           related_id: Number(ticketId),
           related_type: 'ticket'

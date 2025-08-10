@@ -1,33 +1,30 @@
 import express from 'express';
-import { 
-  handleCreateItemRequisition, 
-  handleGetUserItemRequisitions, 
+import {
+  handleCreateItemRequisition,
+  handleGetUserItemRequisitions,
   handleGetAllItemRequisitions,
   handleUpdateItemRequisitionStatus,
-  handleGetItemRequisitionById,
-  handleScheduleItemPickup,
-  handleMarkItemAsDelivered,
-  handleGetPickupDetails,
   handleAssignItemRequisition,
   handleGetAssignedRequisitions,
+  handleScheduleItemPickup,
+  handleMarkItemAsDelivered,
+  handleGetItemRequisitionById,
+  handleGetPickupDetails,
   handleGetStatusHistory
 } from '../controllers/itemRequisitionController.js';
 
 const router = express.Router();
 
-// Item Requisition Routes
-router.post("/new", handleCreateItemRequisition);
-router.get("/user/:userId", handleGetUserItemRequisitions);
-router.get("/all", handleGetAllItemRequisitions);
-router.put("/:requisitionId/status", handleUpdateItemRequisitionStatus);
-router.get("/:requisitionId", handleGetItemRequisitionById);
-router.post("/:requisitionId/pickup", handleScheduleItemPickup);
-router.post("/:requisitionId/deliver", handleMarkItemAsDelivered);
-router.get("/:requisitionId/pickup", handleGetPickupDetails);
-router.put("/:requisitionId/assign", handleAssignItemRequisition);
-router.get("/assigned/:userId", handleGetAssignedRequisitions);
-
-// Status History Routes
-router.get("/status-history/:recordType/:recordId", handleGetStatusHistory);
+router.post('/', handleCreateItemRequisition);
+router.get('/user/:userId', handleGetUserItemRequisitions);
+router.get('/', handleGetAllItemRequisitions);
+router.get('/:requisitionId', handleGetItemRequisitionById);
+router.put('/:requisitionId/status', handleUpdateItemRequisitionStatus);
+router.put('/:requisitionId/assign', handleAssignItemRequisition);
+router.get('/assigned/:userId', handleGetAssignedRequisitions);
+router.post('/:requisitionId/schedule-pickup', handleScheduleItemPickup);
+router.post('/:requisitionId/mark-delivered', handleMarkItemAsDelivered);
+router.get('/:requisitionId/pickup-details', handleGetPickupDetails);
+router.get('/history/:recordType/:recordId', handleGetStatusHistory);
 
 export default router; 

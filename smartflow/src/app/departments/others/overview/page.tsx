@@ -38,7 +38,15 @@ export default function OverView(){
     const [modalType, setModalType] = useState('');
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
     const {user, selectedRole} = useAuth();
-    const [isLoading, setIsLoading] = useState<boolean>();
+    const [storedUser, setStoredUser] = useState<any | null>(null);
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      try {
+        const raw = localStorage.getItem('user');
+        if (raw) setStoredUser(JSON.parse(raw));
+      } catch {}
+    }, []);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [myTickets, setMyTickets] = useState<Ticket[]>([]);
     const [myRequests, setMyRequests] = useState<ItemRequisition[]>([]);
     const [mySystemAccessRequests, setMySystemAccessRequests] = useState<SystemAccessRequest[]>([]);
@@ -109,7 +117,15 @@ export default function OverView(){
     };
 
     const refreshData = async () => {
-      if (!user?.id) return;
+      // Use context user id, fallback to localStorage on first load after login
+      let id = user?.id as number | undefined;
+      if (!id && typeof window !== 'undefined') {
+        try {
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) id = JSON.parse(storedUser)?.id;
+        } catch {}
+      }
+      if (!id) return;
       try {
         setIsLoading(true);
         setRequestsLoading(true);
@@ -117,9 +133,9 @@ export default function OverView(){
         
         // Fetch tickets, requests, and access requests concurrently
         const [ticketsResponse, requestsResponse, systemAccessResp] = await Promise.all([
-          fetchTicketsByUserId(user.id),
-          getUserItemRequisitions(user.id),
-          systemAccessRequestService.getUserRequests(user.id)
+          fetchTicketsByUserId(id),
+          getUserItemRequisitions(id),
+          systemAccessRequestService.getUserRequests(id)
         ]);
         
         setMyTickets(ticketsResponse.tickets);
@@ -164,26 +180,12 @@ export default function OverView(){
         }
     };
 
-    useEffect(()=>{
-        if (!user?.id) return;
-        const getTickets = async () => {
-            try {
-                setIsLoading(true);
-                console.log("Fetching tickets for user:", user?.id);
-                const resp = await fetchTicketsByUserId(user?.id);
-                setMyTickets(resp.tickets)
-                console.log(resp);
-            } catch (err) {
-                console.error(err);
-            }
-            finally{
-                setIsLoading(false)
-            }
-        };
-        getTickets();
-        fetchUserRequests();
-        fetchUserSystemAccessRequests();
-    },[user?.id])
+    useEffect(() => {
+      // Trigger a full refresh as soon as we have an id (from context or storage)
+      const hasId = !!user?.id || (typeof window !== 'undefined' && !!localStorage.getItem('user'));
+      if (!hasId) return;
+      refreshData();
+    }, [user?.id]);
     const go = function(){
         router.push("/departments/others/my-tickets");
 
@@ -200,9 +202,31 @@ export default function OverView(){
     const grantedAccessRequests = systemAccessRequests.filter(r => r.status === 'granted');
 
     // Get current role information
-    const currentRole = selectedRole || user;
-    const roleName = selectedRole?.role_name || user?.role || 'User';
-    const departmentName = selectedRole?.department_name || user?.department || 'Department';
+    const displayUser = user || storedUser;
+    const currentRole = selectedRole || displayUser;
+    const roleName = (() => {
+      if (selectedRole?.role_name) return selectedRole.role_name;
+      if (displayUser?.role && displayUser.role !== 'User') return displayUser.role;
+      const rolesAny: any = (displayUser as any)?.roles;
+      if (Array.isArray(rolesAny) && rolesAny.length > 0) {
+        const first = rolesAny[0];
+        if (typeof first === 'string') return first;
+        return first?.role_name || 'User';
+      }
+      const roleNames: string[] | undefined = (displayUser as any)?.roleNames;
+      if (Array.isArray(roleNames) && roleNames.length > 0) return roleNames[0];
+      return 'User';
+    })();
+    const departmentName = (() => {
+      if (selectedRole?.department_name) return selectedRole.department_name;
+      if (displayUser?.department && displayUser.department !== 'Department') return displayUser.department;
+      const rolesAny: any = (displayUser as any)?.roles;
+      if (Array.isArray(rolesAny) && rolesAny.length > 0) {
+        const first = rolesAny[0];
+        if (typeof first === 'object') return first?.department_name || 'Department';
+      }
+      return 'Department';
+    })();
   
     return(
         <div className="min-h-screen bg-[#F0F8F8]">
@@ -232,7 +256,7 @@ export default function OverView(){
                             <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-sky-100">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {user?.full_name}!</h2>
+                                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Welcome back, {displayUser?.full_name || 'User'}!</h2>
                                         <p className="text-sm sm:text-base text-gray-600 mb-2">
                                           Currently active as: <span className="font-semibold text-sky-700">{roleName}</span> in <span className="font-semibold text-sky-700">{departmentName}</span>
                                         </p>

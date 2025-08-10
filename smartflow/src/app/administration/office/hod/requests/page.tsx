@@ -10,7 +10,8 @@ import {
   Shield,
   Building2,
   Calendar,
-  Loader2
+  Loader2,
+  User
 } from 'lucide-react';
 import systemAccessRequestService, {
   SystemAccessRequest as SARequest,
@@ -66,7 +67,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
       case 'request_pending':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'hod_pending':
-        return 'bg-orange-50 text-orange-700 border-orange-200';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
       case 'it_hod_pending':
         return 'bg-gray-50 text-gray-700 border-gray-200';
       case 'granted':
@@ -122,70 +123,96 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Current Position */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <Shield className="h-5 w-5 text-orange-600 mr-2" />
-              <h3 className="text-sm font-medium text-orange-800">Current Position: HOD Review</h3>
-            </div>
-            <p className="text-sm text-orange-700 mt-1">You are reviewing this system access request</p>
-          </div>
-
-          {/* Request Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Employee</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.user_name || 'Employee'}</p>
-              <p className="text-sm text-gray-600">{request.user_email || ''}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">System</h3>
-              <p className="text-lg font-semibold text-gray-900">{request.system_name}</p>
-            </div>
-          </div>
-
-          {/* Request Timeline */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-3">Request Timeline</h3>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                <span className="text-gray-600">Request submitted</span>
-                <span className="text-gray-400 ml-auto">{formatDate(request.submitted_at)}</span>
+          {/* Employee Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
-                <span className="text-gray-600 font-medium">Currently at: HOD Review</span>
-                <span className="text-orange-600 ml-auto">You are here</span>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Employee Information</h3>
+                <p className="text-xs text-gray-600">Requester details</p>
               </div>
-              <div className="flex items-center text-sm">
-                <div className="w-2 h-2 bg-gray-300 rounded-full mr-3"></div>
-                <span className="text-gray-400">Next: IT HOD Review</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                <p className="font-medium text-gray-900">{request.user_name || 'Employee'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
+                <p className="text-gray-900">{request.user_email || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Department</label>
+                <p className="text-gray-900">{request.department_name || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Role</label>
+                <p className="text-gray-900">{request.role_name || 'Not specified'}</p>
               </div>
             </div>
           </div>
 
-          {/* Status & Period */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Access Period</h3>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">Start:</span> {formatDate(request.start_date)}
-                </p>
-                <p className="text-sm text-gray-900">
-                  <span className="font-medium">End:</span> {formatDate(request.end_date)}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {request.is_permanent ? 'Permanent access' : 'Temporary access'}
-                </p>
+          {/* Request Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <Shield className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Request Information</h3>
+                <p className="text-xs text-gray-600">System access details</p>
               </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Request Status</h3>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                {request.status.replace(/_/g, ' ').toUpperCase()}
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">System Name</label>
+                <p className="font-medium text-gray-900">{request.system_name}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted On</label>
+                <p className="text-gray-900">{formatDate(request.submitted_at)}</p>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Access Period</label>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-gray-900">
+                  <p><span className="font-medium">Start:</span> {formatDate(request.start_date)}</p>
+                  <p><span className="font-medium">End:</span> {formatDate(request.end_date)}</p>
+                  <p className="text-gray-600">{request.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Business Justification</label>
+                <div className="bg-white p-3 rounded-md border border-gray-200">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{request.justification || 'No justification provided'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Information */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Status Information</h3>
+                <p className="text-xs text-gray-600">Current stage and next steps</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Current Status</label>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
+                  {request.status.replace(/_/g, ' ').toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Position</label>
+                <p className="text-gray-900">Currently at: HOD Review • Next: IT HOD Review</p>
+              </div>
             </div>
           </div>
 
@@ -198,7 +225,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
               ) : comments.length === 0 ? (
                 <div className="text-sm text-gray-500">No comments</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-48 overflow-auto pr-1">
                   {comments.map((c) => (
                     <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between">
@@ -214,8 +241,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
           )}
 
           {/* HOD Decision */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-orange-800 mb-3">Your Decision as HOD</h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-blue-800 mb-3">Your Decision as HOD</h3>
             <div className="space-y-4">
               <div>
                 <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
@@ -226,7 +253,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
                   placeholder="Add your comment about this request..."
                   disabled={isReadOnly}
                 />
@@ -297,15 +324,20 @@ export default function HODRequestsPage() {
   const [requests, setRequests] = useState<SARequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.id) {
-      fetchPendingRequests();
+    if (!user?.id) {
+      setIsLoading(false);
+      setRequests([]);
+      setFilteredRequests([]);
+      return;
     }
+    setIsLoading(true);
+    fetchPendingRequests();
   }, [user?.id]);
 
   useEffect(() => {
@@ -377,7 +409,7 @@ export default function HODRequestsPage() {
       case 'request_pending':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'hod_pending':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'it_hod_pending':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'granted':
@@ -400,42 +432,32 @@ export default function HODRequestsPage() {
               Review and approve system access requests in your department.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchPendingRequests()}
+              disabled={isLoading || !user?.id}
+              className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50 flex items-center"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Clock className="h-4 w-4 mr-2" />
+              )}
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-600" />
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
                 <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Department</p>
-                <p className="text-lg font-semibold text-gray-900">{user?.department || 'Loading...'}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Your Role</p>
-                <p className="text-lg font-semibold text-gray-900">Head of Department</p>
               </div>
             </div>
           </div>
@@ -451,7 +473,7 @@ export default function HODRequestsPage() {
                 placeholder="Search requests..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 w-full"
               />
             </div>
           </div>
@@ -460,19 +482,19 @@ export default function HODRequestsPage() {
         {/* Requests List */}
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
             <p className="text-gray-500 mb-4">All system access requests have been reviewed.</p>
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
               <div className="flex items-center space-x-2 mb-2">
-                <Building2 className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-900">Department Filter</span>
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Department Filter</span>
               </div>
-              <p className="text-xs text-orange-700">
+              <p className="text-xs text-blue-700">
                 You can only see requests from users in your department.
               </p>
             </div>
@@ -509,7 +531,7 @@ export default function HODRequestsPage() {
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleViewRequest(request)}
-                            className="p-1 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded transition-colors"
+                            className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -548,7 +570,7 @@ export default function HODRequestsPage() {
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleViewRequest(request)}
-                        className="p-2 text-orange-600 hover:text-orange-900 hover:bg-orange-50 rounded-lg transition-colors"
+                        className="p-2 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded-lg transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
