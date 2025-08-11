@@ -4,6 +4,7 @@ import { Key, Plus, Calendar, X, ChevronRight, Activity, Clock, CheckCircle, XCi
 import { useAuth } from '@/app/contexts/auth-context';
 import systemService, { System } from '@/app/services/systemService';
 import SystemAccessRequestService, { CreateSystemAccessRequestData } from '@/app/services/systemAccessRequestService';
+import SystemAccessGrantService from '@/app/services/systemAccessGrantService';
 
 interface SystemAccessRequest {
   id: number;
@@ -17,6 +18,10 @@ interface SystemAccessRequest {
   submitted_at: string;
   system_name: string;
   system_description?: string;
+  // Additional fields for revoked requests
+  revoked_at?: string;
+  revoked_by_name?: string;
+  revocation_reason?: string;
 }
 
 const statusLabels: Record<SystemAccessRequest['status'], string> = {
@@ -277,8 +282,36 @@ export default function SystemAccessRequests() {
       try {
         const sysResp = await systemService.getAllSystems();
         setSystems(sysResp.systems || []);
+        
+        // Fetch regular requests
         const reqResp = await SystemAccessRequestService.getUserRequests(user.id);
-        setRequests(reqResp.requests || []);
+        const regularRequests = reqResp.requests || [];
+        
+        // Fetch revoked grants and convert them to request format
+        const revokedResp = await SystemAccessGrantService.getUserRevokedGrants(user.id);
+        const revokedGrants = revokedResp.grants || [];
+        
+        // Add revoked information to existing granted requests
+        const requestsWithRevokedInfo = regularRequests.map(request => {
+          if (request.status === 'granted') {
+            // Find if this request has a corresponding revoked grant
+            const revokedGrant = revokedGrants.find(grant => 
+              grant.granted_from_request_id === request.id
+            );
+            
+            if (revokedGrant) {
+              return {
+                ...request,
+                revoked_at: revokedGrant.revoked_at,
+                revoked_by_name: revokedGrant.revoked_by_name,
+                revocation_reason: revokedGrant.revocation_reason
+              };
+            }
+          }
+          return request;
+        });
+        
+        setRequests(requestsWithRevokedInfo);
       } catch (e) {
         console.error('Failed loading system access requests', e);
       } finally {
@@ -379,6 +412,10 @@ export default function SystemAccessRequests() {
                   <span className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                     {requests.filter(r => r.status === 'granted').length} Approved
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <XCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                    {requests.filter(r => r.status === 'granted' && r.revoked_at).length} Revoked
                   </span>
                 </div>
               </div>
@@ -521,6 +558,35 @@ export default function SystemAccessRequests() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Revoked Information for Granted Requests */}
+                      {r.status === 'granted' && r.revoked_at && (
+                        <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-orange-50/30 rounded-lg sm:rounded-xl border border-red-100">
+                          <div className="flex items-start gap-2.5">
+                            <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium text-red-600 uppercase tracking-wide mb-1">Access Revoked</div>
+                              <div className="space-y-2">
+                                {r.revoked_at && (
+                                  <div className="text-xs sm:text-sm text-gray-700">
+                                    <span className="font-medium">Revoked on:</span> {formatDate(r.revoked_at)}
+                                  </div>
+                                )}
+                                {r.revoked_by_name && (
+                                  <div className="text-xs sm:text-sm text-gray-700">
+                                    <span className="font-medium">Revoked by:</span> {r.revoked_by_name}
+                                  </div>
+                                )}
+                                {r.revocation_reason && (
+                                  <div className="text-xs sm:text-sm text-gray-700">
+                                    <span className="font-medium">Reason:</span> {r.revocation_reason}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const baseURL = "https://smartflow-g5sk.onrender.com";
+const baseURL = process.env.NODE_ENV === 'production' 
+  ? "https://smartflow-g5sk.onrender.com"
+  : "http://localhost:8081";
 
 const API = axios.create({
   baseURL,
