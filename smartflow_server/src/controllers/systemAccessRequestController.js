@@ -679,39 +679,12 @@ export async function itSupportGrantSystemAccessRequest(req, res) {
       throw new Error('Only requests in it_support_review can be granted');
     }
 
-    // Get request details for creating access grant
-    const [[requestDetails]] = await connection.query(
-      `SELECT user_id, system_id, start_date, end_date, is_permanent
-       FROM system_access_requests WHERE id = ?`,
-      [id]
-    );
-
     await connection.query(
       `UPDATE system_access_requests
        SET status = 'granted', it_support_id = COALESCE(it_support_id, ?), it_support_at = NOW()
        WHERE id = ?`,
       [user_id, id]
     );
-
-    // Create system access grant
-    try {
-      await connection.query(
-        `INSERT INTO system_access_grants 
-         (user_id, system_id, granted_from_request_id, granted_by, effective_from, effective_until, is_permanent)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          requestDetails.user_id,
-          requestDetails.system_id,
-          id,
-          user_id,
-          requestDetails.start_date,
-          requestDetails.end_date,
-          !!requestDetails.is_permanent
-        ]
-      );
-    } catch (grantErr) {
-      console.warn('Warning: failed to create access grant (non-blocking):', grantErr?.message || grantErr);
-    }
 
     if (comment && comment.trim()) {
       try {
