@@ -46,7 +46,7 @@ class SystemAccessGrantService {
   // Get active system access grants
   async getActiveGrants(): Promise<{ success: boolean; grants?: SystemAccessGrant[]; message?: string }> {
     try {
-      const response = await API.get('/system-access-grants/active');
+      const response = await API.get('/api/system-access-grants/active');
       return response.data;
     } catch (error: any) {
       console.error('Error fetching active grants:', error);
@@ -60,7 +60,7 @@ class SystemAccessGrantService {
   // Get grants needing revocation notification
   async getGrantsNeedingNotification(): Promise<{ success: boolean; grants?: SystemAccessGrant[]; message?: string }> {
     try {
-      const response = await API.get('/system-access-grants/needing-notification');
+      const response = await API.get('/api/system-access-grants/needing-notification');
       return response.data;
     } catch (error: any) {
       console.error('Error fetching grants needing notification:', error);
@@ -74,7 +74,7 @@ class SystemAccessGrantService {
   // Mark notification as sent
   async markNotificationSent(grantId: number): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await API.patch(`/system-access-grants/${grantId}/mark-notification-sent`);
+      const response = await API.patch(`/api/system-access-grants/${grantId}/mark-notification-sent`);
       return response.data;
     } catch (error: any) {
       console.error('Error marking notification as sent:', error);
@@ -88,7 +88,7 @@ class SystemAccessGrantService {
   // Revoke system access
   async revokeAccess(grantId: number, data: RevokeAccessData): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await API.patch(`/system-access-grants/${grantId}/revoke`, data);
+      const response = await API.patch(`/api/system-access-grants/${grantId}/revoke`, data);
       return response.data;
     } catch (error: any) {
       console.error('Error revoking access:', error);
@@ -102,7 +102,7 @@ class SystemAccessGrantService {
   // Schedule revocation
   async scheduleRevocation(grantId: number, data: ScheduleRevocationData): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await API.patch(`/system-access-grants/${grantId}/schedule-revocation`, data);
+      const response = await API.patch(`/api/system-access-grants/${grantId}/schedule-revocation`, data);
       return response.data;
     } catch (error: any) {
       console.error('Error scheduling revocation:', error);
@@ -116,7 +116,7 @@ class SystemAccessGrantService {
   // Get revocation history
   async getRevocationHistory(): Promise<{ success: boolean; history?: any[]; message?: string }> {
     try {
-      const response = await API.get('/system-access-grants/history');
+      const response = await API.get('/api/system-access-grants/history');
       return response.data;
     } catch (error: any) {
       console.error('Error fetching revocation history:', error);
@@ -130,7 +130,7 @@ class SystemAccessGrantService {
   // Create system access grant
   async createGrant(data: CreateSystemAccessGrantData): Promise<{ success: boolean; grant_id?: number; message?: string }> {
     try {
-      const response = await API.post('/system-access-grants', data);
+      const response = await API.post('/api/system-access-grants', data);
       return response.data;
     } catch (error: any) {
       console.error('Error creating grant:', error);
