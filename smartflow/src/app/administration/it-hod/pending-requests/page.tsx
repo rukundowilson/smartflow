@@ -27,6 +27,7 @@ import {
 } from '@/app/services/commentService';
 import { useAuth } from '@/app/contexts/auth-context';
 import Sidebar from '../components/itHodSideBar';
+import NotificationToast from '@/app/components/NotificationToast';
 
 type FilterStatus = 'all' | 'it_hod_pending' | 'granted' | 'rejected';
 
@@ -36,9 +37,10 @@ interface ApprovalModalProps {
   onClose: () => void;
   onApprove: (data: SAApprovalData) => Promise<void>;
   onReject: (data: SAApprovalData) => Promise<void>;
+  onShowNotification: (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => void;
 }
 
-const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose, onApprove, onReject }) => {
+const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose, onApprove, onReject, onShowNotification }) => {
   const { user } = useAuth();
   const [comment, setComment] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -92,7 +94,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ request, isOpen, onClose,
   const handleReject = async () => {
     if (!user?.id) return;
     if (!rejectionReason.trim()) {
-      alert('Please provide a rejection reason');
+      onShowNotification('warning', 'Rejection Reason Required', 'Please provide a rejection reason');
       return;
     }
     setIsSubmitting(true);
@@ -371,7 +373,17 @@ export default function ITHODPage() {
   const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const { user } = useAuth();
+
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, type, title, message }]);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
 
   const fetchPending = useCallback(async (refresh = false) => {
     if (!user?.id) return;
@@ -491,10 +503,10 @@ export default function ITHODPage() {
     try {
       await systemAccessRequestService.approve(selectedRequest.id, data);
       await fetchPending(true);
-      alert('Approved successfully');
+      addNotification('success', 'Approved Successfully', 'Request has been approved');
     } catch (e) {
       console.error(e);
-      alert('Failed to approve');
+      addNotification('error', 'Approval Failed', 'Failed to approve request');
     }
   };
 
@@ -503,10 +515,10 @@ export default function ITHODPage() {
     try {
       await systemAccessRequestService.reject(selectedRequest.id, data);
       await fetchPending(true);
-      alert('Rejected successfully');
+      addNotification('success', 'Rejected Successfully', 'Request has been rejected');
     } catch (e) {
       console.error(e);
-      alert('Failed to reject');
+      addNotification('error', 'Rejection Failed', 'Failed to reject request');
     }
   };
 
@@ -823,8 +835,24 @@ export default function ITHODPage() {
           onClose={() => { setIsModalOpen(false); setSelectedRequest(null); }}
           onApprove={handleApprove}
           onReject={handleReject}
+          onShowNotification={addNotification}
         />
       )}
+
+      {/* Toast Notifications */}
+      {notifications.map((notification) => (
+        <NotificationToast
+          key={notification.id}
+          id={notification.id}
+          type={notification.type}
+          title={notification.title}
+          message={notification.message}
+          onClose={removeNotification}
+        />
+      ))}
+    </div>
+  );
+}
     </div>
   );
 }
