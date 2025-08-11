@@ -1,5 +1,6 @@
 import db from '../config/db.js';
 import { sendNotificationToUsers } from './notificationController.js';
+import { sendAccessRevokedEmail } from '../services/emailService.js';
 
 // Create a system access grant when a request is approved
 export async function createSystemAccessGrant(req, res) {
@@ -159,9 +160,15 @@ export async function revokeSystemAccess(req, res) {
 
     await connection.beginTransaction();
 
-    // Get grant details
+    // Get grant details with user and system info
     const [[grant]] = await connection.query(
-      'SELECT user_id, system_id, status FROM system_access_grants WHERE id = ?',
+      `SELECT sag.user_id, sag.system_id, sag.status, 
+              u.email as user_email, u.full_name as user_name,
+              s.name as system_name
+       FROM system_access_grants sag
+       JOIN users u ON sag.user_id = u.id
+       JOIN systems s ON sag.system_id = s.id
+       WHERE sag.id = ?`,
       [grant_id]
     );
 
@@ -184,18 +191,33 @@ export async function revokeSystemAccess(req, res) {
     await connection.commit();
     connection.release();
 
-    // Send notification to user
+    // Send enhanced notification for /others/ users
+    await sendEnhancedRevocationNotification(grant.user_id, grant.system_name, revocation_reason, revoked_by);
+
+    // Send standard in-app notification to user
     try {
       await sendNotificationToUsers([grant.user_id], {
         type: 'access_revocation',
         title: 'System Access Revoked',
-        message: `Your access to the system has been revoked.`,
+        message: `Your access to ${grant.system_name} has been revoked. Reason: ${revocation_reason || 'Access expiration'}`,
         sender_id: revoked_by,
         related_id: Number(grant_id),
         related_type: 'system_access_grant'
       });
     } catch (nerr) {
-      console.warn('Notification emit failed (non-blocking):', nerr?.message || nerr);
+      console.warn('In-app notification failed (non-blocking):', nerr?.message || nerr);
+    }
+
+    // Send email notification
+    try {
+      await sendAccessRevokedEmail({
+        to: grant.user_email,
+        systemName: grant.system_name,
+        reason: revocation_reason || 'Access expiration'
+      });
+      console.log(`Email notification sent to ${grant.user_email} for ${grant.system_name} access revocation`);
+    } catch (eerr) {
+      console.warn('Email notification failed (non-blocking):', eerr?.message || eerr);
     }
 
     res.json({ success: true, message: 'System access revoked successfully' });
@@ -269,5 +291,52 @@ export async function getRevocationHistory(req, res) {
   } catch (e) {
     console.error('Error fetching revocation history:', e);
     res.status(500).json({ success: false, message: 'Failed to fetch revocation history' });
+  }
+}
+
+// Check if user is in /others/ department
+async function isUserInOthersDepartment(userId) {
+  const connection = await db.getConnection();
+  try {
+    const [rows] = await connection.query(
+      `SELECT udr.department_id, d.name as department_name
+       FROM user_department_roles udr
+       JOIN departments d ON udr.department_id = d.id
+       WHERE udr.user_id = ? AND udr.status = 'active'`,
+      [userId]
+    );
+    
+    // Check if user has any role in a department that's not IT, HR, or Superadmin
+    const othersDepartments = rows.filter(row => 
+      !['IT Department', 'Human Resources', 'Superadmin', 'IT hod'].includes(row.department_name)
+    );
+    
+    return othersDepartments.length > 0;
+  } catch (error) {
+    console.error('Error checking user department:', error);
+    return false;
+  } finally {
+    connection.release();
+  }
+}
+
+// Send enhanced notification for users in /others/ department
+async function sendEnhancedRevocationNotification(userId, systemName, reason, revokedBy) {
+  const isOthersUser = await isUserInOthersDepartment(userId);
+  
+  if (isOthersUser) {
+    // Send enhanced notification for /others/ users
+    try {
+      await sendNotificationToUsers([userId], {
+        type: 'access_revocation',
+        title: '🔒 System Access Revoked',
+        message: `Your access to ${systemName} has been revoked. Reason: ${reason || 'Access expiration'}. Please contact IT support if you need access again.`,
+        sender_id: revokedBy,
+        related_type: 'system_access_grant'
+      });
+      console.log(`Enhanced notification sent to /others/ user ${userId} for ${systemName} access revocation`);
+    } catch (error) {
+      console.warn('Enhanced notification failed:', error?.message || error);
+    }
   }
 } 
