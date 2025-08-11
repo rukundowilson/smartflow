@@ -175,7 +175,7 @@ export default function AccessRevocationPage() {
   };
 
   if (isLoading) {
-    return (
+        return (
       <div className="min-h-screen bg-[#F0F8F8]">
         <NavBar />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -190,15 +190,15 @@ export default function AccessRevocationPage() {
           </div>
         </div>
       </div>
-    );
+        );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-[#F0F8F8]">
+        <>
+            <div className="min-h-screen bg-[#F0F8F8]">
         <NavBar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex">
             <SideBar />
             <main className="flex-1 space-y-6">
               {/* Header */}
@@ -365,7 +365,7 @@ export default function AccessRevocationPage() {
                   )}
                 </div>
               </div>
-            </main>
+          </main>
           </div>
         </div>
       </div>
@@ -419,9 +419,9 @@ export default function AccessRevocationPage() {
                   )}
                 </button>
               </div>
-            </div>
-          </div>
         </div>
+      </div>
+    </div>
       )}
 
       {/* Notifications */}
@@ -435,6 +435,6 @@ export default function AccessRevocationPage() {
           onClose={removeNotification}
         />
       ))}
-    </>
+        </>
   );
 }
