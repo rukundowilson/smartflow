@@ -165,19 +165,27 @@ export default function RegistrationPage() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Registration Submitted!</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Registration Successful!</h2>
           <p className="text-gray-600 mb-6">
-            Your registration request has been submitted successfully. HR will review your application and you'll receive an email notification within 24 hours.
+            Your registration has been completed successfully. Your account is now active and ready to use. You can log in immediately.
           </p>
-          <button
-            onClick={() => setSubmitStatus(null)}
-            className="w-full py-3 px-4 rounded-lg font-medium transition-colors"
-            style={{ backgroundColor: '#87CEEB', color: 'white' }}
-            onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#00AEEF'}
-            onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#87CEEB'}
-          >
-            Submit Another Registration
-          </button>
+          <div className="space-y-3">
+            <Link
+              href="/"
+              className="w-full py-3 px-4 rounded-lg font-medium transition-colors block text-center"
+              style={{ backgroundColor: '#87CEEB', color: 'white' }}
+              onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#00AEEF'}
+              onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#87CEEB'}
+            >
+              Go to Login
+            </Link>
+            <button
+              onClick={() => setSubmitStatus(null)}
+              className="w-full py-3 px-4 rounded-lg font-medium transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            >
+              Register Another Account
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -406,10 +414,10 @@ export default function RegistrationPage() {
           </button>
 
           {/* Info Note */}
-          <div className="text-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+          <div className="text-center text-sm text-gray-600 bg-green-50 p-3 rounded-lg">
             <p className="flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 mr-2 text-blue-500" />
-              Registration requires HR approval. You'll receive an email within 24 hours.
+              <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+              Your account will be active immediately after registration.
             </p>
           </div>
         </div>
