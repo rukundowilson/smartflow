@@ -6,7 +6,8 @@ import {
   markRevocationNotificationSent,
   revokeSystemAccess,
   scheduleRevocation,
-  getRevocationHistory
+  getRevocationHistory,
+  getUserRevokedGrants
 } from '../controllers/systemAccessGrantController.js';
 
 const router = express.Router();
@@ -31,5 +32,8 @@ router.patch('/:grant_id/schedule-revocation', scheduleRevocation);
 
 // Get revocation history
 router.get('/history', getRevocationHistory);
+
+// Get user's revoked grants
+router.get('/user/:userId/revoked', getUserRevokedGrants);
 
 export default router; 

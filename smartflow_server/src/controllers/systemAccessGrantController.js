@@ -294,6 +294,37 @@ export async function getRevocationHistory(req, res) {
   }
 }
 
+// Get user's revoked grants
+export async function getUserRevokedGrants(req, res) {
+  try {
+    const { userId } = req.params;
+
+    const [rows] = await db.query(
+      `SELECT 
+        sag.id, sag.user_id, sag.system_id, sag.revoked_at, sag.revoked_by,
+        sag.revocation_reason, sag.granted_at, sag.granted_by,
+        sag.effective_from, sag.effective_until, sag.is_permanent,
+        u.full_name AS user_name, u.email AS user_email,
+        s.name AS system_name, s.description AS system_description,
+        rb.full_name AS revoked_by_name,
+        gb.full_name AS granted_by_name
+       FROM system_access_grants sag
+       JOIN users u ON sag.user_id = u.id
+       JOIN systems s ON sag.system_id = s.id
+       LEFT JOIN users rb ON sag.revoked_by = rb.id
+       LEFT JOIN users gb ON sag.granted_by = gb.id
+       WHERE sag.user_id = ? AND sag.status = 'revoked'
+       ORDER BY sag.revoked_at DESC`,
+      [userId]
+    );
+
+    res.json({ success: true, grants: rows });
+  } catch (e) {
+    console.error('Error fetching user revoked grants:', e);
+    res.status(500).json({ success: false, message: 'Failed to fetch user revoked grants' });
+  }
+}
+
 // Check if user is in /others/ department
 async function isUserInOthersDepartment(userId) {
   const connection = await db.getConnection();

@@ -127,6 +127,20 @@ class SystemAccessGrantService {
     }
   }
 
+  // Get user's revoked grants
+  async getUserRevokedGrants(userId: number): Promise<{ success: boolean; grants?: SystemAccessGrant[]; message?: string }> {
+    try {
+      const response = await API.get(`/api/system-access-grants/user/${userId}/revoked`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching user revoked grants:', error);
+      return {
+        success: false,
+        message: error?.response?.data?.message || 'Failed to fetch user revoked grants'
+      };
+    }
+  }
+
   // Create system access grant
   async createGrant(data: CreateSystemAccessGrantData): Promise<{ success: boolean; grant_id?: number; message?: string }> {
     try {
