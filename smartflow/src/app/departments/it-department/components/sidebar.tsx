@@ -55,6 +55,17 @@ const modules: Array<{
     icon: Package, 
     description: 'Asset Management',
   },
+  { 
+    id: 'tat-metrics', 
+    name: 'TAT Metrics', 
+    icon: Activity, 
+    description: 'Turnaround analytics',
+    children: [
+      { id: 'tat-metrics/tickets', name: 'Tickets', icon: Ticket },
+      { id: 'tat-metrics/access-requests', name: 'Access Requests', icon: Key },
+      { id: 'tat-metrics/users', name: 'Users', icon: Users },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -79,8 +90,9 @@ export default function Sidebar() {
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     }
-    // no metrics dropdown anymore
-    setOpenDropdowns({});
+    if (pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)) {
+      setOpenDropdowns(prev => ({ ...prev, ['tat-metrics']: true }));
+    }
   }, [pathname]);
 
   // Load dynamic badge counts
@@ -123,6 +135,15 @@ export default function Sidebar() {
       setActiveModule(id);
       router.push(newPath);
     }
+  };
+
+  const toggleDropdown = (id: string, children?: Array<{ id: string }>) => {
+    if (!children || children.length === 0) return;
+    if (isCollapsed) {
+      handleModuleClick(children[0].id);
+      return;
+    }
+    setOpenDropdowns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const getBadgeClass = (moduleId: string) => {
@@ -179,47 +200,75 @@ export default function Sidebar() {
         )}
         <div className="space-y-1">
           {modules.map((module) => {
+            const hasChildren = module.children && module.children.length > 0;
             const targetPath = `${basePath}/${module.id}`;
-            const isParentActive = pathname === targetPath;
+            const isParentActive = hasChildren
+              ? pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)
+              : pathname === targetPath;
             const count = module.id === 'tickets' ? ticketBadgeCount : module.id === 'access-requests' ? accessBadgeCount : 0;
             return (
-              <button
-                key={module.id}
-                onClick={() => handleModuleClick(module.id)}
-                className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                  isParentActive
-                    ? "bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md"
-                }`}
-                title={isCollapsed ? module.name : ''}
-              >
-                <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                  isParentActive 
-                    ? "text-white drop-shadow-sm" 
-                    : "text-slate-500 group-hover:text-slate-700"
-                }`} />
-                {!isCollapsed && (
-                  <>
-                    <div className="flex-1 text-left min-w-0 flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold truncate">{module.name}</div>
-                        {module.description && (
-                          <div className={`text-xs truncate transition-colors duration-200 ${
-                            isParentActive ? "text-blue-100" : "text-slate-400 group-hover:text-slate-500"
-                          }`}>
-                            {module.description}
-                          </div>
+              <div key={module.id}>
+                <button
+                  onClick={() => hasChildren ? toggleDropdown(module.id, module.children) : handleModuleClick(module.id)}
+                  className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                    isParentActive
+                      ? "bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md"
+                  }`}
+                  title={isCollapsed ? module.name : ''}
+                >
+                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                    isParentActive 
+                      ? "text-white drop-shadow-sm" 
+                      : "text-slate-500 group-hover:text-slate-700"
+                  }`} />
+                  {!isCollapsed && (
+                    <>
+                      <div className="flex-1 text-left min-w-0 flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold truncate">{module.name}</div>
+                          {module.description && (
+                            <div className={`text-xs truncate transition-colors duration-200 ${
+                              isParentActive ? "text-blue-100" : "text-slate-400 group-hover:text-slate-500"
+                            }`}>
+                              {module.description}
+                            </div>
+                          )}
+                        </div>
+                        {count > 0 && (
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full border ${getBadgeClass(module.id)}`}>
+                            {count}
+                          </span>
+                        )}
+                        {hasChildren && (
+                          <ChevronRight className={`h-4 w-4 ml-2 transition-transform duration-200 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
                         )}
                       </div>
-                      {count > 0 && (
-                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full border ${getBadgeClass(module.id)}`}>
-                          {count}
-                        </span>
-                      )}
-                    </div>
-                  </>
+                    </>
+                  )}
+                </button>
+
+                {hasChildren && openDropdowns[module.id] && !isCollapsed && (
+                  <div className="mt-1 ml-10 space-y-1">
+                    {module.children!.map(child => {
+                      const childPath = `${basePath}/${child.id}`;
+                      const isChildActive = pathname === childPath || pathname.startsWith(`${childPath}/`);
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => handleModuleClick(child.id)}
+                          className={`group w-full flex items-center px-3 py-2 text-sm rounded-xl transition-colors ${
+                            isChildActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <child.icon className={`h-4 w-4 mr-2 ${isChildActive ? 'text-blue-700' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                          <span className="truncate">{child.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

@@ -605,10 +605,11 @@ export async function getITSupportQueue(req, res) {
       LEFT JOIN roles rr ON rr.id = audr.role_id
       LEFT JOIN users its ON its.id = r.it_support_id
       WHERE r.status IN ('it_support_review','granted','rejected')
+        AND (r.it_support_id IS NULL OR r.it_support_id = ?)
       ORDER BY r.submitted_at DESC
     `;
 
-    const [rows] = await db.query(query);
+    const [rows] = await db.query(query, [userIdNum]);
     res.json({ success: true, requests: rows });
   } catch (e) {
     console.error('Error fetching IT support queue:', e);

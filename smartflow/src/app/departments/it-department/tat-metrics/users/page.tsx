@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import NavBar from "../../components/itHodNav";
-import SideBar from "../../components/itHodSideBar";
+import NavBar from "../../components/navbar";
+import SideBar from "../../components/sidebar";
 import { getAllTickets, ITTicket } from "@/app/services/itTicketService";
 import systemAccessRequestService, { SystemAccessRequest } from "@/app/services/systemAccessRequestService";
 import { Users, Wrench, Key } from "lucide-react";
@@ -17,7 +17,7 @@ function fmtHours(h: number) { if (!isFinite(h)) return "-"; return h < 24 ? `${
 
 type ActorRow = { id: number | null; name: string; tickets: { count: number; avg: number }; requests: { count: number; avg: number } };
 
-export default function ITHODUserMetrics() {
+export default function UserMetrics() {
   const [tickets, setTickets] = useState<ITTicket[]>([]);
   const [sars, setSars] = useState<SystemAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,7 +127,7 @@ export default function ITHODUserMetrics() {
                     {rows.length === 0 ? (
                       <tr><td className="px-6 py-6 text-slate-500" colSpan={3}>No completed items yet.</td></tr>
                     ) : rows.map(r => {
-                      const href = r.id != null ? `/administration/it-hod/tat-metrics/users/${r.id}?name=${encodeURIComponent(r.name)}` : undefined;
+                      const href = r.id != null ? `/departments/it-department/tat-metrics/users/${r.id}?name=${encodeURIComponent(r.name)}` : undefined;
                       return (
                         <tr key={`${r.id ?? 'null'}::${r.name}`} className="hover:bg-slate-50">
                           <td className="px-6 py-3 font-semibold text-slate-900">
