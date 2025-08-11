@@ -12,6 +12,7 @@ import dashboardRouter from './src/routers/dashboardRoutes.js';
 import systemRouter from './src/routers/systemRoutes.js';
 import accessRequestRouter from './src/routers/accessRequestRoutes.js';
 import systemAccessRequestRouter from './src/routers/systemAccessRequestRoutes.js';
+import systemAccessGrantRouter from './src/routers/systemAccessGrantRoutes.js';
 import notificationRouter from './src/routers/notificationRoutes.js';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/systems', systemRouter);
 app.use('/api/access-requests', accessRequestRouter);
 app.use('/api/system-access-requests', systemAccessRequestRouter);
+app.use('/api/system-access-grants', systemAccessGrantRouter);
 app.use('/api/notifications', notificationRouter);
 
 async function startServer() {
