@@ -6,12 +6,17 @@ export interface SystemAccessGrant {
   system_id: number;
   granted_at: string;
   granted_by: number;
+  granted_from_request_id: number;
   effective_from?: string;
   effective_until?: string;
   is_permanent: boolean;
   scheduled_revocation_date?: string;
   revocation_notification_sent: boolean;
   status: 'active' | 'revoked' | 'expired' | 'scheduled_for_revocation';
+  revoked_at?: string;
+  revoked_by?: number;
+  revoked_by_name?: string;
+  revocation_reason?: string;
   user_name: string;
   user_email: string;
   system_name: string;

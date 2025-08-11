@@ -853,6 +853,3 @@ export default function ITHODPage() {
     </div>
   );
 }
-    </div>
-  );
-}
