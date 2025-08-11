@@ -136,7 +136,7 @@ async function register(data) {
       // 7. Create registration application with approved status (since account is auto-activated)
       await db.query(
         'INSERT INTO registration_applications (user_id, submitted_by, status, reviewed_by, reviewed_at) VALUES (?, ?, ?, ?, NOW())',
-        [userId, full_name, 'approved', 1] // reviewed_by = 1 (system admin)
+        [userId, full_name, 'approved', null] // reviewed_by = null (auto-approved by system)
       );
       console.log(`📄 Registration application auto-approved for user ID: ${userId}`);
 
