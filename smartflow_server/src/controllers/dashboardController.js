@@ -130,6 +130,169 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
+// Get user metrics for TAT analysis
+export const getUserMetrics = async (req, res) => {
+  try {
+    const { role } = req.query; // Optional role filter
+    
+    let userMetrics = [];
+    
+    // Get users with their role assignments
+    const [users] = await db.query(`
+      SELECT 
+        u.id,
+        u.full_name,
+        u.email,
+        u.status as user_status,
+        u.created_at as user_created_at,
+        udr.role_id,
+        udr.department_id,
+        udr.status as role_status,
+        udr.assigned_at as role_assigned_at,
+        r.name as role_name,
+        d.name as department_name
+      FROM users u
+      LEFT JOIN user_department_roles udr ON u.id = udr.user_id AND udr.status = 'active'
+      LEFT JOIN roles r ON udr.role_id = r.id
+      LEFT JOIN departments d ON udr.department_id = d.id
+      WHERE u.status = 'active'
+      ${role ? 'AND r.name = ?' : ''}
+      ORDER BY u.full_name
+    `, role ? [role] : []);
+
+    // For each user, get their performance metrics
+    for (const user of users) {
+      let ticketMetrics = { total: 0, resolved: 0, avg_tat: 0 };
+      let accessRequestMetrics = { total: 0, granted: 0, avg_tat: 0 };
+      let requisitionMetrics = { total: 0, approved: 0, avg_tat: 0 };
+
+      // Get ticket metrics for this user
+      try {
+        const [ticketStats] = await db.query(`
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status IN ('resolved', 'closed') THEN 1 ELSE 0 END) as resolved,
+            AVG(CASE 
+              WHEN status IN ('resolved', 'closed') AND reviewed_at IS NOT NULL 
+              THEN TIMESTAMPDIFF(HOUR, created_at, reviewed_at)
+              ELSE NULL 
+            END) as avg_tat
+          FROM tickets 
+          WHERE assigned_to = ?
+        `, [user.id]);
+        
+        ticketMetrics = {
+          total: parseInt(ticketStats[0]?.total) || 0,
+          resolved: parseInt(ticketStats[0]?.resolved) || 0,
+          avg_tat: parseFloat(ticketStats[0]?.avg_tat) || 0
+        };
+      } catch (error) {
+        console.log(`Error getting ticket metrics for user ${user.id}:`, error.message);
+      }
+
+      // Get access request metrics for this user (as IT support)
+      try {
+        const [accessStats] = await db.query(`
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'granted' THEN 1 ELSE 0 END) as granted,
+            AVG(CASE 
+              WHEN status = 'granted' AND it_support_at IS NOT NULL 
+              THEN TIMESTAMPDIFF(HOUR, submitted_at, it_support_at)
+              ELSE NULL 
+            END) as avg_tat
+          FROM system_access_requests 
+          WHERE it_support_id = ?
+        `, [user.id]);
+        
+        accessRequestMetrics = {
+          total: parseInt(accessStats[0]?.total) || 0,
+          granted: parseInt(accessStats[0]?.granted) || 0,
+          avg_tat: parseFloat(accessStats[0]?.avg_tat) || 0
+        };
+      } catch (error) {
+        console.log(`Error getting access request metrics for user ${user.id}:`, error.message);
+      }
+
+      // Get requisition metrics for this user (as approver)
+      try {
+        const [requisitionStats] = await db.query(`
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+            AVG(CASE 
+              WHEN status = 'approved' AND reviewed_by IS NOT NULL 
+              THEN TIMESTAMPDIFF(HOUR, created_at, NOW())
+              ELSE NULL 
+            END) as avg_tat
+          FROM item_requisitions 
+          WHERE reviewed_by = ?
+        `, [user.id]);
+        
+        requisitionMetrics = {
+          total: parseInt(requisitionStats[0]?.total) || 0,
+          approved: parseInt(requisitionStats[0]?.approved) || 0,
+          avg_tat: parseFloat(requisitionStats[0]?.avg_tat) || 0
+        };
+      } catch (error) {
+        console.log(`Error getting requisition metrics for user ${user.id}:`, error.message);
+      }
+
+      // Calculate overall performance score
+      const totalItems = ticketMetrics.total + accessRequestMetrics.total + requisitionMetrics.total;
+      const completedItems = ticketMetrics.resolved + accessRequestMetrics.granted + requisitionMetrics.approved;
+      const completionRate = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+      
+      const avgTAT = [
+        ticketMetrics.avg_tat,
+        accessRequestMetrics.avg_tat,
+        requisitionMetrics.avg_tat
+      ].filter(tat => tat > 0);
+      const overallAvgTAT = avgTAT.length > 0 ? avgTAT.reduce((a, b) => a + b, 0) / avgTAT.length : 0;
+
+      userMetrics.push({
+        user_id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        role_name: user.role_name || 'No Role',
+        department_name: user.department_name || 'No Department',
+        user_created_at: user.user_created_at,
+        role_assigned_at: user.role_assigned_at,
+        metrics: {
+          tickets: ticketMetrics,
+          access_requests: accessRequestMetrics,
+          requisitions: requisitionMetrics,
+          overall: {
+            total_items: totalItems,
+            completed_items: completedItems,
+            completion_rate: completionRate,
+            avg_tat_hours: overallAvgTAT
+          }
+        }
+      });
+    }
+
+    // Sort by completion rate (descending) then by total items (descending)
+    userMetrics.sort((a, b) => {
+      if (b.metrics.overall.completion_rate !== a.metrics.overall.completion_rate) {
+        return b.metrics.overall.completion_rate - a.metrics.overall.completion_rate;
+      }
+      return b.metrics.overall.total_items - a.metrics.overall.total_items;
+    });
+
+    res.json({
+      success: true,
+      data: userMetrics
+    });
+  } catch (error) {
+    console.error('User metrics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user metrics'
+    });
+  }
+};
+
 export const getRecentActivities = async (req, res) => {
   try {
     let allActivities = [];

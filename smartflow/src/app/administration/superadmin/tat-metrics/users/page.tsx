@@ -3,6 +3,7 @@
 import React from "react";
 import NavBar from "../../components/nav";
 import SideBar from "../../components/sidebar";
+import UserMetricsInner from "@/app/departments/it-department/tat-metrics/users/page";
 
 export default function SuperAdminUserMetrics() {
   return (
@@ -11,11 +12,8 @@ export default function SuperAdminUserMetrics() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex">
           <SideBar />
-          <main className="flex-1 space-y-4">
-            <h1 className="text-xl font-semibold text-slate-900">Users Metrics</h1>
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-              <p className="text-sm text-slate-600">Users TAT metrics are not available for IT Support. This section is currently a placeholder.</p>
-            </div>
+          <main className="flex-1">
+            <UserMetricsInner />
           </main>
         </div>
       </div>

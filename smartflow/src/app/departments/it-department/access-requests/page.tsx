@@ -326,7 +326,7 @@ export default function ITDepartmentAccessRequestsPage() {
       setIsLoading(true);
       console.log('Loading IT department requests for user:', user?.id);
       
-      // System Access Requests queue for IT support (now shows all in queue)
+      // System Access Requests queue for IT support
       if (user?.id) {
         const sarRes = await systemAccessRequestService.getITSupportQueue({ user_id: user.id });
         if (sarRes.success) {
@@ -359,16 +359,18 @@ export default function ITDepartmentAccessRequestsPage() {
   useEffect(() => {
     // Prefer SAR queue if available
     if (sarQueue.length > 0) {
-      const review = sarQueue.filter(r => r.status === 'it_support_review');
+      const mine = sarQueue.filter(r => r.status === 'it_support_review' && r.it_support_id === user?.id);
+      const unassigned = sarQueue.filter(r => r.status === 'it_support_review' && !r.it_support_id);
       const completed = sarQueue.filter(r => r.status === 'granted');
       const rejected = sarQueue.filter(r => r.status === 'rejected');
-      let combined: any[] = [...review, ...completed, ...rejected];
+      let combined: any[] = [...mine, ...unassigned, ...completed, ...rejected];
       
       if (filterStatus !== 'all') {
         combined = combined.filter(r => {
           if (filterStatus === 'pending') return r.status === 'it_support_review';
           if (filterStatus === 'approved') return r.status === 'granted';
           if (filterStatus === 'rejected') return r.status === 'rejected';
+          if (filterStatus === 'ready') return false;
           return true;
         });
       }
@@ -621,7 +623,7 @@ export default function ITDepartmentAccessRequestsPage() {
   const pendingCount = sarQueue.length > 0 
     ? sarQueue.filter(r => r.status === 'it_support_review').length
     : requests.filter(r => r.status === 'pending_it_review').length;
-  const readyCount = 0;
+  const readyCount = requests.filter(r => r.status === 'ready_for_assignment').length;
   const approvedCount = sarQueue.length > 0 
     ? sarQueue.filter(r => r.status === 'granted').length 
     : requests.filter(r => r.status === 'access_granted' || r.status === 'it_assigned').length;
@@ -703,10 +705,11 @@ export default function ITDepartmentAccessRequestsPage() {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="appearance-none bg-white border border-slate-300 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                       >
-                                                 <option value="all">All Requests ({totalCount})</option>
-                         <option value="pending">Pending Review ({pendingCount})</option>
-                         <option value="approved">Approved ({approvedCount})</option>
-                         <option value="rejected">Rejected ({rejectedCount})</option>
+                        <option value="all">All Requests ({totalCount})</option>
+                        <option value="pending">Pending Review ({pendingCount})</option>
+                        {readyCount > 0 && <option value="ready">Ready for Assignment ({readyCount})</option>}
+                        <option value="approved">Approved ({approvedCount})</option>
+                        <option value="rejected">Rejected ({rejectedCount})</option>
                       </select>
                       <ChevronDown className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -795,10 +798,6 @@ export default function ITDepartmentAccessRequestsPage() {
                                 <div className="text-xs text-gray-600 truncate">
                                   <span className="sm:hidden">{r.user_name}</span>
                                   <span className="hidden sm:inline">{r.user_name} • {r.department_name} • {r.role_name}</span>
-                                </div>
-                                <div className="mt-1 flex items-center gap-1 text-[11px] text-slate-600 truncate">
-                                  <User className="h-3.5 w-3.5 text-slate-500" />
-                                  <span>{r.it_support_name ? `Assigned to ${r.it_support_name}` : 'Unassigned'}</span>
                                 </div>
                               </div>
                             </div>
