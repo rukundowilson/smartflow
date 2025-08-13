@@ -367,7 +367,7 @@ export default function ITTicketManager(){
     if (!isModalOpen || selectedTicket?.id !== ticket.id) return null;
 
     const modalContent = (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden modal-content">
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">
@@ -445,6 +445,17 @@ export default function ITTicketManager(){
                       <div>
                         <span className="font-medium text-gray-700">Reviewed by:</span>
                         <p className="text-gray-900">{ticket.reviewed_by_name}</p>
+                        {ticket.reviewed_at && (
+                          <p className="text-xs text-gray-500">
+                            {new Date(ticket.reviewed_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -499,7 +510,63 @@ export default function ITTicketManager(){
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-1">Ticket #{ticket.id}</h4>
-                  <p className="text-sm text-gray-600">{ticket.issue_type}</p>
+                  <p className="text-sm text-gray-600 mb-3">{ticket.issue_type}</p>
+                  
+                  {/* Problem Details */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <span className="text-xs font-medium text-gray-500">Priority</span>
+                        <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getPriorityColorForDropdown(ticket.priority)}`}>
+                          {ticket.priority}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-4 w-4 rounded-full bg-gray-300"></div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500">Status</span>
+                        <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getStatusColorForDropdown(ticket.status)}`}>
+                          {ticket.status.replace('_', ' ')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Description */}
+                  <div className="mt-3">
+                    <span className="text-xs font-medium text-gray-500">Description</span>
+                    <p className="text-sm text-gray-700 mt-1 bg-white p-2 rounded border">{ticket.description}</p>
+                  </div>
+                  
+                  {/* Ticket Details */}
+                  <div className="mt-3 space-y-1 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-3 w-3 text-gray-400" />
+                      <span className="font-medium text-gray-700">Created by:</span>
+                      <span className="text-gray-900">{ticket.created_by_name || 'Unknown'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-3 w-3 text-gray-400" />
+                      <span className="font-medium text-gray-700">Created:</span>
+                      <span className="text-gray-900">
+                        {new Date(ticket.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    {ticket.assigned_to_name && (
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-3 w-3 text-gray-400" />
+                        <span className="font-medium text-gray-700">Assigned to:</span>
+                        <span className="text-gray-900">{ticket.assigned_to_name}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -768,19 +835,16 @@ export default function ITTicketManager(){
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ticket Details
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ticket
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Priority & Status
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Assignment
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -788,80 +852,59 @@ export default function ITTicketManager(){
                   <tbody className="bg-white divide-y divide-gray-200">
                     {currentTickets.map((ticket) => (
                       <tr key={ticket.id} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4">
                           <div className="flex items-start">
                             <div className="flex-shrink-0">
-                              <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center">
+                              <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center">
                                 <span className="text-sm font-semibold text-sky-600">#{ticket.id}</span>
                               </div>
                             </div>
-                            <div className="ml-4 min-w-0 flex-1">
+                            <div className="ml-3 min-w-0 flex-1">
                               <div className="text-sm font-medium text-gray-900 truncate">
                                 {ticket.issue_type}
                               </div>
                               <div className="text-sm text-gray-500">
-                                Created by {ticket.created_by_name}
+                                by {ticket.created_by_name}
                               </div>
-                              {ticket.description && (
-                                <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
-                                  {ticket.description}
-                                </div>
-                              )}
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(ticket.priority)}`}>
+                                  {ticket.priority}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(ticket.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(ticket.priority)}`}>
-                              {ticket.priority}
-                            </span>
-                            <div>
-                              <CustomSelect
-                                value={ticket.status}
-                                onChange={(value) => handleUpdateStatus(ticket.id, value as any)}
-                                options={[
-                                  { value: 'open', label: 'Open' },
-                                  { value: 'in_progress', label: 'In Progress' },
-                                  { value: 'resolved', label: 'Resolved' },
-                                  { value: 'closed', label: 'Closed' }
-                                ]}
-                                disabled={updatingTicket === ticket.id}
-                                size="sm"
-                                className="w-36"
-                              />
-                            </div>
-                          </div>
+                        <td className="px-4 py-4 text-center">
+                          <CustomSelect
+                            value={ticket.status}
+                            onChange={(value) => handleUpdateStatus(ticket.id, value as any)}
+                            options={[
+                              { value: 'open', label: 'Open' },
+                              { value: 'in_progress', label: 'In Progress' },
+                              { value: 'resolved', label: 'Resolved' },
+                              { value: 'closed', label: 'Closed' }
+                            ]}
+                            disabled={updatingTicket === ticket.id}
+                            size="sm"
+                            className="w-32"
+                          />
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-4">
                           <div className="text-sm">
                             <div className="font-medium text-gray-900">
                               {ticket.assigned_to_name || 'Unassigned'}
                             </div>
-                            {ticket.reviewed_by_name && ticket.reviewed_at && (
-                              <div className="text-xs text-gray-500 mt-1">
+                            {ticket.reviewed_by_name && (
+                              <div className="text-xs text-gray-500">
                                 Reviewed by {ticket.reviewed_by_name}
-                                <br />
-                                {new Date(ticket.reviewed_at).toLocaleDateString()}
                               </div>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
-                            {new Date(ticket.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(ticket.created_at).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-4 py-4 text-center">
                           <div className="flex items-center justify-center space-x-2">
                             <button 
                               onClick={(e) => {

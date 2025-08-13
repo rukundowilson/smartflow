@@ -6,7 +6,9 @@ import {
   Calendar,
   User,
   AlertCircle,
-  Search
+  Search,
+  Users,
+  CheckCircle
 } from 'lucide-react';
 import { createTicket, getTicketById } from '../services/ticketService';
 import { getITUsers, updateTicketAssignment, ITUser } from '../services/itTicketService';
@@ -657,7 +659,70 @@ const Modal: React.FC<ModalProps> = ({
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-3 sm:p-4 rounded-md">
                     <h4 className="font-medium text-gray-900 mb-2">Ticket #{currentTicket.id}</h4>
-                    <p className="text-sm text-gray-600">{currentTicket.issue_type}</p>
+                    <p className="text-sm text-gray-600 mb-3">{currentTicket.issue_type}</p>
+                    
+                    {/* Problem Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div className="flex items-center space-x-2">
+                        <AlertCircle className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <span className="text-xs font-medium text-gray-500">Priority</span>
+                          <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getPriorityColor(currentTicket.priority)}`}>
+                            {currentTicket.priority}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-4 w-4 rounded-full bg-gray-300"></div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500">Status</span>
+                          <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getStatusColor(currentTicket.status)}`}>
+                            {currentTicket.status.replace('_', ' ')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Description */}
+                    <div className="mb-3">
+                      <span className="text-xs font-medium text-gray-500">Description</span>
+                      <p className="text-sm text-gray-700 mt-1 bg-white p-2 rounded border">{currentTicket.description}</p>
+                    </div>
+                    
+                    {/* Ticket Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <User className="h-3 w-3 text-gray-400" />
+                        <span className="font-medium text-gray-700">Created by:</span>
+                        <span className="text-gray-900">{currentTicket.created_by_name || 'Unknown'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-3 w-3 text-gray-400" />
+                        <span className="font-medium text-gray-700">Created:</span>
+                        <span className="text-gray-900">
+                          {new Date(currentTicket.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      {currentTicket.assigned_to_name && (
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-3 w-3 text-gray-400" />
+                          <span className="font-medium text-gray-700">Assigned to:</span>
+                          <span className="text-gray-900">{currentTicket.assigned_to_name}</span>
+                        </div>
+                      )}
+                      {currentTicket.reviewed_by_name && (
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-3 w-3 text-gray-400" />
+                          <span className="font-medium text-gray-700">Reviewed by:</span>
+                          <span className="text-gray-900">{currentTicket.reviewed_by_name}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Comments Section */}
