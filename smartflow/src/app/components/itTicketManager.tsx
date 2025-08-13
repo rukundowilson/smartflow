@@ -48,6 +48,7 @@ export default function ITTicketManager(){
   const [itUsers, setItUsers] = useState<ITUser[]>([]);
   const [updatingTicket, setUpdatingTicket] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [commentTexts, setCommentTexts] = useState<{ [key: number]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -200,6 +201,13 @@ export default function ITTicketManager(){
   };
 
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log('Comment change:', e.target.value);
+    if (selectedTicket) {
+      setCommentTexts(prev => ({
+        ...prev,
+        [selectedTicket.id]: e.target.value
+      }));
+    }
     setCommentText(e.target.value);
   };
 
@@ -216,6 +224,13 @@ export default function ITTicketManager(){
         });
         
         setCommentText('');
+        // Clear the ticket-specific comment text
+        if (selectedTicket) {
+          setCommentTexts(prev => ({
+            ...prev,
+            [selectedTicket.id]: ''
+          }));
+        }
         await fetchTickets();
         
         // Refresh comments if modal is still open
@@ -316,13 +331,30 @@ export default function ITTicketManager(){
   );
 
   const openModal = (type: string, ticket: ITTicket | null = null, buttonRef?: React.RefObject<HTMLElement>) => {
+    console.log('Opening modal:', type, 'for ticket:', ticket?.id);
     setModalType(type);
     setSelectedTicket(ticket);
     setTriggerButtonRef(buttonRef || null);
     setIsModalOpen(true);
+    
+    // Set the comment text for this specific ticket
+    if (ticket && type === 'comment') {
+      const ticketCommentText = commentTexts[ticket.id] || '';
+      setCommentText(ticketCommentText);
+    }
   };
 
   const closeModal = () => {
+    console.log('Closing modal, clearing comment text');
+    
+    // Save the current comment text for this ticket
+    if (selectedTicket && modalType === 'comment') {
+      setCommentTexts(prev => ({
+        ...prev,
+        [selectedTicket.id]: commentText
+      }));
+    }
+    
     setIsModalOpen(false);
     setModalType('');
     setSelectedTicket(null);
