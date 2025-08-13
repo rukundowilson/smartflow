@@ -238,8 +238,10 @@ export default function ITTicketManager(){
         const target = event.target as HTMLElement;
         const modal = target.closest('.modal-content, .ticket-modal');
         const dropdown = target.closest('.custom-select, .select-dropdown');
+        const formElement = target.closest('input, textarea, select, button, label');
         
-        if (!modal && !dropdown) {
+        // Don't close if clicking on modal content, dropdowns, or form elements
+        if (!modal && !dropdown && !formElement) {
           closeModal();
         }
       }
@@ -326,6 +328,9 @@ export default function ITTicketManager(){
     setSelectedTicket(null);
     setCommentText('');
     setComments([]);
+    setSelectedAssignee('');
+    setShowAssigneeDropdown(false);
+    setAssigneeSearchTerm('');
   };
 
   interface ActionButtonProps {
@@ -367,7 +372,15 @@ export default function ITTicketManager(){
     if (!isModalOpen || selectedTicket?.id !== ticket.id) return null;
 
     const modalContent = (
-      <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={(e) => {
+          // Only close if clicking on the backdrop, not the modal content
+          if (e.target === e.currentTarget) {
+            closeModal();
+          }
+        }}
+      >
         <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden modal-content">
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">

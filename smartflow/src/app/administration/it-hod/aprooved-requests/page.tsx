@@ -294,9 +294,9 @@ export default function ITHODReviewedRequests() {
   const [viewScope, setViewScope] = useState<'me' | 'department'>('me');
 
   const loadReviewed = async () => {
-    if (!user?.id) { setIsLoading(false); return; }
-    try {
-      setIsLoading(true);
+      if (!user?.id) { setIsLoading(false); return; }
+      try {
+        setIsLoading(true);
       let res;
       if (viewScope === 'me') {
         // Show requests reviewed by the current IT HOD
@@ -316,10 +316,10 @@ export default function ITHODReviewedRequests() {
         }
         setRequests(filtered);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   useEffect(() => {
     loadReviewed();

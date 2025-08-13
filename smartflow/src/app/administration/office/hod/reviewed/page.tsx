@@ -343,25 +343,25 @@ export default function HODApprovedPage() {
                     })()}
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
-                  {isLoadingComments ? (
-                    <div className="text-sm text-gray-500">Loading comments...</div>
-                  ) : comments.length === 0 ? (
-                    <div className="text-sm text-gray-500">No comments</div>
-                  ) : (
-                    <div className="space-y-3 max-h-48 overflow-auto pr-1">
-                      {comments.map((c) => (
-                        <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
-                            <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
-                          </div>
-                          <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+                {isLoadingComments ? (
+                  <div className="text-sm text-gray-500">Loading comments...</div>
+                ) : comments.length === 0 ? (
+                  <div className="text-sm text-gray-500">No comments</div>
+                ) : (
+                  <div className="space-y-3 max-h-48 overflow-auto pr-1">
+                    {comments.map((c) => (
+                      <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
+                          <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 </div>
               </div>
             </div>

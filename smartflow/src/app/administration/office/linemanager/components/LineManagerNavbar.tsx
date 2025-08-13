@@ -273,18 +273,18 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
                 {modules.map((module) => {
                   const count = getModuleCount(module.id);
                   return (
-                    <button
-                      key={module.id}
-                      onClick={() => handleModuleClick(module.id)}
+                  <button
+                    key={module.id}
+                    onClick={() => handleModuleClick(module.id)}
                       className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-md transition-colors ${
-                        activeModule === module.id
-                          ? "bg-sky-100 text-sky-700"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
+                      activeModule === module.id
+                        ? "bg-sky-100 text-sky-700"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
                       <div className="flex items-center">
-                        <module.icon className="h-5 w-5 mr-3" />
-                        {module.name}
+                    <module.icon className="h-5 w-5 mr-3" />
+                    {module.name}
                       </div>
                       {/* Badge for mobile menu */}
                       {count > 0 && (
@@ -298,7 +298,7 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
                           {count > 99 ? '99+' : count}
                         </div>
                       )}
-                    </button>
+                  </button>
                   );
                 })}
                 

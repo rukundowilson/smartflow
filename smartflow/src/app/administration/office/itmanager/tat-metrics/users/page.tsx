@@ -161,14 +161,14 @@ export default function ITManagerUserMetrics() {
                         <tr key={`${r.id ?? 'null'}::${r.name}`} className="hover:bg-slate-50">
                           <td className="px-6 py-3 font-semibold text-slate-900">
                             <div className="flex flex-col">
-                              {href ? (
-                                <Link href={href} className="text-sky-700 hover:underline">{r.name}</Link>
-                              ) : (
+                            {href ? (
+                              <Link href={href} className="text-sky-700 hover:underline">{r.name}</Link>
+                            ) : (
                                 <span>{r.name}</span>
                               )}
                               {r.id && (
                                 <span className="text-xs text-slate-500 font-normal">#{r.id}</span>
-                              )}
+                            )}
                             </div>
                           </td>
                           <td className="px-6 py-3 text-slate-700">{r.tickets.count} • {fmtHours(r.tickets.avg)}</td>
