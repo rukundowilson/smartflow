@@ -25,6 +25,7 @@ interface ModalProps {
   modalType : string;
   selectedTicket : any;
   onTicketCreated?: () => void;
+  triggerButtonRef?: React.RefObject<HTMLElement> | null;
 }
 
 const getStatusColor = (status: string): string => {
@@ -57,8 +58,11 @@ const Modal: React.FC<ModalProps> = ({
   modalType,
   selectedTicket,
   onTicketCreated,
+  triggerButtonRef,
 }) => {
         const currentUser = user?.id;
+        const [isMounted, setIsMounted] = useState(false);
+        const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
         const [newTicket, setNewTicket] = useState<NewTicket>({
           issue_type: 'Hardware Problem',
           priority: 'Medium',
@@ -296,34 +300,89 @@ const Modal: React.FC<ModalProps> = ({
           };
         }, [showAssigneeDropdown]);
 
-        // Early return after all hooks
-        if (!isModalOpen) return null;
+        // Handle mount/unmount for mobile animation and position calculation
+        useEffect(() => {
+          if (isModalOpen) {
+            setIsMounted(true);
+            
+            // Calculate position relative to trigger button
+            if (triggerButtonRef?.current && (modalType === 'view' || modalType === 'comment')) {
+              const buttonRect = triggerButtonRef.current.getBoundingClientRect();
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
+              
+              // For mobile, use bottom sheet style
+              if (viewportWidth <= 640) {
+                setModalPosition({ top: 0, left: 0 });
+              } else {
+                // For desktop, position relative to button
+                let top = buttonRect.bottom + 8; // 8px gap
+                let left = buttonRect.left;
+                
+                // Ensure modal doesn't go off-screen
+                const modalWidth = 400; // Approximate modal width
+                const modalHeight = 500; // Approximate modal height
+                
+                if (left + modalWidth > viewportWidth) {
+                  left = viewportWidth - modalWidth - 16;
+                }
+                
+                if (top + modalHeight > viewportHeight) {
+                  top = buttonRect.top - modalHeight - 8;
+                }
+                
+                setModalPosition({ top, left });
+              }
+            } else {
+              // For new ticket modal, use centered position
+              setModalPosition({ top: 0, left: 0 });
+            }
+          } else {
+            const timer = setTimeout(() => setIsMounted(false), 300);
+            return () => clearTimeout(timer);
+          }
+        }, [isModalOpen, modalType, triggerButtonRef]);
 
+        // Early return after all hooks
+        if (!isModalOpen && !isMounted) return null;
+
+        const isPositioned = triggerButtonRef && (modalType === 'view' || modalType === 'comment');
+        
         return (
         <div 
-          className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center p-4 z-50"
+          className={`modal-backdrop ${isPositioned ? 'positioned' : ''}`}
           onClick={handleBackdropClick}
+          style={isPositioned ? { 
+            top: modalPosition.top, 
+            left: modalPosition.left,
+            position: 'absolute'
+          } : {}}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">
-                {modalType === 'new' && 'Report New Issue'}
-                              {modalType === 'view' && `Ticket Details - ${currentTicket?.id}`}
-              {modalType === 'comment' && `Add Comment - ${currentTicket?.id}`}
-              </h3>
-              <button
-                onClick={closeModal}
-                disabled={isSubmitting}
-                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <X className="h-6 w-6" />
-              </button>
+          <div className={`modal-content ${isPositioned ? 'positioned' : ''} ${isModalOpen ? 'mobile-slide-up' : ''}`}>
+            <div className="modal-header">
+              {/* Mobile drag handle */}
+              <div className="block sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3"></div>
+              
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {modalType === 'new' && 'Report New Issue'}
+                  {modalType === 'view' && `Ticket Details - ${currentTicket?.id}`}
+                  {modalType === 'comment' && `Add Comment - ${currentTicket?.id}`}
+                </h3>
+                <button
+                  onClick={closeModal}
+                  disabled={isSubmitting}
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
 
-            <div className="p-6">
+            <div className="modal-body">
               {modalType === 'new' && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Issue Type</label>
                       <select 
@@ -368,18 +427,18 @@ const Modal: React.FC<ModalProps> = ({
                       placeholder="Please describe your issue in detail..."
                     />
                   </div>
-                  <div className="flex justify-end space-x-3 pt-4">
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200 mt-4">
                     <button
                       onClick={closeModal}
                       disabled={isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleNewTicketSubmit}
                       disabled={!newTicket.description.trim() || isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center order-1 sm:order-2"
                     >
                       {isSubmitting && (
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -394,8 +453,8 @@ const Modal: React.FC<ModalProps> = ({
               )}
 
               {modalType === 'view' && currentTicket && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="h-5 w-5 text-gray-400" />
                       <div>
@@ -447,7 +506,7 @@ const Modal: React.FC<ModalProps> = ({
                           </button>
                           
                           {showAssigneeDropdown && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto assignee-dropdown">
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 sm:max-h-60 overflow-auto assignee-dropdown">
                               <div className="p-2 border-b border-gray-200">
                                 <div className="relative">
                                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
@@ -501,9 +560,9 @@ const Modal: React.FC<ModalProps> = ({
                   </div>
                   
                   {/* Ticket Details */}
-                  <div className="bg-gray-50 p-4 rounded-md space-y-3">
+                  <div className="bg-gray-50 p-3 sm:p-4 rounded-md space-y-3">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Ticket Details</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
                       <div>
                         <span className="font-medium text-gray-700">Created by:</span>
                         <p className="text-gray-900">{currentTicket.created_by_name || 'Unknown'}</p>
@@ -550,7 +609,7 @@ const Modal: React.FC<ModalProps> = ({
                   </div>
                   
                   {/* Comments Section */}
-                  <div className="mt-6">
+                  <div className="mt-4 sm:mt-6">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Comments ({comments.length})</h4>
                     
                     {loadingComments ? (
@@ -558,7 +617,7 @@ const Modal: React.FC<ModalProps> = ({
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600"></div>
                       </div>
                     ) : comments.length > 0 ? (
-                      <div className="space-y-3 max-h-40 overflow-y-auto">
+                      <div className="space-y-3 max-h-32 sm:max-h-40 overflow-y-auto">
                         {comments.map((comment) => (
                           <div key={comment.id} className="bg-gray-50 p-3 rounded-md">
                             <div className="flex justify-between items-start mb-2">
@@ -596,9 +655,9 @@ const Modal: React.FC<ModalProps> = ({
 
               {modalType === 'comment' && currentTicket && (
                 <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-md">
-                                          <h4 className="font-medium text-gray-900 mb-2">Ticket #{currentTicket.id}</h4>
-                      <p className="text-sm text-gray-600">{currentTicket.issue_type}</p>
+                  <div className="bg-gray-50 p-3 sm:p-4 rounded-md">
+                    <h4 className="font-medium text-gray-900 mb-2">Ticket #{currentTicket.id}</h4>
+                    <p className="text-sm text-gray-600">{currentTicket.issue_type}</p>
                   </div>
                   
                   {/* Comments Section */}
@@ -610,7 +669,7 @@ const Modal: React.FC<ModalProps> = ({
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600"></div>
                       </div>
                     ) : comments.length > 0 ? (
-                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                      <div className="space-y-3 max-h-40 sm:max-h-60 overflow-y-auto">
                         {comments.map((comment) => (
                           <div key={comment.id} className="bg-gray-50 p-3 rounded-md">
                             <div className="flex justify-between items-start mb-2">
@@ -657,18 +716,18 @@ const Modal: React.FC<ModalProps> = ({
                     />
                   </div>
                   
-                  <div className="flex justify-end space-x-3">
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 border-t border-gray-200 pt-4 mt-4">
                     <button
                       onClick={closeModal}
                       disabled={isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1"
                     >
                       Close
                     </button>
                     <button
                       onClick={handleCommentSubmit}
                       disabled={!commentText.trim() || isSubmitting}
-                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      className="px-4 py-2 text-sm font-medium text-white bg-sky-600 border border-transparent rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center order-1 sm:order-2"
                     >
                       {isSubmitting && (
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
