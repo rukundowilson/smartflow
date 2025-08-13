@@ -105,10 +105,10 @@ async function register(data) {
     await db.query('START TRANSACTION');
 
     try {
-      // 5. Insert user into users table
+      // 5. Insert user into users table with active status
       const [result] = await db.query(
         'INSERT INTO users (full_name, email, password_hash, status) VALUES (?, ?, ?, ?)',
-        [full_name, email, passwordHash, 'pending']
+        [full_name, email, passwordHash, 'active']
       );
 
       const userId = result.insertId;
@@ -131,22 +131,22 @@ async function register(data) {
 
       console.log(`✅ User ${userId} registered successfully and assigned to department: ${departmentName} with default 'User' role`);
       console.log(`🔗 User-department-role relationship created for user ID: ${userId}`);
-      console.log(`📝 Note: HR will assign appropriate role after approval`);
+      console.log(`📝 User account is now active and ready to use`);
 
-      // 7. Create registration application
+      // 7. Create registration application with approved status (since account is auto-activated)
       await db.query(
-        'INSERT INTO registration_applications (user_id, submitted_by) VALUES (?, ?)',
-        [userId, full_name]
+        'INSERT INTO registration_applications (user_id, submitted_by, status, reviewed_by, reviewed_at) VALUES (?, ?, ?, ?, NOW())',
+        [userId, full_name, 'approved', null] // reviewed_by = null (auto-approved by system)
       );
-      console.log(`📄 Registration application created for user ID: ${userId}`);
+      console.log(`📄 Registration application auto-approved for user ID: ${userId}`);
 
       // Commit transaction
       await db.query('COMMIT');
 
       return {
         success: true,
-        message: 'Registration successful. Awaiting HR approval.',
-        user: { id: userId, full_name, email, department: departmentName, status: 'pending' }
+        message: 'Registration successful. Your account is now active and ready to use.',
+        user: { id: userId, full_name, email, department: departmentName, status: 'active' }
       };
     } catch (error) {
       // Rollback on error

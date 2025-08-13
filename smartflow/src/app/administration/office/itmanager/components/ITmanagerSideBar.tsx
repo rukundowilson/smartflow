@@ -12,8 +12,10 @@ import {
   ChevronRight,
   Ticket,
   Users,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
+import systemAccessRequestService from "@/app/services/systemAccessRequestService";
 
 const modules: Array<{
   id: string;
@@ -22,7 +24,7 @@ const modules: Array<{
   description?: string;
   children?: Array<{ id: string; name: string; icon: any }>;
 }> = [
-  { id: '', name: 'Approvals', icon: Monitor, description: 'IT Manager approvals' },
+  { id: '', name: 'Overview', icon: Monitor, description: 'IT Manager dashboard' },
   { id: 'assignments', name: 'Assignments', icon: CheckCircle, description: 'IT support assignments' },
   {
     id: 'tat-metrics',
@@ -42,10 +44,48 @@ export default function ITManagerSidebar() {
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [counts, setCounts] = useState({ pending: 0, assignments: 0 });
 
   const basePath = '/administration/office/itmanager';
 
   const { logout, user } = useAuth();
+
+  const fetchCounts = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const [pendingRes, assignmentsRes] = await Promise.all([
+        systemAccessRequestService.getPending({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        }),
+        systemAccessRequestService.getApprovedBy({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        })
+      ]);
+
+      // Pending: Only requests that need IT Manager action
+      const pendingCount = pendingRes.success ? pendingRes.requests.filter(r => r.status === 'it_manager_pending').length : 0;
+      
+      // Assignments: All requests the IT Manager has acted upon
+      const assignmentsCount = assignmentsRes.success ? assignmentsRes.requests.length : 0;
+
+      setCounts({ pending: pendingCount, assignments: assignmentsCount });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  };
+
+  // Fetch counts when user changes
+  useEffect(() => {
+    fetchCounts();
+  }, [user?.id]);
+
+  // Fetch counts when pathname changes (refresh data)
+  useEffect(() => {
+    fetchCounts();
+  }, [pathname]);
 
   // Set active module from URL on mount
   useEffect(() => {
@@ -54,7 +94,7 @@ export default function ITManagerSidebar() {
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     } else if (pathname === basePath || pathname.endsWith('/itmanager/')) {
-      setActiveModule('overview');
+      setActiveModule('');
     }
   }, [pathname]);
 
@@ -68,7 +108,7 @@ export default function ITManagerSidebar() {
   const handleModuleClick = (id: string) => {
     const newPath = `${basePath}${id === '' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
-      setActiveModule(id || 'overview');
+      setActiveModule(id || '');
       router.push(newPath);
     }
   };
@@ -82,23 +122,43 @@ export default function ITManagerSidebar() {
     setOpenDropdowns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const getBadgeCount = (moduleId: string) => {
+    switch (moduleId) {
+      case '':
+        // Overview: Only show pending requests that need IT Manager action
+        return counts.pending;
+      case 'assignments':
+        // Assignments: Show all assignments (assigned, granted, rejected)
+        return counts.assignments;
+      default:
+        return 0;
+    }
+  };
+
+  const getBadgeColor = (moduleId: string) => {
+    const count = getBadgeCount(moduleId);
+    if (count === 0) return 'hidden';
+    if (count > 99) return 'bg-red-500 text-white';
+    return 'bg-blue-500 text-white';
+  };
+
   return (
-    <nav className={`${isCollapsed ? 'w-20' : 'w-80'} bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto transition-all duration-300 ease-in-out`}>
+    <nav className={`${isCollapsed ? 'w-20' : 'w-88'} bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out`}>
       {/* Header Section */}
       <div className="mb-8 pb-6 border-b border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center flex-1 min-w-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
               <Settings className="h-6 w-6 text-white" />
             </div>
             {!isCollapsed && (
-              <div className="ml-4">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">IT Manager</h2>
-                <p className="text-sm text-slate-500 font-medium">{user?.department}</p>
+              <div className="ml-4 flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight break-words leading-tight">IT Manager</h2>
+                <p className="text-sm text-slate-500 font-medium mt-1">{user?.department}</p>
               </div>
             )}
           </div>
-          <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200">
+          <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 flex-shrink-0">
             <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
           </button>
         </div>
@@ -116,6 +176,9 @@ export default function ITManagerSidebar() {
             const isParentActive = hasChildren
               ? pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)
               : pathname === (module.id === '' ? basePath : targetPath);
+            const badgeCount = getBadgeCount(module.id);
+            const badgeColor = getBadgeColor(module.id);
+            
             return (
               <div key={module.id}>
                 <button
@@ -127,21 +190,33 @@ export default function ITManagerSidebar() {
                   }`}
                   title={isCollapsed ? module.name : ''}
                 >
-                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 flex-shrink-0 ${
                     isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
                   }`} />
                   {!isCollapsed && (
                     <div className="flex-1 text-left min-w-0 flex items-center justify-between">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">{module.name}</div>
                         {module.description && (
                           <div className={`text-xs truncate ${isParentActive ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
                         )}
                       </div>
-                      {hasChildren && (
-                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform duration-200 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
-                      )}
+                      <div className="flex items-center flex-shrink-0">
+                        {badgeCount > 0 && (
+                          <span className={`ml-1 px-1.5 py-0.5 text-xs font-medium rounded-full min-w-[1.5rem] text-center ${badgeColor}`}>
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </span>
+                        )}
+                        {hasChildren && (
+                          <ChevronRight className={`h-4 w-4 ml-1 transition-transform duration-200 flex-shrink-0 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
+                        )}
+                      </div>
                     </div>
+                  )}
+                  {isCollapsed && badgeCount > 0 && (
+                    <span className={`absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-medium rounded-full min-w-[1.5rem] text-center ${badgeColor}`}>
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
                   )}
                 </button>
 

@@ -26,17 +26,28 @@ export default function HODApprovedPage() {
   const [comments, setComments] = useState<AppComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewScope, setViewScope] = useState<'me' | 'department'>('me');
   const { user } = useAuth();
 
-  const loadApproved = async () => {
+  const loadReviewed = async () => {
     try {
       setIsLoading(true);
-      const response = await systemAccessRequestService.getApprovedBy({ approver_id: user?.id || 0, approver_role: 'HOD' });
+      const response = viewScope === 'me'
+        ? await systemAccessRequestService.getApprovedBy({ approver_id: user?.id || 0, approver_role: 'HOD' })
+        : await systemAccessRequestService.getApprovedDepartment({ approver_id: user?.id || 0 });
+      
       if (response.success) {
-        setRequests(response.requests);
+        // Filter out requests that haven't been acted on by HOD yet
+        const filteredRequests = response.requests.filter(request => {
+          // Must have HOD action timestamp (either approved or rejected)
+          if (!request.hod_at) return false;
+          
+          return true;
+        });
+        setRequests(filteredRequests);
       }
     } catch (error) {
-      console.error('Error loading HOD approval history:', error);
+      console.error('Error loading HOD review history:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,9 +55,9 @@ export default function HODApprovedPage() {
 
   useEffect(() => {
     if (user?.id) {
-      loadApproved();
+      loadReviewed();
     }
-  }, [user?.id]);
+  }, [user, viewScope]);
 
   useEffect(() => {
     let filtered = requests;
@@ -85,7 +96,7 @@ export default function HODApprovedPage() {
     }
   };
 
-  const approvedCount = requests.length;
+  const reviewedCount = requests.length;
 
   return (
     <HODLayout>
@@ -93,7 +104,16 @@ export default function HODApprovedPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Requests You Reviewed</h1>
-          <p className="text-gray-600">Track system access requests you Reviewed as HOD</p>
+          <p className="text-gray-600">Track system access requests you reviewed as HOD</p>
+        </div>
+
+        {/* Scope Toggle */}
+        <div className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+          <div className="text-sm text-gray-700">View:</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setViewScope('me')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='me' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Reviewed by me</button>
+            <button onClick={() => setViewScope('department')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='department' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Department</button>
+          </div>
         </div>
 
         {/* Simple Stats */}
@@ -103,8 +123,8 @@ export default function HODApprovedPage() {
               <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-500">Requests You Reviewed</p>
-              <p className="text-xl font-semibold text-gray-900">{approvedCount}</p>
+              <p className="text-sm text-gray-500">{viewScope==='me' ? 'Requests You Reviewed' : 'Department Reviewed Requests'}</p>
+              <p className="text-xl font-semibold text-gray-900">{reviewedCount}</p>
             </div>
           </div>
         </div>
@@ -115,7 +135,7 @@ export default function HODApprovedPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search Reviewed requests..."
+              placeholder="Search reviewed requests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
@@ -123,7 +143,7 @@ export default function HODApprovedPage() {
           </div>
         </div>
 
-        {/* Approved Table */}
+        {/* Reviewed Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
@@ -131,7 +151,7 @@ export default function HODApprovedPage() {
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests Reviewed</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests reviewed</h3>
             <p className="text-gray-500">You haven't reviewed any system access requests yet.</p>
           </div>
         ) : (
@@ -140,19 +160,22 @@ export default function HODApprovedPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Employee
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       System
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Reviewed
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reviewed On
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {viewScope === 'department' ? 'Reviewed By' : 'Details'}
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -160,35 +183,47 @@ export default function HODApprovedPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center">
-                          <User className="h-4 w-4 text-gray-400 mr-2" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{request.user_name || 'Employee'}</p>
-                            <p className="text-sm text-gray-500">{request.user_email || ''}</p>
+                          <User className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{request.user_name || 'Employee'}</p>
+                            <p className="text-sm text-gray-500 truncate">{request.user_email || ''}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center">
-                          <Building2 className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">{request.system_name}</span>
+                          <Building2 className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          <span className="text-sm text-gray-900 truncate">{request.system_name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
                           {request.status.replace(/_/g, ' ').toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                           <span className="text-sm text-gray-900">
                             {request.hod_at ? new Date(request.hod_at as unknown as string).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-4">
+                        {viewScope === 'department' ? (
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                            <span className="text-sm text-gray-900 truncate">{request.hod_name || 'HOD'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-500">You reviewed</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-right">
                         <button
                           onClick={() => handleViewRequest(request)}
                           className="inline-flex items-center px-3 py-2 text-sm font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100"
@@ -216,6 +251,10 @@ export default function HODApprovedPage() {
               </button>
             </div>
             <div className="p-6 space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-700">You reviewed this system access request as HOD.</p>
+              </div>
+
               {/* Employee Information */}
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-3 mb-3">
@@ -264,8 +303,8 @@ export default function HODApprovedPage() {
                     <p className="font-medium text-gray-900">{selectedRequest.system_name}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted On</label>
-                    <p className="text-gray-900">{selectedRequest.submitted_at ? new Date(selectedRequest.submitted_at).toLocaleDateString() : 'N/A'}</p>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Reviewed On</label>
+                    <p className="text-gray-900">{selectedRequest.hod_at ? new Date(selectedRequest.hod_at as unknown as string).toLocaleString() : 'N/A'}</p>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Access Period</label>
@@ -275,65 +314,55 @@ export default function HODApprovedPage() {
                       <p className="text-gray-600">{selectedRequest.is_permanent ? 'Permanent access' : 'Temporary access'}</p>
                     </div>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Business Justification</label>
-                    <div className="bg-white p-3 rounded-md border border-gray-200">
-                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedRequest.justification || 'No justification provided'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Information */}
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-9 w-9 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-blue-600" />
-                  </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Status Information</h3>
-                    <p className="text-xs text-gray-600">Outcome and timestamps</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Current Status</label>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Status</label>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedRequest.status)}`}>
                       {selectedRequest.status.replace(/_/g, ' ').toUpperCase()}
                     </span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Reviewed On</label>
-                    <p className="text-gray-900">{selectedRequest.hod_at ? new Date(selectedRequest.hod_at as unknown as string).toLocaleString() : 'N/A'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Reviewed By</label>
-                    <p className="text-gray-900">
-                      {selectedRequest.hod_name || (comments.find(c => c.commented_by === (selectedRequest.hod_id as number))?.commented_by_name) || 'HOD'}
-                    </p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
-                {isLoadingComments ? (
-                  <div className="text-sm text-gray-500">Loading comments...</div>
-                ) : comments.length === 0 ? (
-                  <div className="text-sm text-gray-500">No comments</div>
-                ) : (
-                  <div className="space-y-3 max-h-48 overflow-auto pr-1">
-                    {comments.map((c) => (
-                      <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
-                          <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
-                        </div>
-                        <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
-                      </div>
-                    ))}
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Justification</h3>
+                <p className="text-sm text-gray-900 bg-white p-3 rounded-lg border border-gray-200">{selectedRequest.justification || 'No justification provided'}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Review Decision</h3>
+                  <div className="text-sm text-gray-900">
+                    <p>
+                      <span className="font-medium">Reviewed by:</span> {selectedRequest.hod_name || (comments.find(c => c.commented_by === (selectedRequest.hod_id as number))?.commented_by_name) || 'HOD'}
+                    </p>
+                    {(() => {
+                      const reviewComment = comments.find(c => c.commented_by === (selectedRequest.hod_id as number));
+                      return reviewComment ? (
+                        <p className="mt-1"><span className="font-medium">Reason:</span> {reviewComment.content}</p>
+                      ) : null;
+                    })()}
                   </div>
-                )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Comments</h3>
+                  {isLoadingComments ? (
+                    <div className="text-sm text-gray-500">Loading comments...</div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-sm text-gray-500">No comments</div>
+                  ) : (
+                    <div className="space-y-3 max-h-48 overflow-auto pr-1">
+                      {comments.map((c) => (
+                        <div key={c.id} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900">{c.commented_by_name}</span>
+                            <span className="text-xs text-gray-500">{new Date(c.created_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{c.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

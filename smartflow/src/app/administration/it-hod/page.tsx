@@ -46,9 +46,8 @@ export default function ITHODOverviewPage() {
     load();
   }, [user?.id]);
 
-  const pendingCount = pending.filter(r => r.status === 'it_hod_pending').length;
-  const approvedCount = processed.filter(r => r.status !== 'rejected').length;
-  const rejectedCount = processed.filter(r => r.status === 'rejected').length;
+  const pendingCount = pending.length;
+  const reviewedCount = processed.filter(r => r.it_hod_at).length;
 
   const recent: RecentItem[] = [...processed, ...pending]
     .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
@@ -121,32 +120,16 @@ export default function ITHODOverviewPage() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">You Approved</p>
-                    <p className="text-3xl font-bold text-gray-900">{approvedCount}</p>
+                    <p className="text-sm font-medium text-gray-500">You Reviewed</p>
+                    <p className="text-3xl font-bold text-gray-900">{reviewedCount}</p>
                   </div>
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl">
                     <CheckCircle className="h-4 w-4 text-white" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center text-sm text-gray-600">
-                  <ArrowUpRight className="h-4 w-4 mr-1 text-green-500" />
-                  <span>Requests you approved</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-all">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">You Rejected</p>
-                    <p className="text-3xl font-bold text-gray-900">{rejectedCount}</p>
-                  </div>
-                  <div className="p-3 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
-                    <XCircle className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-gray-600">
-                  <ArrowDownRight className="h-4 w-4 mr-1 text-red-500" />
-                  <span>Requests you declined</span>
+                  <ArrowUpRight className="h-4 w-4 mr-1 text-blue-500" />
+                  <span>Requests you reviewed</span>
                 </div>
               </div>
             </div>

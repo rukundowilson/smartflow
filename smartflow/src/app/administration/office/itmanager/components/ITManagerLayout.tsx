@@ -14,7 +14,7 @@ export default function ITManagerLayout({ children }: ITManagerLayoutProps) {
 
   const navigation = [
     {
-      name: 'Approvals',
+      name: 'Overview',
       href: '/administration/office/itmanager',
       icon: Building2,
       current: true
