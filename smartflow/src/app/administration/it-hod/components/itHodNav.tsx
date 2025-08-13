@@ -23,8 +23,7 @@ import NotificationBell from '@/app/components/NotificationBell';
 const modules = [
   { id: '/', name: 'overview', icon: Key, description: 'home dashboard' },
   { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
-  { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
-  { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
+  { id: 'aprooved-requests', name: 'reviewed requests', icon: Ticket, description: 'requests you reviewed' },
 ];
 
 

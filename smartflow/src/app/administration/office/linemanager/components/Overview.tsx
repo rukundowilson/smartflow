@@ -24,11 +24,11 @@ import Link from 'next/link';
 const Overview: React.FC = () => {
   const { user } = useAuth();
   const [pendingRequests, setPendingRequests] = useState<SARequest[]>([]);
-  const [recentApproved, setRecentApproved] = useState<SARequest[]>([]);
+  const [recentReviewed, setRecentReviewed] = useState<SARequest[]>([]);
   const [lineManagerDepartments, setLineManagerDepartments] = useState<UserRoleInfo[]>([]);
   const [stats, setStats] = useState({
     totalPending: 0,
-    totalApproved: 0,
+    totalReviewed: 0,
     totalRejected: 0
   });
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ const Overview: React.FC = () => {
       setLineManagerDepartments(lineManagerRoles);
       if (lineManagerRoles.length === 0) {
         setPendingRequests([]);
-        setStats({ totalPending: 0, totalApproved: 0, totalRejected: 0 });
+        setStats({ totalPending: 0, totalReviewed: 0, totalRejected: 0 });
         return;
       }
 
@@ -71,16 +71,16 @@ const Overview: React.FC = () => {
         setPendingRequests(pending);
       }
 
-      // Load recently approved by LM to show in activity
-      const approvedRes = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'Line Manager' });
-      if (approvedRes.success) {
-        setRecentApproved(approvedRes.requests || []);
-      }
+          // Load recently reviewed by LM to show in activity
+    const reviewedRes = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'Line Manager' });
+    if (reviewedRes.success) {
+      setRecentReviewed(reviewedRes.requests || []);
+    }
 
       // Compute stats
       const totalPending = (response.success ? (response.requests || []).length : 0);
-      const totalApproved = (approvedRes.success ? (approvedRes.requests || []).length : 0);
-      setStats({ totalPending, totalApproved, totalRejected: 0 });
+          const totalReviewed = (reviewedRes.success ? (reviewedRes.requests || []).length : 0);
+    setStats({ totalPending, totalReviewed, totalRejected: 0 });
     } catch (error) {
       console.error('Error fetching Line Manager data:', error);
     } finally {
@@ -180,8 +180,8 @@ const Overview: React.FC = () => {
           <Link href="/administration/office/linemanager/approvals" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
             Review Pending
           </Link>
-          <Link href="/administration/office/linemanager/approved" className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200">
-            View Approved
+          <Link href="/administration/office/linemanager/reviewed" className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200">
+            View Reviewed
           </Link>
         </div>
       </div>
@@ -210,8 +210,8 @@ const Overview: React.FC = () => {
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Approved</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalApproved}</p>
+              <p className="text-sm font-medium text-gray-500">Reviewed</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalReviewed}</p>
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
@@ -253,9 +253,9 @@ const Overview: React.FC = () => {
                     status: r.status,
                     time: r.submitted_at
                   })),
-                  ...recentApproved.map(r => ({
+                  ...recentReviewed.map(r => ({
                     id: `a-${r.id}`,
-                    label: `You approved ${r.user_name || 'Employee'} • ${r.system_name}`,
+                    label: `You reviewed ${r.user_name || 'Employee'} • ${r.system_name}`,
                     status: 'granted',
                     time: (r.line_manager_at as unknown as string) || r.submitted_at
                   }))

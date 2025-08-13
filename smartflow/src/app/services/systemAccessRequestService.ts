@@ -46,8 +46,10 @@ export interface SystemAccessRequest {
   // Optional stage timestamps for analytics
   it_hod_id?: number;
   it_hod_at?: string;
+  it_hod_name?: string;
   it_manager_id?: number;
   it_manager_at?: string;
+  it_manager_name?: string;
   it_support_at?: string;
 }
 

@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
+import systemAccessRequestService from "@/app/services/systemAccessRequestService";
 
 const modules: Array<{
   id: string;
@@ -26,8 +27,7 @@ const modules: Array<{
 }> = [
   { id: '/', name: 'overview', icon: Key, description: 'home dashboard' },
   { id: 'pending-requests', name: 'pending requests', icon: Key, description: 'requires your approval' },
-  { id: 'aprooved-requests', name: 'approved request', icon: Ticket, description: 'requests you approved' },
-  { id: 'rejected', name: 'rejected requests', icon: Ticket, description: 'requests you rejected' },
+  { id: 'aprooved-requests', name: 'reviewed requests', icon: Ticket, description: 'requests you reviewed' },
   {
     id: 'tat-metrics',
     name: 'TAT Metrics',
@@ -51,6 +51,10 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   const router = useRouter();
   const [activeModule, setActiveModule] = useState('overview');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [counts, setCounts] = useState({
+    pending: 0,
+    reviewed: 0
+  });
 
   const basePath = '/administration/it-hod';
 
@@ -61,6 +65,31 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   // dropdown open states
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
+  // Fetch counts for badges
+  const fetchCounts = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Fetch pending requests count
+      const pendingResponse = await systemAccessRequestService.getPending({ approver_id: user.id, approver_role: 'IT HOD' });
+      const pendingCount = pendingResponse.success ? (pendingResponse.requests || []).length : 0;
+      
+      // Fetch reviewed requests count (both approved and rejected)
+      const reviewedResponse = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'IT HOD' });
+      const reviewedRequests = reviewedResponse.success ? (reviewedResponse.requests || []) : [];
+      const reviewedCount = reviewedRequests.filter(request => 
+        request.it_hod_at
+      ).length;
+      
+      setCounts({
+        pending: pendingCount,
+        reviewed: reviewedCount
+      });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  };
+
   // Set active module from URL on mount and ensure dropdowns open when on child routes
   useEffect(() => {
     const path = pathname.split('/').pop()?.split('?')[0];
@@ -70,6 +99,16 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
     if (pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)) {
       setOpenDropdowns(prev => ({ ...prev, ['tat-metrics']: true }));
     }
+  }, [pathname]);
+
+  // Fetch counts when user changes
+  useEffect(() => {
+    fetchCounts();
+  }, [user]);
+
+  // Refresh counts when pathname changes (user navigates)
+  useEffect(() => {
+    fetchCounts();
   }, [pathname]);
 
   const handleModuleClick = (id: string) => {
@@ -94,6 +133,18 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
     setOpenDropdowns(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Get count for specific module
+  const getModuleCount = (moduleId: string) => {
+    switch (moduleId) {
+      case 'pending-requests':
+        return counts.pending;
+      case 'aprooved-requests':
+        return counts.reviewed;
+      default:
+        return 0;
+    }
+  };
+
   const handleLogout = () => {
     logout();
     if (isMobile && onClose) {
@@ -108,7 +159,7 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   const displayEmail = hydrated ? (user?.email || '') : '';
 
   return (
-    <nav className={`${isMobile ? 'w-full' : (isCollapsed ? 'w-20' : 'w-80')} bg-white ${isMobile ? 'rounded-xl shadow-lg border border-gray-200' : 'rounded-2xl shadow-xl border border-slate-200'} p-6 ${isMobile ? '' : 'mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto transition-all duration-300 ease-in-out'}`}>
+    <nav className={`${isMobile ? 'w-full' : (isCollapsed ? 'w-20' : 'w-88')} bg-white ${isMobile ? 'rounded-xl shadow-lg border border-gray-200' : 'rounded-2xl shadow-xl border border-slate-200'} p-6 ${isMobile ? '' : 'mr-6 hidden lg:block sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out'}`}>
       {/* Mobile Header */}
       {isMobile && (
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
@@ -132,20 +183,20 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
 
       {/* Header Section */}
       <div className={`${isMobile ? 'mb-6' : 'mb-8'} pb-6 ${isMobile ? 'border-gray-200' : 'border-slate-200'} border-b`}>
-        <div className={`flex items-center ${isMobile ? '' : 'justify-between'} mb-4`}>
-          <div className="flex items-center">
-            <div className={`${isMobile ? 'w-12 h-12 rounded-xl' : 'w-12 h-12 rounded-2xl'} bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 flex items-center justify-center mr-4 shadow-lg`}>
+        <div className={`flex items-start ${isMobile ? '' : 'justify-between'} mb-4`}>
+          <div className="flex items-start flex-1 min-w-0">
+            <div className={`${isMobile ? 'w-12 h-12 rounded-xl' : 'w-12 h-12 rounded-2xl'} bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 flex items-center justify-center mr-4 shadow-lg flex-shrink-0`}>
               <Settings className="h-6 w-6 text-white" />
             </div>
             {!isCollapsed && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900" suppressHydrationWarning>{departmentName}</h2>
-                <p className="text-xs text-gray-500 font-medium" suppressHydrationWarning>{roleName}</p>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 break-words leading-tight" suppressHydrationWarning>{departmentName}</h2>
+                <p className="text-xs text-gray-500 font-medium break-words leading-tight mt-1" suppressHydrationWarning>{roleName}</p>
               </div>
             )}
           </div>
           {!isMobile && (
-            <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200">
+            <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200 flex-shrink-0">
               <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} />
             </button>
           )}
@@ -175,6 +226,8 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
             const isParentActive = hasChildren
               ? pathname === `${basePath}/tat-metrics` || pathname.startsWith(`${basePath}/tat-metrics/`)
               : pathname === targetPath || (module.id === '/' && pathname === basePath);
+            const count = getModuleCount(module.id);
+            
             return (
               <div key={module.id}>
                 <button
@@ -186,17 +239,41 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
                   }`}
                   title={isCollapsed ? module.name : ''}
                 >
-                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                    isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-                  }`} />
+                  <div className="relative">
+                    <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                      isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+                    }`} />
+                    {/* Badge for collapsed state */}
+                    {isCollapsed && count > 0 && (
+                      <div className={`absolute -top-1 -right-1 h-4 w-4 rounded-full text-xs font-bold flex items-center justify-center ${
+                        isParentActive 
+                          ? 'bg-white text-indigo-600' 
+                          : 'bg-red-500 text-white'
+                      }`}>
+                        {count > 99 ? '99+' : count}
+                      </div>
+                    )}
+                  </div>
                   {!isCollapsed && (
                     <div className="flex-1 text-left min-w-0 flex items-center justify-between">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-semibold truncate">{module.name}</div>
                         {module.description && (
                           <div className={`text-xs truncate ${isParentActive ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
                         )}
                       </div>
+                      {/* Badge for expanded state */}
+                      {count > 0 && (
+                        <div className={`ml-1 flex-shrink-0 px-1.5 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] text-center ${
+                          isParentActive 
+                            ? 'bg-white text-indigo-600' 
+                            : module.id === 'pending-requests'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {count > 99 ? '99+' : count}
+                        </div>
+                      )}
                       {hasChildren && (
                         <ChevronRight className={`h-4 w-4 ml-2 transition-transform duration-200 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
                       )}

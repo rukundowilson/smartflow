@@ -5,7 +5,7 @@ import NavBar from "../../components/navbar";
 import SideBar from "../../components/ITmanagerSideBar";
 import { getAllTickets, ITTicket } from "@/app/services/itTicketService";
 import systemAccessRequestService, { SystemAccessRequest } from "@/app/services/systemAccessRequestService";
-import { Users, Wrench, Key } from "lucide-react";
+import { Users, Wrench, Key, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 function diffHours(a?: string | null, b?: string | null): number | null {
@@ -15,7 +15,13 @@ function diffHours(a?: string | null, b?: string | null): number | null {
 }
 function fmtHours(h: number) { if (!isFinite(h)) return "-"; return h < 24 ? `${h.toFixed(1)}h` : `${(h/24).toFixed(1)}d`; }
 
-type ActorRow = { id: number | null; name: string; tickets: { count: number; avg: number }; requests: { count: number; avg: number } };
+type ActorRow = { 
+  id: number | null; 
+  name: string; 
+  tickets: { count: number; avg: number }; 
+  requests: { count: number; avg: number };
+  approval: { approved: number; total: number; rate: number };
+};
 
 export default function ITManagerUserMetrics() {
   const [tickets, setTickets] = useState<ITTicket[]>([]);
@@ -60,24 +66,43 @@ export default function ITManagerUserMetrics() {
   }, [tickets]);
 
   const sarByActor = useMemo(() => {
-    type Entry = { id: number | null; name: string; durations: number[] };
+    type Entry = { 
+      id: number | null; 
+      name: string; 
+      durations: number[];
+      approved: number;
+      total: number;
+    };
     const map = new Map<string, Entry>();
-    const push = (id: number | null | undefined, name: string | undefined, from?: string | null, to?: string | null) => {
-      if (!name) return; const dur = diffHours(from || undefined, to || null); if (dur === null) return;
+    const push = (id: number | null | undefined, name: string | undefined, from?: string | null, to?: string | null, isApproved?: boolean) => {
+      if (!name) return; 
+      const dur = diffHours(from || undefined, to || null); 
+      if (dur === null) return;
       const key = `${id ?? 'null'}::${name}`;
       const existing = map.get(key);
-      const entry: Entry = existing ? existing : { id: id ?? null, name, durations: [] };
+      const entry: Entry = existing ? existing : { 
+        id: id ?? null, 
+        name, 
+        durations: [],
+        approved: 0,
+        total: 0
+      };
       entry.durations = [...entry.durations, dur];
+      entry.total += 1;
+      if (isApproved) {
+        entry.approved += 1;
+      }
       map.set(key, entry);
     };
     sars.forEach(r => {
+      const isGranted = r.status === 'granted';
       // IT Support finisher (total)
-      push((r as any).it_support_id, r.it_support_name || 'IT Support', r.submitted_at, r.it_support_at || null);
+      push((r as any).it_support_id, r.it_support_name || 'IT Support', r.submitted_at, r.it_support_at || null, isGranted);
       // Approver stages (optional)
-      push(r.line_manager_id, (r as any).line_manager_name, r.submitted_at, r.line_manager_at || null);
-      push(r.hod_id, (r as any).hod_name, r.line_manager_at || undefined, r.hod_at || null);
-      push((r as any).it_hod_id, (r as any).it_hod_name, r.hod_at || undefined, (r as any).it_hod_at || null);
-      push((r as any).it_manager_id, (r as any).it_manager_name, (r as any).it_hod_at || r.hod_at || undefined, (r as any).it_manager_at || null);
+      push(r.line_manager_id, (r as any).line_manager_name, r.submitted_at, r.line_manager_at || null, isGranted);
+      push(r.hod_id, (r as any).hod_name, r.line_manager_at || undefined, r.hod_at || null, isGranted);
+      push((r as any).it_hod_id, (r as any).it_hod_name, r.hod_at || undefined, (r as any).it_hod_at || null, isGranted);
+      push((r as any).it_manager_id, (r as any).it_manager_name, (r as any).it_hod_at || r.hod_at || undefined, (r as any).it_manager_at || null, isGranted);
     });
     return map;
   }, [sars]);
@@ -93,7 +118,10 @@ export default function ITManagerUserMetrics() {
       const name = t?.name ?? r?.name ?? 'Unknown';
       const tArr = t?.durations || [];
       const rArr = r?.durations || [];
-      result.push({ id, name, tickets: { count: tArr.length, avg: avg(tArr) }, requests: { count: rArr.length, avg: avg(rArr) } });
+      const approved = r?.approved || 0;
+      const total = r?.total || 0;
+      const rate = total > 0 ? (approved / total) * 100 : 0;
+      result.push({ id, name, tickets: { count: tArr.length, avg: avg(tArr) }, requests: { count: rArr.length, avg: avg(rArr) }, approval: { approved, total, rate } });
     });
     return result.sort((a,b)=> (b.tickets.count + b.requests.count) - (a.tickets.count + a.requests.count));
   }, [ticketByReviewer, sarByActor]);
@@ -121,24 +149,37 @@ export default function ITManagerUserMetrics() {
                       <th className="px-6 py-3">Name</th>
                       <th className="px-6 py-3"><div className="inline-flex items-center gap-2"><Wrench className="h-4 w-4 text-blue-600"/>Tickets (count / avg)</div></th>
                       <th className="px-6 py-3"><div className="inline-flex items-center gap-2"><Key className="h-4 w-4 text-green-600"/>Access Requests (count / avg)</div></th>
+                      <th className="px-6 py-3"><div className="inline-flex items-center gap-2"><CheckCircle className="h-4 w-4 text-purple-600"/>Approval Rate</div></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {rows.length === 0 ? (
-                      <tr><td className="px-6 py-6 text-slate-500" colSpan={3}>No completed items yet.</td></tr>
+                      <tr><td className="px-6 py-6 text-slate-500" colSpan={4}>No completed items yet.</td></tr>
                     ) : rows.map(r => {
                       const href = r.id != null ? `/administration/office/itmanager/tat-metrics/users/${r.id}?name=${encodeURIComponent(r.name)}` : undefined;
                       return (
                         <tr key={`${r.id ?? 'null'}::${r.name}`} className="hover:bg-slate-50">
                           <td className="px-6 py-3 font-semibold text-slate-900">
-                            {href ? (
-                              <Link href={href} className="text-sky-700 hover:underline">{r.name}</Link>
-                            ) : (
-                              r.name
-                            )}
+                            <div className="flex flex-col">
+                              {href ? (
+                                <Link href={href} className="text-sky-700 hover:underline">{r.name}</Link>
+                              ) : (
+                                <span>{r.name}</span>
+                              )}
+                              {r.id && (
+                                <span className="text-xs text-slate-500 font-normal">#{r.id}</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-3 text-slate-700">{r.tickets.count} • {fmtHours(r.tickets.avg)}</td>
                           <td className="px-6 py-3 text-slate-700">{r.requests.count} • {fmtHours(r.requests.avg)}</td>
+                                                     <td className="px-6 py-3 text-slate-700">
+                             <div className="flex items-center gap-2">
+                               <span className="font-medium">{r.approval.rate.toFixed(0)}%</span>
+                               <span className="text-xs text-slate-500">({r.approval.approved}/{r.approval.total})</span>
+                               <span className={`inline-block h-2 w-2 rounded-full ${r.approval.rate >= 90 ? 'bg-green-500' : r.approval.rate >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`} title={`${r.approval.rate >= 90 ? 'Excellent' : r.approval.rate >= 70 ? 'Good' : 'Needs Improvement'}`}></span>
+                             </div>
+                           </td>
                         </tr>
                       );
                     })}

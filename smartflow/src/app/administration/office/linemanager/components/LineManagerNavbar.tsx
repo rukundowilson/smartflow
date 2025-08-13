@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/app/contexts/auth-context";
 import LineManagerSidebar from "./LineManagerSidebar";
 import NotificationBell from '@/app/components/NotificationBell';
+import systemAccessRequestService from "@/app/services/systemAccessRequestService";
 
 interface HRNavbarProps {
   title?: string;
@@ -40,15 +41,40 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
   const [activeModule, setActiveModule] = useState('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [counts, setCounts] = useState({
+    pending: 0,
+    reviewed: 0
+  });
 
   const modules = [
   { id: 'overview', name: 'Overview', icon: Monitor, description: 'Line Manager Dashboard' },
   { id: 'approvals', name: 'Pending Approvals', icon: Clock, description: 'Review access requests' },
-  { id: 'approved', name: 'Approved Requests', icon: CheckCircle, description: 'View approved requests' },
-  { id: 'rejected', name: 'Rejected Requests', icon: XCircle, description: 'View rejected requests' },
+  { id: 'reviewed', name: 'Reviewed Requests', icon: CheckCircle, description: 'View reviewed requests' },
   { id: 'team', name: 'My Team', icon: Users, description: 'Manage team members' },
   { id: 'reports', name: 'Reports', icon: TrendingUp, description: 'Analytics & insights' },
 ];
+
+  // Fetch counts for badges
+  const fetchCounts = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Fetch pending requests count
+      const pendingResponse = await systemAccessRequestService.getPending({ approver_id: user.id, approver_role: 'Line Manager' });
+      const pendingCount = pendingResponse.success ? (pendingResponse.requests || []).length : 0;
+      
+      // Fetch reviewed requests count
+      const reviewedResponse = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'Line Manager' });
+      const reviewedCount = reviewedResponse.success ? (reviewedResponse.requests || []).length : 0;
+      
+      setCounts({
+        pending: pendingCount,
+        reviewed: reviewedCount
+      });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  };
 
   // Use selectedRole from auth context for role/department display
 
@@ -62,12 +88,34 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
     }
   }, [pathname, modules]);
 
+  // Fetch counts when user changes
+  useEffect(() => {
+    fetchCounts();
+  }, [user]);
+
+  // Refresh counts when pathname changes (user navigates)
+  useEffect(() => {
+    fetchCounts();
+  }, [pathname]);
+
   const handleModuleClick = (id: string) => {
     const newPath = `/administration/office/linemanager${id === 'overview' ? '' : `/${id}`}`;
     if (pathname !== newPath) {
       setActiveModule(id);
       router.push(newPath);
       setIsMobileMenuOpen(false);
+    }
+  };
+
+  // Get count for specific module
+  const getModuleCount = (moduleId: string) => {
+    switch (moduleId) {
+      case 'approvals':
+        return counts.pending;
+      case 'reviewed':
+        return counts.reviewed;
+      default:
+        return 0;
     }
   };
 
@@ -222,20 +270,37 @@ const LineManagerNavBar: React.FC<HRNavbarProps> = ({
           <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
               <div className="py-4 space-y-2">
-                {modules.map((module) => (
-                  <button
-                    key={module.id}
-                    onClick={() => handleModuleClick(module.id)}
-                    className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-md transition-colors ${
-                      activeModule === module.id
-                        ? "bg-sky-100 text-sky-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <module.icon className="h-5 w-5 mr-3" />
-                    {module.name}
-                  </button>
-                ))}
+                {modules.map((module) => {
+                  const count = getModuleCount(module.id);
+                  return (
+                    <button
+                      key={module.id}
+                      onClick={() => handleModuleClick(module.id)}
+                      className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-md transition-colors ${
+                        activeModule === module.id
+                          ? "bg-sky-100 text-sky-700"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <module.icon className="h-5 w-5 mr-3" />
+                        {module.name}
+                      </div>
+                      {/* Badge for mobile menu */}
+                      {count > 0 && (
+                        <div className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          activeModule === module.id 
+                            ? 'bg-sky-200 text-sky-800' 
+                            : module.id === 'approvals'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-green-100 text-green-700'
+                        }`}>
+                          {count > 99 ? '99+' : count}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
                 
                 {/* Mobile User Info and Logout */}
                 <div className="border-t border-gray-200 pt-4 mt-4">

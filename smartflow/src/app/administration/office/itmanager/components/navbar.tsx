@@ -16,10 +16,12 @@ import {
   Building2,
   ChevronDown,
   User,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
 import NotificationBell from '@/app/components/NotificationBell';
 import userRoleService from "@/app/services/userRoleService";
+import systemAccessRequestService from "@/app/services/systemAccessRequestService";
 
 interface HRNavbarProps {
   title?: string;
@@ -33,16 +35,53 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [activeModule, setActiveModule] = useState('overview');
+  const [activeModule, setActiveModule] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userRoleInfo, setUserRoleInfo] = useState<any>(null);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [counts, setCounts] = useState({ pending: 0, assignments: 0 });
 
   const modules = [
-  { id: '', name: 'Approvals', icon: Monitor, description: 'IT Manager approvals' },
-  { id: 'assignments', name: 'Assignments', icon: Users, description: 'IT support assignments' },
-];
+    { id: '', name: 'Overview', icon: Monitor, description: 'IT Manager dashboard' },
+    { id: 'assignments', name: 'Assignments', icon: Users, description: 'IT support assignments' },
+  ];
 
+  const fetchCounts = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const [pendingRes, assignmentsRes] = await Promise.all([
+        systemAccessRequestService.getPending({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        }),
+        systemAccessRequestService.getApprovedBy({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        })
+      ]);
+
+      // Pending: Only requests that need IT Manager action
+      const pendingCount = pendingRes.success ? pendingRes.requests.filter(r => r.status === 'it_manager_pending').length : 0;
+      
+      // Assignments: All requests the IT Manager has acted upon
+      const assignmentsCount = assignmentsRes.success ? assignmentsRes.requests.length : 0;
+
+      setCounts({ pending: pendingCount, assignments: assignmentsCount });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  };
+
+  // Fetch counts when user changes
+  useEffect(() => {
+    fetchCounts();
+  }, [user?.id]);
+
+  // Fetch counts when pathname changes (refresh data)
+  useEffect(() => {
+    fetchCounts();
+  }, [pathname]);
 
   // Get user role information from localStorage (selected role) or fallback to database
   useEffect(() => {
@@ -73,7 +112,7 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
     if (path && modules.some(module => module.id === path)) {
       setActiveModule(path);
     } else if (pathname === '/administration/office/itmanager') {
-      setActiveModule('/');
+      setActiveModule('');
     }
   }, [pathname, modules]);
 
@@ -92,6 +131,24 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
 
   const toggleUserDropdown = () => {
     setIsUserDropdownOpen(!isUserDropdownOpen);
+  };
+
+  const getBadgeCount = (moduleId: string) => {
+    switch (moduleId) {
+      case '':
+        return counts.pending;
+      case 'assignments':
+        return counts.assignments;
+      default:
+        return 0;
+    }
+  };
+
+  const getBadgeColor = (moduleId: string) => {
+    const count = getBadgeCount(moduleId);
+    if (count === 0) return 'hidden';
+    if (count > 99) return 'bg-red-500 text-white';
+    return 'bg-blue-500 text-white';
   };
 
   // Close dropdown when clicking outside
@@ -234,20 +291,32 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
           <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
               <div className="py-4 space-y-2">
-                {modules.map((module) => (
-                  <button
-                    key={module.id}
-                    onClick={() => handleModuleClick(module.id)}
-                    className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-md transition-colors ${
-                      activeModule === module.id
-                        ? "bg-sky-100 text-sky-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <module.icon className="h-5 w-5 mr-3" />
-                    {module.name}
-                  </button>
-                ))}
+                {modules.map((module) => {
+                  const badgeCount = getBadgeCount(module.id);
+                  const badgeColor = getBadgeColor(module.id);
+                  
+                  return (
+                    <button
+                      key={module.id}
+                      onClick={() => handleModuleClick(module.id)}
+                      className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-md transition-colors ${
+                        activeModule === module.id
+                          ? "bg-sky-100 text-sky-700"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <module.icon className="h-5 w-5 mr-3" />
+                        {module.name}
+                      </div>
+                      {badgeCount > 0 && (
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${badgeColor}`}>
+                          {badgeCount > 99 ? '99+' : badgeCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
                 
                 {/* Mobile User Info and Logout */}
                 <div className="border-t border-gray-200 pt-4 mt-4">

@@ -9,6 +9,7 @@ import API from '@/app/utils/axios';
 
 type TabType = 'pending' | 'assigned' | 'all';
 type RequestStatus = 'it_manager_pending' | 'it_support_review' | 'granted' | 'rejected';
+type ViewScope = 'me' | 'department' | 'all';
 
 interface AssignmentModalProps {
   request: SystemAccessRequest | null;
@@ -326,6 +327,7 @@ export default function ITManagerAssignments() {
   const [assigned, setAssigned] = useState<SystemAccessRequest[]>([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [viewScope, setViewScope] = useState<ViewScope>('me');
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<SystemAccessRequest | null>(null);
@@ -337,7 +339,7 @@ export default function ITManagerAssignments() {
       refresh();
       loadITUsers();
     }
-  }, [user?.id]);
+  }, [user?.id, viewScope]); // Add viewScope to dependencies
 
   const loadITUsers = async () => {
     try {
@@ -361,22 +363,50 @@ export default function ITManagerAssignments() {
       setLoading(true);
       setError(null);
       
-      const [pendingResponse, assignedResponse] = await Promise.all([
-        systemAccessRequestService.getPending({ 
-          approver_id: user.id, 
-          approver_role: 'IT Manager' 
-        }),
-        systemAccessRequestService.getApprovedBy({ 
-          approver_id: user.id, 
-          approver_role: 'IT Manager' 
-        }),
-      ]);
+      let pendingResponse, assignedResponse;
       
+      // Always get pending requests for current IT Manager
+      pendingResponse = await systemAccessRequestService.getPending({ 
+        approver_id: user.id, 
+        approver_role: 'IT Manager' 
+      });
+      
+      // Get assigned/acted upon requests based on view scope
+      if (viewScope === 'me') {
+        // Show requests acted upon by the current IT Manager
+        assignedResponse = await systemAccessRequestService.getApprovedBy({ 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
+        });
+      } else if (viewScope === 'department') {
+        // Show requests acted upon by any IT Manager in the department
+        // We'll use getCompleted() and filter for IT Manager actions
+        assignedResponse = await systemAccessRequestService.getCompleted();
+      } else {
+        // Show all completed requests
+        assignedResponse = await systemAccessRequestService.getCompleted();
+      }
+      
+      // Pending requests that need IT Manager action
       const pendingRequests = (pendingResponse?.requests || []).filter(r => r.status === 'it_manager_pending');
-      const assignedRequests = (assignedResponse?.requests || []).filter(r => r.status === 'it_support_review');
+      
+      // All requests that have been acted upon
+      let allActedUponRequests = assignedResponse?.requests || [];
+      
+      // Filter based on view scope
+      if (viewScope === 'me') {
+        // Only show requests acted upon by current IT Manager
+        allActedUponRequests = allActedUponRequests.filter(r => r.it_manager_at);
+      } else if (viewScope === 'department') {
+        // Show requests acted upon by any IT Manager in the same department
+        allActedUponRequests = allActedUponRequests.filter(r => r.it_manager_at);
+        // Note: We'll need to filter by department in the frontend since the API doesn't provide department filtering
+        // This is a limitation - ideally the backend would support department filtering
+      }
+      // For 'all' scope, we show all completed requests
       
       setPending(pendingRequests);
-      setAssigned(assignedRequests);
+      setAssigned(allActedUponRequests);
     } catch (error) {
       console.error('Failed to load assignments:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -473,9 +503,9 @@ export default function ITManagerAssignments() {
   };
 
   const tabConfigs = [
-    { key: 'pending' as const, label: 'Pending', count: pending.length },
-    { key: 'assigned' as const, label: 'Assigned', count: assigned.length },
-    { key: 'all' as const, label: 'All', count: pending.length + assigned.length }
+    { key: 'pending' as const, label: 'Pending Review', count: pending.length },
+    { key: 'assigned' as const, label: viewScope === 'me' ? 'My Assignments' : viewScope === 'department' ? 'Department Assignments' : 'All Assignments', count: assigned.length },
+    { key: 'all' as const, label: 'All Requests', count: pending.length + assigned.length }
   ];
 
   if (error && !loading) {
@@ -503,13 +533,18 @@ export default function ITManagerAssignments() {
     <ITManagerLayout>
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-              Request Management
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words">
+              Request Assignments
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Review and assign system access requests to IT team members
+            <p className="text-sm text-gray-600 mt-1 break-words">
+              {viewScope === 'me' 
+                ? 'Manage and track all system access requests you\'ve assigned or acted upon'
+                : viewScope === 'department'
+                ? 'View all system access requests assigned by IT Managers in your department'
+                : 'View all system access requests across the organization'
+              }
             </p>
           </div>
           <button 
@@ -524,47 +559,89 @@ export default function ITManagerAssignments() {
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg border border-gray-200 mb-6">
-          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Tab Navigation */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              {tabConfigs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === tab.key
-                      ? 'bg-white text-blue-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.label}
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
+          <div className="p-4 space-y-4">
+            {/* View Scope Toggle */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-700">View Scope</h3>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setViewScope('me')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewScope === 'me'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                By Me
+              </button>
+              <button
+                onClick={() => setViewScope('department')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewScope === 'department'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                By Department
+              </button>
+              <button
+                onClick={() => setViewScope('all')}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewScope === 'all'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All
+              </button>
+            </div>
+            
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Tab Navigation */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1 overflow-x-auto">
+                {tabConfigs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                      activeTab === tab.key
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">
+                      {tab.key === 'pending' ? 'Pending' : tab.key === 'assigned' ? 'Assigned' : 'All'}
+                    </span>
+                    <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, email, system, or department..."
-                className="w-full lg:w-80 pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+              {/* Search */}
+              <div className="relative w-full lg:w-auto">
+                <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name, email, system, or department..."
+                  className="w-full lg:w-80 pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Requests List */}
         <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {activeTab === 'pending' && 'Pending Requests'}
-              {activeTab === 'assigned' && 'Assigned Requests'} 
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
+              {activeTab === 'pending' && 'Pending Review'}
+              {activeTab === 'assigned' && (viewScope === 'me' ? 'My Assignments' : viewScope === 'department' ? 'Department Assignments' : 'All Assignments')} 
               {activeTab === 'all' && 'All Requests'}
               <span className="ml-2 text-sm font-normal text-gray-500">
                 ({filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'})
@@ -598,18 +675,18 @@ export default function ITManagerAssignments() {
               </div>
             ) : (
               filteredRequests.map((request) => (
-                <div key={request.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div key={request.id} className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
                       <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="h-4 w-4 text-blue-600" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                           <h4 className="text-sm font-semibold text-gray-900 truncate">
                             {request.user_name || 'Unknown User'}
                           </h4>
-                          <span className="text-gray-300">•</span>
+                          <span className="hidden sm:inline text-gray-300">•</span>
                           <p className="text-sm text-gray-600 truncate">
                             {request.system_name || 'Unknown System'}
                           </p>
@@ -617,29 +694,38 @@ export default function ITManagerAssignments() {
                         <p className="text-xs text-gray-500">
                           Submitted {formatDate(request.submitted_at)}
                         </p>
+                        {(viewScope === 'department' || viewScope === 'all') && request.it_manager_at && (
+                          <div className="flex items-center text-gray-500 mt-1">
+                            <span className="truncate">Reviewed by: {request.it_manager_name || 'IT Manager'}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                                         <div className="flex items-center gap-3 flex-shrink-0">
-                       {getStatusBadge(request.status as RequestStatus)}
-                       {request.status === 'it_support_review' && (
-                         <span className="text-sm text-gray-600">
-                           Assigned to: <span className="font-medium">{request.it_support_name || 'Unassigned'}</span>
-                         </span>
-                       )}
-                       <button
-                         onClick={() => {
-                           setSelected(request);
-                           setModalOpen(true);
-                         }}
-                         className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                           request.status === 'it_manager_pending'
-                             ? 'bg-blue-600 text-white hover:bg-blue-700'
-                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                         }`}
-                       >
-                         {request.status === 'it_manager_pending' ? 'Assign' : 'View'}
-                       </button>
-                     </div>
+                    
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(request.status as RequestStatus)}
+                        {request.status === 'it_support_review' && (
+                          <span className="text-xs sm:text-sm text-gray-600">
+                            <span className="hidden sm:inline">Assigned to: </span>
+                            <span className="font-medium">{request.it_support_name || 'Unassigned'}</span>
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelected(request);
+                          setModalOpen(true);
+                        }}
+                        className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          request.status === 'it_manager_pending'
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {request.status === 'it_manager_pending' ? 'Assign' : 'View'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

@@ -19,7 +19,7 @@ import { getSystemAccessRequestComments, Comment as AppComment } from '@/app/ser
 
 // Simple inline modal replacement is omitted for brevity; we keep page focus on listing
 
-export default function LineManagerApprovedPage() {
+export default function LineManagerReviewedPage() {
   const [requests, setRequests] = useState<SARequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function LineManagerApprovedPage() {
   const [viewScope, setViewScope] = useState<'me' | 'department'>('me');
   const { user } = useAuth();
 
-  const loadApproved = async () => {
+  const loadReviewed = async () => {
     try {
       setIsLoading(true);
       const response = viewScope === 'me'
@@ -42,7 +42,7 @@ export default function LineManagerApprovedPage() {
         setRequests(response.requests);
       }
     } catch (error) {
-      console.error('Error loading approval history:', error);
+      console.error('Error loading review history:', error);
     } finally {
       setIsLoading(false);
     }
@@ -50,11 +50,11 @@ export default function LineManagerApprovedPage() {
 
   useEffect(() => {
     if (user?.id) {
-      loadApproved();
+      loadReviewed();
     }
   }, [user, viewScope]);
 
-  // Filter requests - show all requests you approved
+  // Filter requests - show all requests you reviewed
   useEffect(() => {
     let filtered = requests;
 
@@ -96,22 +96,22 @@ export default function LineManagerApprovedPage() {
     }
   };
 
-  const approvedCount = requests.length;
+  const reviewedCount = requests.length;
 
   return (
     <LineManagerLayout>
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Requests You Approved</h1>
-          <p className="text-gray-600">Track system access requests you approved as Line Manager</p>
+          <h1 className="text-2xl font-bold text-gray-900">Requests You Reviewed</h1>
+          <p className="text-gray-600">Track system access requests you reviewed as Line Manager</p>
         </div>
 
         {/* Scope Toggle */}
         <div className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-700">View:</div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setViewScope('me')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='me' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Approved by me</button>
+            <button onClick={() => setViewScope('me')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='me' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Reviewed by me</button>
             <button onClick={() => setViewScope('department')} className={`px-3 py-1 text-sm rounded-full border ${viewScope==='department' ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-white text-gray-700 border-gray-200'}`}>Department</button>
           </div>
         </div>
@@ -123,8 +123,8 @@ export default function LineManagerApprovedPage() {
               <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-500">{viewScope==='me' ? 'Requests You Approved' : 'Department Approved Requests'}</p>
-              <p className="text-xl font-semibold text-gray-900">{approvedCount}</p>
+              <p className="text-sm text-gray-500">{viewScope==='me' ? 'Requests You Reviewed' : 'Department Reviewed Requests'}</p>
+              <p className="text-xl font-semibold text-gray-900">{reviewedCount}</p>
             </div>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function LineManagerApprovedPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search approved requests..."
+              placeholder="Search reviewed requests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
@@ -143,7 +143,7 @@ export default function LineManagerApprovedPage() {
           </div>
         </div>
 
-        {/* Approved Table */}
+        {/* Reviewed Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
@@ -151,8 +151,8 @@ export default function LineManagerApprovedPage() {
         ) : filteredRequests.length === 0 ? (
           <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
             <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests approved</h3>
-            <p className="text-gray-500">You haven't approved any system access requests yet.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests reviewed</h3>
+            <p className="text-gray-500">You haven't reviewed any system access requests yet.</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -170,7 +170,7 @@ export default function LineManagerApprovedPage() {
                       Status
                      </th>
                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Approved On
+                      Reviewed On
                      </th>
                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                        Actions
@@ -230,14 +230,14 @@ export default function LineManagerApprovedPage() {
         <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Approved Request Details</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Reviewed Request Details</h2>
               <button onClick={() => { setIsModalOpen(false); setSelectedRequest(null); }} className="text-gray-400 hover:text-gray-600">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
             <div className="p-6 space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-700">You approved this system access request as Line Manager.</p>
+                <p className="text-sm text-blue-700">You reviewed this system access request as Line Manager.</p>
               </div>
 
               {/* Primary Info Sections */}
@@ -282,7 +282,7 @@ export default function LineManagerApprovedPage() {
                       <p className="font-medium text-gray-900">{selectedRequest.system_name}</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Approved On</label>
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Reviewed On</label>
                       <p className="text-gray-900">{selectedRequest.line_manager_at ? new Date(selectedRequest.line_manager_at as unknown as string).toLocaleString() : 'N/A'}</p>
                     </div>
                     <div className="sm:col-span-2">
@@ -310,15 +310,15 @@ export default function LineManagerApprovedPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Approval</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Review Decision</h3>
                   <div className="text-sm text-gray-900">
                     <p>
-                      <span className="font-medium">Approved by:</span> {selectedRequest.line_manager_name || (comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number))?.commented_by_name) || 'Line Manager'}
+                      <span className="font-medium">Reviewed by:</span> {selectedRequest.line_manager_name || (comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number))?.commented_by_name) || 'Line Manager'}
                     </p>
                     {(() => {
-                      const approvalComment = comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number));
-                      return approvalComment ? (
-                        <p className="mt-1"><span className="font-medium">Reason:</span> {approvalComment.content}</p>
+                      const reviewComment = comments.find(c => c.commented_by === (selectedRequest.line_manager_id as number));
+                      return reviewComment ? (
+                        <p className="mt-1"><span className="font-medium">Reason:</span> {reviewComment.content}</p>
                       ) : null;
                     })()}
                   </div>

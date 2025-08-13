@@ -283,7 +283,7 @@ function DetailsModal({ request, isOpen, onClose }: DetailsModalProps) {
   );
 }
 
-export default function ITHODApprovedRequests() {
+export default function ITHODReviewedRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<SARequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<SARequest[]>([]);
@@ -291,20 +291,39 @@ export default function ITHODApprovedRequests() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<SARequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewScope, setViewScope] = useState<'me' | 'department'>('me');
+
+  const loadReviewed = async () => {
+    if (!user?.id) { setIsLoading(false); return; }
+    try {
+      setIsLoading(true);
+      let res;
+      if (viewScope === 'me') {
+        // Show requests reviewed by the current IT HOD
+        res = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'IT HOD' });
+      } else {
+        // For "All IT HOD Reviewed" view, get all completed requests and filter for IT HOD reviewed ones
+        res = await systemAccessRequestService.getCompleted();
+      }
+      if (res.success) {
+        let filtered;
+        if (viewScope === 'me') {
+          // Filter to only show requests that have been acted upon by current IT HOD
+          filtered = res.requests.filter(request => request.it_hod_at);
+        } else {
+          // Filter to show all requests that have been reviewed by any IT HOD
+          filtered = res.requests.filter(request => request.it_hod_at);
+        }
+        setRequests(filtered);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      if (!user?.id) { setIsLoading(false); return; }
-      try {
-        setIsLoading(true);
-        const res = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'IT HOD' });
-        if (res.success) setRequests(res.requests);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [user?.id]);
+    loadReviewed();
+  }, [user?.id, viewScope]);
 
   useEffect(() => {
     const s = searchTerm.toLowerCase();
@@ -329,8 +348,42 @@ export default function ITHODApprovedRequests() {
           <div className="space-y-6 flex-1">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Approved Requests</h1>
-                <p className="text-sm text-gray-600 mt-1">System access requests you approved as IT HOD</p>
+                <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Reviewed Requests</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {viewScope === 'me' 
+                    ? 'System access requests you reviewed as IT HOD'
+                    : 'All system access requests reviewed by IT HODs'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Scope Toggle */}
+            <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-gray-700">View Scope</h3>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setViewScope('me')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    viewScope === 'me'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Reviewed by me
+                </button>
+                <button
+                  onClick={() => setViewScope('department')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    viewScope === 'department'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All IT HOD Reviewed
+                </button>
               </div>
             </div>
 
@@ -339,7 +392,7 @@ export default function ITHODApprovedRequests() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search approved by name, email, or system..."
+                  placeholder="Search reviewed requests by name, email, or system..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
@@ -354,8 +407,8 @@ export default function ITHODApprovedRequests() {
             ) : filteredRequests.length === 0 ? (
               <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
                 <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No approved requests yet</h3>
-                <p className="text-gray-500">When you approve system access requests, they will show up here.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No reviewed requests yet</h3>
+                <p className="text-gray-500">When you review system access requests, they will show up here.</p>
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -364,38 +417,53 @@ export default function ITHODApprovedRequests() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed On</th>
+                        {viewScope === 'department' && (
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed By</th>
+                        )}
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredRequests.map((request, index) => (
                         <tr key={`${request.id}-${index}`} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
                                 <User className="h-4 w-4 text-gray-500" />
                               </div>
-                              <div className="ml-3">
-                                <div className="text-sm font-medium text-gray-900">{request.user_name || 'Employee'}</div>
+                              <div className="ml-3 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">{request.user_name || 'Employee'}</div>
                                 {request.user_email && (
                                   <div className="flex items-center text-xs text-gray-500">
-                                    <Mail className="h-3 w-3 mr-1" />{request.user_email}
+                                    <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                                    <span className="truncate">{request.user_email}</span>
                                   </div>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{request.system_name}</td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">Approved</span>
+                          <td className="px-4 py-4 text-sm text-gray-900 truncate">{request.system_name}</td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                              request.status === 'granted' 
+                                ? 'bg-green-100 text-green-800 border-green-200' 
+                                : 'bg-red-100 text-red-800 border-red-200'
+                            }`}>
+                              {request.status === 'granted' ? 'Approved' : 'Rejected'}
+                            </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">{formatDateShort(request.submitted_at)}</td>
-                          <td className="px-6 py-4 text-right">
-                            <button onClick={() => { setSelectedRequest(request); setIsModalOpen(true); }} className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors">
+                          <td className="px-4 py-4 text-sm text-gray-500">{formatDateShort(request.it_hod_at || '')}</td>
+                          {viewScope === 'department' && (
+                            <td className="px-4 py-4 text-sm text-gray-500 truncate">
+                              {request.it_hod_name || 'IT HOD'}
+                            </td>
+                          )}
+                          <td className="px-4 py-4 text-right">
+                            <button onClick={() => { setSelectedRequest(request); setIsModalOpen(true); }} className="p-1 text-sky-600 hover:text-sky-900 hover:bg-sky-50 rounded transition-colors flex-shrink-0">
                               <Eye className="h-4 w-4" />
                             </button>
                           </td>
@@ -418,11 +486,22 @@ export default function ITHODApprovedRequests() {
                             {request.user_email && <p className="text-xs text-gray-500 truncate">{request.user_email}</p>}
                           </div>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">Approved</span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
+                          request.status === 'granted' 
+                            ? 'bg-green-100 text-green-800 border-green-200' 
+                            : 'bg-red-100 text-red-800 border-red-200'
+                        }`}>
+                          {request.status === 'granted' ? 'Approved' : 'Rejected'}
+                        </span>
                       </div>
                       <div className="text-sm text-gray-700">
-                        <div className="flex items-center"><Building2 className="h-4 w-4 text-gray-400 mr-2" />{request.system_name}</div>
-                        <div className="flex items-center text-gray-500 mt-1"><Calendar className="h-4 w-4 mr-1" />{formatDateShort(request.submitted_at)}</div>
+                        <div className="flex items-center"><Building2 className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" /><span className="truncate">{request.system_name}</span></div>
+                        <div className="flex items-center text-gray-500 mt-1"><Calendar className="h-4 w-4 mr-1 flex-shrink-0" />{formatDateShort(request.it_hod_at || '')}</div>
+                        {viewScope === 'department' && (
+                          <div className="flex items-center text-gray-500 mt-1">
+                            <span className="truncate">Reviewed by: {request.it_hod_name || 'IT HOD'}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-3 flex justify-end">
                         <button onClick={() => { setSelectedRequest(request); setIsModalOpen(true); }} className="px-3 py-1.5 bg-sky-600 text-white text-xs rounded-lg hover:bg-sky-700">View</button>
