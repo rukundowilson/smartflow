@@ -48,7 +48,6 @@ export default function ITTicketManager(){
   const [itUsers, setItUsers] = useState<ITUser[]>([]);
   const [updatingTicket, setUpdatingTicket] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [commentTexts, setCommentTexts] = useState<{ [key: number]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -201,13 +200,6 @@ export default function ITTicketManager(){
   };
 
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    console.log('Comment change:', e.target.value);
-    if (selectedTicket) {
-      setCommentTexts(prev => ({
-        ...prev,
-        [selectedTicket.id]: e.target.value
-      }));
-    }
     setCommentText(e.target.value);
   };
 
@@ -224,13 +216,6 @@ export default function ITTicketManager(){
         });
         
         setCommentText('');
-        // Clear the ticket-specific comment text
-        if (selectedTicket) {
-          setCommentTexts(prev => ({
-            ...prev,
-            [selectedTicket.id]: ''
-          }));
-        }
         await fetchTickets();
         
         // Refresh comments if modal is still open
@@ -253,10 +238,8 @@ export default function ITTicketManager(){
         const target = event.target as HTMLElement;
         const modal = target.closest('.modal-content, .ticket-modal');
         const dropdown = target.closest('.custom-select, .select-dropdown');
-        const formElement = target.closest('input, textarea, select, button, label');
         
-        // Don't close if clicking on modal content, dropdowns, or form elements
-        if (!modal && !dropdown && !formElement) {
+        if (!modal && !dropdown) {
           closeModal();
         }
       }
@@ -331,38 +314,18 @@ export default function ITTicketManager(){
   );
 
   const openModal = (type: string, ticket: ITTicket | null = null, buttonRef?: React.RefObject<HTMLElement>) => {
-    console.log('Opening modal:', type, 'for ticket:', ticket?.id);
     setModalType(type);
     setSelectedTicket(ticket);
     setTriggerButtonRef(buttonRef || null);
     setIsModalOpen(true);
-    
-    // Set the comment text for this specific ticket
-    if (ticket && type === 'comment') {
-      const ticketCommentText = commentTexts[ticket.id] || '';
-      setCommentText(ticketCommentText);
-    }
   };
 
   const closeModal = () => {
-    console.log('Closing modal, clearing comment text');
-    
-    // Save the current comment text for this ticket
-    if (selectedTicket && modalType === 'comment') {
-      setCommentTexts(prev => ({
-        ...prev,
-        [selectedTicket.id]: commentText
-      }));
-    }
-    
     setIsModalOpen(false);
     setModalType('');
     setSelectedTicket(null);
     setCommentText('');
     setComments([]);
-    setSelectedAssignee('');
-    setShowAssigneeDropdown(false);
-    setAssigneeSearchTerm('');
   };
 
   interface ActionButtonProps {
@@ -404,15 +367,7 @@ export default function ITTicketManager(){
     if (!isModalOpen || selectedTicket?.id !== ticket.id) return null;
 
     const modalContent = (
-      <div 
-        className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={(e) => {
-          // Only close if clicking on the backdrop, not the modal content
-          if (e.target === e.currentTarget) {
-            closeModal();
-          }
-        }}
-      >
+      <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden modal-content">
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">
@@ -555,63 +510,7 @@ export default function ITTicketManager(){
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-1">Ticket #{ticket.id}</h4>
-                  <p className="text-sm text-gray-600 mb-3">{ticket.issue_type}</p>
-                  
-                  {/* Problem Details */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <span className="text-xs font-medium text-gray-500">Priority</span>
-                        <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getPriorityColorForDropdown(ticket.priority)}`}>
-                          {ticket.priority}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-4 w-4 rounded-full bg-gray-300"></div>
-                      <div>
-                        <span className="text-xs font-medium text-gray-500">Status</span>
-                        <div className={`inline-block px-2 py-1 text-xs rounded-full border mt-1 ${getStatusColorForDropdown(ticket.status)}`}>
-                          {ticket.status.replace('_', ' ')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Description */}
-                  <div className="mt-3">
-                    <span className="text-xs font-medium text-gray-500">Description</span>
-                    <p className="text-sm text-gray-700 mt-1 bg-white p-2 rounded border">{ticket.description}</p>
-                  </div>
-                  
-                  {/* Ticket Details */}
-                  <div className="mt-3 space-y-1 text-xs">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-3 w-3 text-gray-400" />
-                      <span className="font-medium text-gray-700">Created by:</span>
-                      <span className="text-gray-900">{ticket.created_by_name || 'Unknown'}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-3 w-3 text-gray-400" />
-                      <span className="font-medium text-gray-700">Created:</span>
-                      <span className="text-gray-900">
-                        {new Date(ticket.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                    {ticket.assigned_to_name && (
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-3 w-3 text-gray-400" />
-                        <span className="font-medium text-gray-700">Assigned to:</span>
-                        <span className="text-gray-900">{ticket.assigned_to_name}</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-sm text-gray-600">{ticket.issue_type}</p>
                 </div>
 
                 <div>
@@ -723,15 +622,15 @@ export default function ITTicketManager(){
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="space-y-4">
               {/* Search */}
-              <div className="relative">
+                <div className="relative">
                 <Search className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search tickets by ID, issue type, priority, status, or creator..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  <input
+                    type="text"
+                    placeholder="Search tickets by ID, issue type, priority, status, or creator..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200"
-                />
+                  />
               </div>
               
               {/* Filters */}
@@ -783,14 +682,14 @@ export default function ITTicketManager(){
               <div className="space-y-4">
                 {currentTickets.map((ticket) => (
                   <div key={ticket.id} className="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
                           <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
                             <span className="text-sm font-medium text-sky-600">#{ticket.id}</span>
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900">{ticket.issue_type}</h3>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{ticket.issue_type}</h3>
                             <p className="text-sm text-gray-500">by {ticket.created_by_name}</p>
                           </div>
                         </div>
@@ -799,46 +698,46 @@ export default function ITTicketManager(){
                         </p>
                       </div>
                       
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => openModal('view', ticket)}
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => openModal('view', ticket)}
                           className="text-sky-600 hover:text-sky-700 p-2 rounded-md hover:bg-sky-50 transition-colors duration-200" 
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => openModal('comment', ticket)}
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => openModal('comment', ticket)}
                           className="text-gray-600 hover:text-gray-700 p-2 rounded-md hover:bg-gray-50 transition-colors duration-200" 
-                          title="Add Comment"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+                      title="Add Comment"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
                     
-                    <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-2 mb-3">
                       <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority}
-                      </span>
+                    {ticket.priority}
+                  </span>
                       <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(ticket.status)}`}>
-                        {ticket.status.replace('_', ' ')}
-                      </span>
-                    </div>
+                    {ticket.status.replace('_', ' ')}
+                  </span>
+                </div>
                     
                     <div className="text-sm text-gray-600 space-y-1">
                       <p><span className="font-medium">Assigned to:</span> {ticket.assigned_to_name || 'Unassigned'}</p>
-                      {ticket.reviewed_by_name && ticket.reviewed_at && (
+                  {ticket.reviewed_by_name && ticket.reviewed_at && (
                         <p><span className="font-medium">Reviewed by:</span> {ticket.reviewed_by_name} on {new Date(ticket.reviewed_at).toLocaleDateString()}</p>
-                      )}
-                    </div>
-                    
-                    {/* Quick Actions */}
+                  )}
+                </div>
+                
+                {/* Quick Actions */}
                     <div className="mt-4 pt-3 border-t border-gray-100">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700">Status:</span>
                         <CustomSelect
-                          value={ticket.status}
+                    value={ticket.status}
                           onChange={(value) => handleUpdateStatus(ticket.id, value as any)}
                           options={[
                             { value: 'open', label: 'Open' },
@@ -846,7 +745,7 @@ export default function ITTicketManager(){
                             { value: 'resolved', label: 'Resolved' },
                             { value: 'closed', label: 'Closed' }
                           ]}
-                          disabled={updatingTicket === ticket.id}
+                    disabled={updatingTicket === ticket.id}
                           size="sm"
                           className="w-36"
                         />
@@ -876,10 +775,10 @@ export default function ITTicketManager(){
           {/* Desktop Table View */}
           <div className="hidden lg:block bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             {currentTickets.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ticket
                       </th>
@@ -892,15 +791,15 @@ export default function ITTicketManager(){
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                     {currentTickets.map((ticket) => (
                       <tr key={ticket.id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-4 py-4">
                           <div className="flex items-start">
-                            <div className="flex-shrink-0">
-                              <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center">
+                          <div className="flex-shrink-0">
+                            <div className="h-8 w-8 rounded-full bg-sky-100 flex items-center justify-center">
                                 <span className="text-sm font-semibold text-sky-600">#{ticket.id}</span>
                               </div>
                             </div>
@@ -919,12 +818,12 @@ export default function ITTicketManager(){
                                   {new Date(ticket.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                            </div>
                           </div>
-                        </td>
+                        </div>
+                      </td>
                         <td className="px-4 py-4 text-center">
                           <CustomSelect
-                            value={ticket.status}
+                          value={ticket.status}
                             onChange={(value) => handleUpdateStatus(ticket.id, value as any)}
                             options={[
                               { value: 'open', label: 'Open' },
@@ -932,15 +831,15 @@ export default function ITTicketManager(){
                               { value: 'resolved', label: 'Resolved' },
                               { value: 'closed', label: 'Closed' }
                             ]}
-                            disabled={updatingTicket === ticket.id}
+                          disabled={updatingTicket === ticket.id}
                             size="sm"
                             className="w-32"
                           />
-                        </td>
+                      </td>
                         <td className="px-4 py-4">
                           <div className="text-sm">
                             <div className="font-medium text-gray-900">
-                              {ticket.assigned_to_name || 'Unassigned'}
+                        {ticket.assigned_to_name || 'Unassigned'}
                             </div>
                             {ticket.reviewed_by_name && (
                               <div className="text-xs text-gray-500">
@@ -948,36 +847,36 @@ export default function ITTicketManager(){
                               </div>
                             )}
                           </div>
-                        </td>
+                      </td>
                         <td className="px-4 py-4 text-center">
                           <div className="flex items-center justify-center space-x-2">
-                            <button 
+                        <button 
                               onClick={(e) => {
                                 const buttonRef = { current: e.currentTarget };
                                 openModal('view', ticket, buttonRef);
                               }}
                               className="text-sky-600 hover:text-sky-700 p-2 rounded-md hover:bg-sky-50 transition-colors duration-200" 
-                              title="View Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button 
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button 
                               onClick={(e) => {
                                 const buttonRef = { current: e.currentTarget };
                                 openModal('comment', ticket, buttonRef);
                               }}
                               className="text-gray-600 hover:text-gray-700 p-2 rounded-md hover:bg-gray-50 transition-colors duration-200" 
-                              title="Add Comment"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </button>
+                          title="Add Comment"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             ) : (
               <div className="p-8 text-center">
                 <div className="text-gray-400 mb-4">
@@ -1060,16 +959,16 @@ export default function ITTicketManager(){
 
       {/* Desktop Modal */}
       <div className="hidden lg:block">
-        <Modal
-          isModalOpen={isModalOpen}
-          user={user}
-          closeModal={closeModal}
-          modalType={modalType}
-          selectedTicket={selectedTicket}
-          onTicketCreated={fetchTickets}
+      <Modal
+        isModalOpen={isModalOpen}
+        user={user}
+        closeModal={closeModal}
+        modalType={modalType}
+        selectedTicket={selectedTicket}
+        onTicketCreated={fetchTickets}
           triggerButtonRef={triggerButtonRef}
-        />
+      />
       </div>
     </main>
   );
-}
+} 
