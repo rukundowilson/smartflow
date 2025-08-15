@@ -81,6 +81,15 @@ export default function RoleSelectionPage() {
     }
     
     if (roleName === 'HOD') {
+      // Check if HOD is in IT Department
+      if (departmentName === 'it department' || departmentName === 'it' || departmentName === 'information technology') {
+        console.log('🔍 IT Department HOD, redirecting to IT HOD dashboard');
+        router.push('/administration/it-hod');
+        return;
+      }
+      
+      // For other departments, use the general HOD route
+      console.log('🔍 General HOD, redirecting to HOD approvals');
       router.push('/administration/office/hod');
       return;
     }

@@ -193,7 +193,7 @@ export default function RegistrationPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ backgroundColor: '#F0F4F7' }}>
-      <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl">
         {/* Back to Login Button */}
         <div className="px-8 pt-8 pb-2 flex justify-start">
           <Link href="/" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
@@ -210,7 +210,7 @@ export default function RegistrationPage() {
           <p className="text-gray-600">Register to access ticketing, asset requests, and more</p>
         </div>
         {/* Form */}
-        <div className="px-8 pb-8 space-y-6">
+        <div className="px-8 pb-12 space-y-6">
           {/* Backend Error Display */}
           {backendError && (
             <div className="mb-6 p-4 rounded-lg border-l-4 shadow-sm" 
@@ -359,7 +359,7 @@ export default function RegistrationPage() {
           </div>
 
           {/* Department Selection */}
-          <div>
+          <div className="relative">
             <label htmlFor="department_id" className="block text-sm font-medium text-gray-700 mb-2">
               Department
             </label>

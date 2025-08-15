@@ -14,8 +14,7 @@ export function redirectByDepartment(department: string, router: any) {
     "it",
     "it deparment", // Handle typo
     "information technology",
-    "superadmin",
-    "it hod"
+    "superadmin"
   ];
 
   // Check if the department is one of the special ones (case-insensitive)
@@ -32,8 +31,7 @@ export function redirectByDepartment(department: string, router: any) {
       "it": "/departments/it-department/overview",
       "it deparment": "/departments/it-department/overview", // Handle typo
       "information technology": "/departments/it-department/overview",
-      "superadmin": "/administration/superadmin/overview",
-      "it hod": "/administration/it-hod"
+      "superadmin": "/administration/superadmin/overview"
     };
     
     const route = routes[departmentLower] || "/departments/others/overview";
@@ -80,7 +78,7 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
     window.location.href = path;
   };
 
-  // Check for specific roles first
+  // Check for specific roles first (these take priority over department)
   if (rolesLower.includes('line manager')) {
     console.log('🔍 User is Line Manager, redirecting to Line Manager approvals');
     go("/administration/office/linemanager/approvals");
@@ -88,7 +86,18 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
   }
   
   if (rolesLower.includes('hod')) {
-    console.log('🔍 User is HOD, redirecting to HOD approvals');
+    console.log('🔍 User is HOD, checking department for specific routing');
+    
+    // Check if HOD is in IT Department
+    const departmentLower = department?.toLowerCase();
+    if (departmentLower === 'it department' || departmentLower === 'it' || departmentLower === 'information technology') {
+      console.log('🔍 IT Department HOD, redirecting to IT HOD dashboard');
+      go("/administration/it-hod");
+      return;
+    }
+    
+    // For other departments, use the general HOD route
+    console.log('🔍 General HOD, redirecting to HOD approvals');
     go("/administration/office/hod/approvals");
     return;
   }
@@ -96,11 +105,6 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
   if (rolesLower.includes('it manager')) {
     console.log('🔍 User is IT Manager, redirecting to IT Manager dashboard');
     go("/administration/office/itmanager");
-    return;
-  }
-  if (rolesLower.includes('it hod') || rolesLower.includes('ithod')) {
-    console.log('🔍 User is IT HOD, redirecting to IT HOD dashboard');
-    go("/administration/it-hod");
     return;
   }
   
@@ -112,8 +116,7 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
     "it",
     "it deparment", // Handle typo
     "information technology",
-    "superadmin",
-    "it hod"
+    "superadmin"
   ];
 
   // Check if the department is one of the special ones (case-insensitive)
@@ -130,8 +133,7 @@ export function redirectByDepartmentAndRoles(department: string, roleNames: stri
       "it": "/departments/it-department/overview",
       "it deparment": "/departments/it-department/overview", // Handle typo
       "information technology": "/departments/it-department/overview",
-      "superadmin": "/administration/superadmin/overview",
-      "it hod": "/administration/it-hod"
+      "superadmin": "/administration/superadmin/overview"
     };
     
     const route = routes[departmentLower] || "/departments/others/overview";

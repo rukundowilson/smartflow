@@ -2,6 +2,7 @@
 import React from 'react';
 import NavBar from '../components/navbar';
 import AccessRequestsPortal from '@/app/components/myAccessRequests';
+import RoleGuard from '@/app/components/RoleGuard';
 
 const AccessRequestDashboard = () => {
   return (
@@ -20,4 +21,14 @@ const AccessRequestDashboard = () => {
   );
 };
 
-export default AccessRequestDashboard;
+export default function AccessRequestPage() {
+  return (
+    <RoleGuard
+      allowedDepartments={['Finance Department', 'Marketing Department']}
+      requireAuth={true}
+      redirectTo="/"
+    >
+      <AccessRequestDashboard />
+    </RoleGuard>
+  );
+}

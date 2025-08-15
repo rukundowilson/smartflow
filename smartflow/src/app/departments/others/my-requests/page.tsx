@@ -6,6 +6,7 @@ import SideBar from "../components/sidebar";
 import Requisition from '@/app/components/allMyRe';
 import SystemAccessRequests from '@/app/components/SystemAccessRequests';
 import { Key, Package, Menu } from 'lucide-react';
+import RoleGuard from '@/app/components/RoleGuard';
 
 function MyRequestsContent() {
     const [activeTab, setActiveTab] = useState<'access' | 'other'>('access');
@@ -103,15 +104,21 @@ function MyRequestsContent() {
 
 export default function MyRequests() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen bg-[#F0F8F8] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
+        <RoleGuard
+            allowedDepartments={['Finance Department', 'Marketing Department']}
+            requireAuth={true}
+            redirectTo="/"
+        >
+            <Suspense fallback={
+                <div className="min-h-screen bg-[#F0F8F8] flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading...</p>
+                    </div>
                 </div>
-            </div>
-        }>
-            <MyRequestsContent />
-        </Suspense>
+            }>
+                <MyRequestsContent />
+            </Suspense>
+        </RoleGuard>
     );
 }
