@@ -7,6 +7,13 @@ export interface RoleConfig {
   redirectTo?: string;
 }
 
+// Special departments that have their own dedicated dashboards
+export const SPECIAL_DEPARTMENTS = [
+  'IT Department',
+  'Human Resources', 
+  'Superadmin'
+];
+
 // Department-specific role configurations
 export const DEPARTMENT_ROLES = {
   // IT Department - has special access
@@ -31,53 +38,33 @@ export const DEPARTMENT_ROLES = {
     allowedDepartments: ['Superadmin'],
     requireAuth: true,
     redirectTo: '/'
-  },
-  
-  // Standard departments (Finance, Marketing, etc.)
-  'Finance': {
-    allowedRoles: ['Line Manager', 'HOD', 'User'],
-    allowedDepartments: ['Finance'],
-    requireAuth: true,
-    redirectTo: '/'
-  },
-  
-  'Marketing': {
-    allowedRoles: ['Line Manager', 'HOD', 'User'],
-    allowedDepartments: ['Marketing'],
-    requireAuth: true,
-    redirectTo: '/'
   }
 };
 
 // Page-specific role configurations
 export const PAGE_ROLES = {
-  // Departments/Others pages - accessible by standard department users
+  // Departments/Others pages - accessible by standard department users (any department not in SPECIAL_DEPARTMENTS)
   '/departments/others': {
-    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/overview': {
-    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/my-requests': {
-    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/my-tickets': {
-    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/access-request': {
-    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
@@ -148,6 +135,11 @@ export function hasDepartmentAccess(userDepartment: string, allowedDepartments: 
 // Function to check if user has access to a specific role
 export function hasRoleAccess(userRole: string, allowedRoles: string[]): boolean {
   return allowedRoles.includes(userRole);
+}
+
+// Function to check if a department is a special department
+export function isSpecialDepartment(department: string): boolean {
+  return SPECIAL_DEPARTMENTS.includes(department);
 }
 
 // Function to get user's primary department from auth context

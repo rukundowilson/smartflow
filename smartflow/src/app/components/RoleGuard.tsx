@@ -119,14 +119,32 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
         return true;
       });
 
+      // Special logic for departments/others pages - allow any department that's not special
+      let finalAccess = hasMatchingRole;
+      
+      // If this is a departments/others page and no specific departments are required,
+      // allow access to any department that's not in the special departments list
+      if (window.location.pathname.startsWith('/departments/others') && allowedDepartments.length === 0) {
+        const specialDepartments = ['IT Department', 'Human Resources', 'Superadmin'];
+        const userDepartment = userRoles[0]?.department || '';
+        
+        if (!specialDepartments.includes(userDepartment)) {
+          console.log(`✅ Access granted to departments/others for standard department: ${userDepartment}`);
+          finalAccess = true;
+        } else {
+          console.log(`❌ Access denied to departments/others for special department: ${userDepartment}`);
+          finalAccess = false;
+        }
+      }
+
       // If no specific restrictions, allow access
       if (allowedRoles.length === 0 && allowedDepartments.length === 0 && allowedRoleTypes.length === 0) {
         setHasAccess(true);
       } else {
-        setHasAccess(hasMatchingRole);
+        setHasAccess(finalAccess);
       }
 
-      console.log(`🔍 Final access decision: ${hasMatchingRole ? 'GRANTED' : 'DENIED'}`);
+      console.log(`🔍 Final access decision: ${finalAccess ? 'GRANTED' : 'DENIED'}`);
 
       setIsLoading(false);
     };

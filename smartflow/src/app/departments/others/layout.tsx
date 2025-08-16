@@ -10,7 +10,6 @@ export default function OthersLayout({
 }) {
   return (
     <RoleGuard
-      allowedDepartments={['Finance', 'Marketing']}
       requireAuth={true}
       redirectTo="/"
     >
