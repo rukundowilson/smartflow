@@ -107,7 +107,9 @@ export default function RoleSelectionPage() {
       "it",
       "it deparment", // Handle typo
       "information technology",
-      "superadmin"
+      "superadmin",
+      "finance",
+      "marketing"
     ];
 
     if (specialDepartments.includes(departmentName)) {
@@ -119,7 +121,9 @@ export default function RoleSelectionPage() {
         "it": "/departments/it-department/overview",
         "it deparment": "/departments/it-department/overview", // Handle typo
         "information technology": "/departments/it-department/overview",
-        "superadmin": "/administration/superadmin/overview"
+        "superadmin": "/administration/superadmin/overview",
+        "finance": "/departments/others/overview",
+        "marketing": "/departments/others/overview"
       };
       
       const route = routes[departmentName] || "/departments/others/overview";

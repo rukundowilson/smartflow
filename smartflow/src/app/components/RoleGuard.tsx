@@ -87,23 +87,35 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
         });
       }
 
+      // Debug logging
+      console.log('🔍 RoleGuard Debug Info:');
+      console.log('User object:', user);
+      console.log('Selected role:', selectedRole);
+      console.log('User roles array:', userRoles);
+      console.log('Allowed departments:', allowedDepartments);
+      console.log('Allowed roles:', allowedRoles);
+
       // Check if user has any matching roles/departments
       const hasMatchingRole = userRoles.some(userRole => {
         // Check allowed roles
         if (allowedRoles.length > 0 && !allowedRoles.includes(userRole.role)) {
+          console.log(`❌ Role mismatch: ${userRole.role} not in ${allowedRoles}`);
           return false;
         }
 
         // Check allowed departments
         if (allowedDepartments.length > 0 && !allowedDepartments.includes(userRole.department)) {
+          console.log(`❌ Department mismatch: ${userRole.department} not in ${allowedDepartments}`);
           return false;
         }
 
         // Check allowed role types
         if (allowedRoleTypes.length > 0 && userRole.roleType && !allowedRoleTypes.includes(userRole.roleType)) {
+          console.log(`❌ Role type mismatch: ${userRole.roleType} not in ${allowedRoleTypes}`);
           return false;
         }
 
+        console.log(`✅ Access granted for role: ${userRole.role}, department: ${userRole.department}`);
         return true;
       });
 
@@ -113,6 +125,8 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
       } else {
         setHasAccess(hasMatchingRole);
       }
+
+      console.log(`🔍 Final access decision: ${hasMatchingRole ? 'GRANTED' : 'DENIED'}`);
 
       setIsLoading(false);
     };

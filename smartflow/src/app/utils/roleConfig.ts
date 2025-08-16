@@ -18,9 +18,9 @@ export const DEPARTMENT_ROLES = {
   },
   
   // HR Department - has special access
-  'HR Department': {
+  'Human Resources': {
     allowedRoles: ['HR Officer', 'Line Manager', 'HOD', 'User'],
-    allowedDepartments: ['HR Department'],
+    allowedDepartments: ['Human Resources'],
     requireAuth: true,
     redirectTo: '/'
   },
@@ -34,16 +34,16 @@ export const DEPARTMENT_ROLES = {
   },
   
   // Standard departments (Finance, Marketing, etc.)
-  'Finance Department': {
+  'Finance': {
     allowedRoles: ['Line Manager', 'HOD', 'User'],
-    allowedDepartments: ['Finance Department'],
+    allowedDepartments: ['Finance'],
     requireAuth: true,
     redirectTo: '/'
   },
   
-  'Marketing Department': {
+  'Marketing': {
     allowedRoles: ['Line Manager', 'HOD', 'User'],
-    allowedDepartments: ['Marketing Department'],
+    allowedDepartments: ['Marketing'],
     requireAuth: true,
     redirectTo: '/'
   }
@@ -53,31 +53,31 @@ export const DEPARTMENT_ROLES = {
 export const PAGE_ROLES = {
   // Departments/Others pages - accessible by standard department users
   '/departments/others': {
-    allowedDepartments: ['Finance Department', 'Marketing Department'],
+    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/overview': {
-    allowedDepartments: ['Finance Department', 'Marketing Department'],
+    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/my-requests': {
-    allowedDepartments: ['Finance Department', 'Marketing Department'],
+    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/my-tickets': {
-    allowedDepartments: ['Finance Department', 'Marketing Department'],
+    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
   
   '/departments/others/access-request': {
-    allowedDepartments: ['Finance Department', 'Marketing Department'],
+    allowedDepartments: ['Finance', 'Marketing'],
     requireAuth: true,
     redirectTo: '/'
   },
@@ -91,7 +91,7 @@ export const PAGE_ROLES = {
   
   // HR Department pages
   '/administration/hr': {
-    allowedDepartments: ['HR Department'],
+    allowedDepartments: ['Human Resources'],
     requireAuth: true,
     redirectTo: '/'
   },
