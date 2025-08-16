@@ -1,5 +1,5 @@
 import { useAuth } from '@/app/contexts/auth-context';
-import { getRoleConfig, getUserPrimaryDepartment, getUserPrimaryRole } from '@/app/utils/roleConfig';
+import { getRoleConfig, getUserPrimaryDepartment, getUserPrimaryRole, isSpecialDepartment } from '@/app/utils/roleConfig';
 
 export function useRoleAccess() {
   const { user, isAuthenticated, selectedRole } = useAuth();
@@ -49,7 +49,8 @@ export function useRoleAccess() {
   };
 
   const isStandardDepartmentUser = (): boolean => {
-    return hasDepartmentAccess(['Finance Department', 'Marketing Department']);
+    const userDepartment = getUserPrimaryDepartment(user, selectedRole);
+    return !isSpecialDepartment(userDepartment);
   };
 
   const isITDepartmentUser = (): boolean => {
@@ -57,7 +58,7 @@ export function useRoleAccess() {
   };
 
   const isHRDepartmentUser = (): boolean => {
-    return hasDepartmentAccess(['HR Department']);
+    return hasDepartmentAccess(['Human Resources']);
   };
 
   const isSuperAdmin = (): boolean => {

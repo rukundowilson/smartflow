@@ -470,7 +470,6 @@ function OverViewContent(){
 export default function OverView() {
     return (
         <RoleGuard
-            allowedDepartments={['Finance Department', 'Marketing Department']}
             requireAuth={true}
             redirectTo="/"
         >
