@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from "@/app/contexts/auth-context";
+import { useRoleAccess } from "@/app/hooks/useRoleAccess";
 
 const modules = [
   { id: 'overview', name: 'Overview', icon: Monitor, description: 'Dashboard overview' },
@@ -35,6 +36,7 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const { logout, user, selectedRole } = useAuth();
+  const { isStandardDepartmentUser } = useRoleAccess();
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
 
@@ -134,28 +136,35 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Navigation</h3>
         )}
         <div className="space-y-1">
-          {modules.map((module) => (
-            <button
-              key={module.id}
-              onClick={() => handleModuleClick(module.id)}
-              className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                activeModule === module.id
-                  ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
-              }`}
-              title={isCollapsed ? module.name : ''}
-            >
-              <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-              }`} />
-              {!isCollapsed && (
-                <div className="flex-1 text-left min-w-0">
-                  <div className="font-semibold truncate">{module.name}</div>
-                  <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
-                </div>
-              )}
-            </button>
-          ))}
+          {modules.map((module) => {
+            // Check if user has access to this module
+            if (!isStandardDepartmentUser()) {
+              return null;
+            }
+            
+            return (
+              <button
+                key={module.id}
+                onClick={() => handleModuleClick(module.id)}
+                className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                  activeModule === module.id
+                    ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
+                }`}
+                title={isCollapsed ? module.name : ''}
+              >
+                <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                  activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+                }`} />
+                {!isCollapsed && (
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-semibold truncate">{module.name}</div>
+                    <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

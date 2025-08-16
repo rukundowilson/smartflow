@@ -43,8 +43,8 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
 
   const modules = [
     { id: '', name: 'Overview', icon: Monitor, description: 'IT Manager dashboard' },
-    { id: 'assignments', name: 'Assignments', icon: Users, description: 'IT support assignments' },
-  ];
+  { id: 'assignments', name: 'Assignments', icon: Users, description: 'IT support assignments' },
+];
 
   const fetchCounts = async () => {
     if (!user?.id) return;
@@ -296,25 +296,25 @@ const ITManagerNavbar: React.FC<HRNavbarProps> = ({
                   const badgeColor = getBadgeColor(module.id);
                   
                   return (
-                    <button
-                      key={module.id}
-                      onClick={() => handleModuleClick(module.id)}
+                  <button
+                    key={module.id}
+                    onClick={() => handleModuleClick(module.id)}
                       className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-md transition-colors ${
-                        activeModule === module.id
-                          ? "bg-sky-100 text-sky-700"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
+                      activeModule === module.id
+                        ? "bg-sky-100 text-sky-700"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
                       <div className="flex items-center">
-                        <module.icon className="h-5 w-5 mr-3" />
-                        {module.name}
+                    <module.icon className="h-5 w-5 mr-3" />
+                    {module.name}
                       </div>
                       {badgeCount > 0 && (
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${badgeColor}`}>
                           {badgeCount > 99 ? '99+' : badgeCount}
                         </span>
                       )}
-                    </button>
+                  </button>
                   );
                 })}
                 

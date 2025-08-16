@@ -6,6 +6,7 @@ import { Clock, CheckCircle, XCircle, Activity, Eye, FileText, ArrowUpRight, Arr
 import systemAccessRequestService, { SystemAccessRequest as SARequest } from '@/app/services/systemAccessRequestService';
 import { useAuth } from '@/app/contexts/auth-context';
 import Link from 'next/link';
+import RoleGuard from '@/app/components/RoleGuard';
 
 interface RecentItem {
   id: number;
@@ -15,7 +16,7 @@ interface RecentItem {
   submitted_at: string;
 }
 
-export default function ITHODOverviewPage() {
+function ITHODOverviewContent() {
   const { user } = useAuth();
   const [pending, setPending] = useState<SARequest[]>([]);
   const [processed, setProcessed] = useState<SARequest[]>([]);
@@ -171,5 +172,18 @@ export default function ITHODOverviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ITHODOverviewPage() {
+  return (
+    <RoleGuard
+      allowedRoles={['HOD']}
+      allowedDepartments={['IT Department']}
+      requireAuth={true}
+      redirectTo="/"
+    >
+      <ITHODOverviewContent />
+    </RoleGuard>
   );
 }

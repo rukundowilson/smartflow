@@ -240,9 +240,9 @@ export default function Sidebar({ onClose, isMobile = false }: SidebarProps) {
                   title={isCollapsed ? module.name : ''}
                 >
                   <div className="relative">
-                    <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                      isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-                    }`} />
+                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                    isParentActive ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+                  }`} />
                     {/* Badge for collapsed state */}
                     {isCollapsed && count > 0 && (
                       <div className={`absolute -top-1 -right-1 h-4 w-4 rounded-full text-xs font-bold flex items-center justify-center ${

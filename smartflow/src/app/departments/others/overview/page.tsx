@@ -20,6 +20,7 @@ import { fetchTicketsByUserId } from '@/app/services/ticketService';
 import { getUserItemRequisitions, ItemRequisition } from '@/app/services/itemRequisitionService';
 import systemAccessRequestService, { SystemAccessRequest } from '@/app/services/systemAccessRequestService';
 import SpinLoading from '@/app/administration/superadmin/components/loading';
+import RoleGuard from '@/app/components/RoleGuard';
 
 
 // Type definitions
@@ -33,7 +34,7 @@ interface Ticket {
   description: string;
 }
 
-export default function OverView(){
+function OverViewContent(){
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [modalType, setModalType] = useState('');
     const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
@@ -464,4 +465,16 @@ export default function OverView(){
                 />
         </div>
     )
+}
+
+export default function OverView() {
+    return (
+        <RoleGuard
+            allowedDepartments={['Finance Department', 'Marketing Department']}
+            requireAuth={true}
+            redirectTo="/"
+        >
+            <OverViewContent />
+        </RoleGuard>
+    );
 }

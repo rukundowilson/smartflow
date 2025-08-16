@@ -367,8 +367,8 @@ export default function ITManagerAssignments() {
       
       // Always get pending requests for current IT Manager
       pendingResponse = await systemAccessRequestService.getPending({ 
-        approver_id: user.id, 
-        approver_role: 'IT Manager' 
+          approver_id: user.id, 
+          approver_role: 'IT Manager' 
       });
       
       // Get assigned/acted upon requests based on view scope
@@ -598,39 +598,39 @@ export default function ITManagerAssignments() {
             </div>
             
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Tab Navigation */}
+            {/* Tab Navigation */}
               <div className="flex items-center bg-gray-100 rounded-lg p-1 overflow-x-auto">
-                {tabConfigs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
+              {tabConfigs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
                     className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeTab === tab.key
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                    }`}
-                  >
+                    activeTab === tab.key
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  }`}
+                >
                     <span className="hidden sm:inline">{tab.label}</span>
                     <span className="sm:hidden">
                       {tab.key === 'pending' ? 'Pending' : tab.key === 'assigned' ? 'Assigned' : 'All'}
                     </span>
                     <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-              {/* Search */}
+            {/* Search */}
               <div className="relative w-full lg:w-auto">
-                <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name, email, system, or department..."
-                  className="w-full lg:w-80 pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
+              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, system, or department..."
+                className="w-full lg:w-80 pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
               </div>
             </div>
           </div>
@@ -704,28 +704,28 @@ export default function ITManagerAssignments() {
                     
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(request.status as RequestStatus)}
-                        {request.status === 'it_support_review' && (
+                       {getStatusBadge(request.status as RequestStatus)}
+                       {request.status === 'it_support_review' && (
                           <span className="text-xs sm:text-sm text-gray-600">
                             <span className="hidden sm:inline">Assigned to: </span>
                             <span className="font-medium">{request.it_support_name || 'Unassigned'}</span>
-                          </span>
-                        )}
+                         </span>
+                       )}
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelected(request);
-                          setModalOpen(true);
-                        }}
+                       <button
+                         onClick={() => {
+                           setSelected(request);
+                           setModalOpen(true);
+                         }}
                         className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          request.status === 'it_manager_pending'
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {request.status === 'it_manager_pending' ? 'Assign' : 'View'}
-                      </button>
-                    </div>
+                           request.status === 'it_manager_pending'
+                             ? 'bg-blue-600 text-white hover:bg-blue-700'
+                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                         }`}
+                       >
+                         {request.status === 'it_manager_pending' ? 'Assign' : 'View'}
+                       </button>
+                     </div>
                   </div>
                 </div>
               ))

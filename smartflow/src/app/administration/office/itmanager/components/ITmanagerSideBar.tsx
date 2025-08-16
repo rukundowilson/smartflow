@@ -207,9 +207,9 @@ export default function ITManagerSidebar() {
                             {badgeCount > 99 ? '99+' : badgeCount}
                           </span>
                         )}
-                        {hasChildren && (
+                      {hasChildren && (
                           <ChevronRight className={`h-4 w-4 ml-1 transition-transform duration-200 flex-shrink-0 ${openDropdowns[module.id] ? 'rotate-90' : ''} ${isParentActive ? 'text-white' : 'text-slate-400'}`} />
-                        )}
+                      )}
                       </div>
                     </div>
                   )}

@@ -15,15 +15,22 @@
   overflow: hidden;
 }
 
-/* Fix for select dropdown positioning */
+/* Basic select dropdown fix */
 select {
   position: relative !important;
+  z-index: 1 !important;
 }
 
-/* Ensure dropdowns appear above other elements */
 select:focus {
-  z-index: 50 !important;
+  z-index: 9999 !important;
 }
+
+/* Ensure signup page container doesn't clip dropdowns */
+.max-w-lg {
+  overflow: visible !important;
+}
+
+
 
 /* Force dropdown to stay within container */
 .ticket-manager-container {

@@ -145,7 +145,7 @@ class RoleService {
   // Assign role to user
   async assignRoleToUser(assignmentData: AssignRoleData): Promise<any> {
     try {
-      const response = await axios.post(`${this.baseUrl}/assignments/assign`, assignmentData);
+      const response = await axios.post(`${this.baseUrl}/assignments`, assignmentData);
       return response.data;
     } catch (error) {
       console.error('Error assigning role:', error);

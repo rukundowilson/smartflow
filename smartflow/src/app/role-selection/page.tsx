@@ -81,6 +81,15 @@ export default function RoleSelectionPage() {
     }
     
     if (roleName === 'HOD') {
+      // Check if HOD is in IT Department
+      if (departmentName === 'it department' || departmentName === 'it' || departmentName === 'information technology') {
+        console.log('🔍 IT Department HOD, redirecting to IT HOD dashboard');
+        router.push('/administration/it-hod');
+        return;
+      }
+      
+      // For other departments, use the general HOD route
+      console.log('🔍 General HOD, redirecting to HOD approvals');
       router.push('/administration/office/hod');
       return;
     }
@@ -98,7 +107,9 @@ export default function RoleSelectionPage() {
       "it",
       "it deparment", // Handle typo
       "information technology",
-      "superadmin"
+      "superadmin",
+      "finance",
+      "marketing"
     ];
 
     if (specialDepartments.includes(departmentName)) {
@@ -110,7 +121,9 @@ export default function RoleSelectionPage() {
         "it": "/departments/it-department/overview",
         "it deparment": "/departments/it-department/overview", // Handle typo
         "information technology": "/departments/it-department/overview",
-        "superadmin": "/administration/superadmin/overview"
+        "superadmin": "/administration/superadmin/overview",
+        "finance": "/departments/others/overview",
+        "marketing": "/departments/others/overview"
       };
       
       const route = routes[departmentName] || "/departments/others/overview";

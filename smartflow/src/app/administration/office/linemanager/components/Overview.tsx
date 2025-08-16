@@ -75,7 +75,7 @@ const Overview: React.FC = () => {
     const reviewedRes = await systemAccessRequestService.getApprovedBy({ approver_id: user.id, approver_role: 'Line Manager' });
     if (reviewedRes.success) {
       setRecentReviewed(reviewedRes.requests || []);
-    }
+      }
 
       // Compute stats
       const totalPending = (response.success ? (response.requests || []).length : 0);

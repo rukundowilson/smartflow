@@ -134,20 +134,20 @@ export default function HodSidebar() {
           {modules.map((module) => {
             const count = getModuleCount(module.id);
             return (
-              <button
-                key={module.id}
-                onClick={() => handleModuleClick(module.id)}
-                className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
-                  activeModule === module.id
-                    ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
-                }`}
-                title={isCollapsed ? module.name : ''}
-              >
+            <button
+              key={module.id}
+              onClick={() => handleModuleClick(module.id)}
+              className={`group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3'} text-sm font-medium rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+                activeModule === module.id
+                  ? 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25'
+                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md'
+              }`}
+              title={isCollapsed ? module.name : ''}
+            >
                 <div className="relative">
-                  <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
-                    activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
-                  }`} />
+              <module.icon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'} transition-all duration-200 ${
+                activeModule === module.id ? 'text-white drop-shadow-sm' : 'text-slate-500 group-hover:text-slate-700'
+              }`} />
                   {/* Badge for collapsed state */}
                   {isCollapsed && count > 0 && (
                     <div className={`absolute -top-1 -right-1 h-4 w-4 rounded-full text-xs font-bold flex items-center justify-center ${
@@ -159,11 +159,11 @@ export default function HodSidebar() {
                     </div>
                   )}
                 </div>
-                {!isCollapsed && (
+              {!isCollapsed && (
                   <div className="flex-1 text-left min-w-0 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{module.name}</div>
-                      <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
+                  <div className="font-semibold truncate">{module.name}</div>
+                  <div className={`text-xs truncate ${activeModule === module.id ? 'text-blue-100' : 'text-slate-400 group-hover:text-slate-500'}`}>{module.description}</div>
                     </div>
                     {/* Badge for expanded state */}
                     {count > 0 && (
@@ -177,9 +177,9 @@ export default function HodSidebar() {
                         {count > 99 ? '99+' : count}
                       </div>
                     )}
-                  </div>
-                )}
-              </button>
+                </div>
+              )}
+            </button>
             );
           })}
         </div>
